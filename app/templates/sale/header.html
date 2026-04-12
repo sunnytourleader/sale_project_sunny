@@ -1,0 +1,41 @@
+<!-- Display Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="mb-6 p-4 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm font-bold flex items-center gap-3">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i> {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
+    <div>
+        <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-1.5">Sales Performance</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Monitoring lead conversion, pipelines, and agent productivity.</p>
+    </div>
+    
+    <div class="flex items-center gap-4">
+        {% if current_user.is_authenticated and current_user.role == 'admin' %}
+        <form action="/" method="POST" enctype="multipart/form-data" class="flex items-center" id="uploadForm" style="Display: none">
+            <label class="cursor-pointer flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-semibold transition-colors shadow-sm border border-slate-200 dark:border-slate-700">
+                <i data-lucide="database" class="w-4 h-4"></i> Sync Master DB
+                <input type="file" name="file" class="hidden" accept=".csv, .xlsx" onchange="document.getElementById('uploadForm').submit();">
+            </label>
+        </form>
+        {% endif %}
+
+        <div class="flex items-center gap-4 bg-white dark:bg-slate-800 p-2.5 pr-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 min-w-[280px] transition-colors group z-[50]">
+            <div class="w-10 h-10 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 rounded-xl flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors border border-slate-100 dark:border-slate-700">
+                <i data-lucide="user-search" class="w-5 h-5"></i>
+            </div>
+            <div class="flex flex-col flex-1">
+                <select id="workspaceSelect" class="w-full bg-transparent outline-none font-medium text-sm text-slate-800 dark:text-white cursor-pointer appearance-none">
+                    <option value="all">Select Sale Rep</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div id="filterRow" class="mb-8 bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 flex flex-wrap gap-4 hidden justify-start transition-colors duration-300 relative z-[40]"></div>

@@ -1,0 +1,45 @@
+<style>
+    body { font-family: 'Inter', sans-serif; }
+    #sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .sidebar-open { transform: translateX(0) !important; }
+    
+    #loadingOverlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999;
+        display: none; align-items: center; justify-content: center;
+        background-color: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px);
+        transition: opacity 0.3s ease; opacity: 0; pointer-events: auto; user-select: none;
+    }
+
+    .spinner {
+        width: 48px; height: 48px; border: 4px solid #e2e8f0; border-bottom-color: #3b82f6;
+        border-radius: 50%; display: block; margin: 0 auto; animation: rotation 0.8s linear infinite;
+    }
+    .dark .spinner { border: 4px solid #1e293b; border-bottom-color: #3b82f6; }
+    @keyframes rotation { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    
+    /* Refined Scrollbar */
+    .pipeline-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .pipeline-scroll::-webkit-scrollbar-track { background: transparent; }
+    .pipeline-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+    .pipeline-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .dark .pipeline-scroll::-webkit-scrollbar-thumb { background: #334155; }
+    .dark .pipeline-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    .custom-scroll::-webkit-scrollbar { height: 4px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .dark .custom-scroll::-webkit-scrollbar-thumb { background: #475569; }
+    .mask-edge { mask-image: linear-gradient(to right, black 80%, transparent 100%); -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%); }
+
+    /* TomSelect Modern Overrides */
+    .ts-wrapper { width: 100%; min-width: 150px; }
+    .ts-control { border-radius: 0.75rem !important; padding: 0.5rem 1rem !important; border: 1px solid #e2e8f0 !important; background-color: #ffffff !important; color: #0f172a !important; font-family: 'Inter', sans-serif !important; font-weight: 500 !important; font-size: 0.875rem !important; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; min-height: 42px; transition: all 0.2s ease; }
+    .ts-control.focus { border-color: #3b82f6 !important; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important; }
+    .dark .ts-control { background-color: #0f172a !important; border-color: #334155 !important; color: #f1f5f9 !important; }
+    .ts-control > input { font-weight: 500 !important; font-size: 0.875rem !important; color: inherit !important; }
+    .ts-dropdown { border-radius: 0.75rem !important; border: 1px solid #e2e8f0 !important; background-color: #ffffff !important; color: #0f172a !important; font-family: 'Inter', sans-serif !important; font-weight: 500 !important; font-size: 0.875rem !important; overflow: hidden; margin-top: 4px !important; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important; z-index: 9999 !important; }
+    .dark .ts-dropdown { background-color: #1e293b !important; border-color: #334155 !important; color: #f1f5f9 !important; }
+    .ts-dropdown .option { padding: 0.5rem 1rem !important; transition: background-color 0.1s; cursor: pointer; }
+    .ts-dropdown .active { background-color: #eff6ff !important; color: #1d4ed8 !important; }
+    .dark .ts-dropdown .active { background-color: #1e293b !important; color: #60a5fa !important; }
+</style>

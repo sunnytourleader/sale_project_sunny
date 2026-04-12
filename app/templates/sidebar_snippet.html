@@ -1,0 +1,102 @@
+<!-- Sidebar Menu (Universal) -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-white dark:bg-slate-900 border-r border-slate-200/60 dark:border-slate-800 z-[70] transform -translate-x-full transition-transform duration-300">
+        <div class="flex flex-col h-full p-6">
+            <div class="flex items-center justify-between mb-10 pl-2">
+                <h2 class="text-sm font-semibold text-slate-400 tracking-wider uppercase">Menu</h2>
+                <button onclick="toggleMenu()" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <nav class="flex-1 space-y-1.5 custom-scrollbar overflow-y-auto pr-2">
+                
+                {% if user_permissions.get('sales_dashboard', False) %}
+                <a href="/" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all cursor-pointer
+                    {% if request.endpoint == 'dashboard.index' %}
+                        bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20
+                    {% else %}
+                        text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent
+                    {% endif %}">
+                    <i data-lucide="chart-no-axes-combined" class="w-5 h-5 mr-3"></i> Sales Dashboard
+                </a>
+                {% endif %}
+                
+                {% if user_permissions.get('revenue_dashboard', False) %}
+                <a href="/revenue" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all cursor-pointer
+                    {% if request.endpoint == 'dashboard.revenue_page' %}
+                        bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20
+                    {% else %}
+                        text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent
+                    {% endif %}">
+                    <i data-lucide="dollar-sign" class="w-5 h-5 mr-3"></i> Revenue Dashboard
+                </a>
+                {% endif %}
+
+                {% if user_permissions.get('compare_tools', False) %}
+                <a href="/compare-tools" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all cursor-pointer
+                    {% if request.endpoint == 'tools.compare_tools' %}
+                        bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20
+                    {% else %}
+                        text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent
+                    {% endif %}">
+                    <i data-lucide="scale" class="w-5 h-5 mr-3"></i> Compare Tools
+                </a>
+                {% endif %}
+
+                {% if user_permissions.get('meeting_report', False) %}
+                <a href="/meeting-report" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all cursor-pointer
+                    {% if request.endpoint == 'tools.meeting_report' %}
+                        bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20
+                    {% else %}
+                        text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent
+                    {% endif %}">
+                    <i data-lucide="notebook-tabs" class="w-5 h-5 mr-3"></i> Group Tours Report
+                </a>
+                {% endif %}
+
+                {% if user_permissions.get('ocr_tool', False) %}
+                <a href="/ocr-tool" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all cursor-pointer
+                    {% if request.endpoint == 'tools.ocr_tool_page' %}
+                        bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20
+                    {% else %}
+                        text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent
+                    {% endif %}">
+                    <i data-lucide="scan-qr-code" class="w-5 h-5 mr-3"></i> Chat OCR
+                </a>
+                {% endif %}
+
+                {% if user_permissions.get('user_management', False) %}
+                <div class="h-px bg-slate-200 dark:bg-slate-700 my-4"></div>
+                <a href="/users" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all cursor-pointer
+                    {% if request.endpoint == 'admin.users_page' %}
+                        bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20
+                    {% else %}
+                        text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent
+                    {% endif %}">
+                     <i data-lucide="users" class="w-5 h-5 mr-3"></i>  User Management
+                </a>
+                {% endif %}
+            </nav>
+
+            <!-- User Profile & Logout anchored to the bottom -->
+            {% if current_user and current_user.is_authenticated %}
+            <div class="mt-auto pt-6 border-t border-slate-200/60 dark:border-slate-800">
+                <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm transition-all hover:shadow-md">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/20 text-lg">
+                            {{ current_user.username[0]|upper }}
+                        </div>
+                        <div class="text-left flex flex-col justify-center">
+                            <p class="text-sm font-bold text-slate-800 dark:text-white leading-tight capitalize truncate max-w-[90px]" title="{{ current_user.username }}">{{ current_user.username }}</p>
+                            <p class="text-[10px] font-bold text-blue-500 uppercase tracking-wider mt-0.5">{{ current_user.role }}</p>
+                        </div>
+                    </div>
+                    <a href="/logout" class="p-2.5 text-rose-500 hover:text-white hover:bg-rose-500 rounded-lg transition-all shadow-sm border border-transparent hover:border-rose-600" title="Secure Logout">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </aside>

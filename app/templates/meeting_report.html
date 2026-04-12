@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Tours Managements</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { slate: { 850: '#151e2e', 900: '#0f172a' } }
+                }
+            }
+        }
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-open { transform: translateX(0) !important; }
+        
+        #loadingOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999;
+            display: none; align-items: center; justify-content: center;
+            background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px);
+        }
+        .spinner {
+            width: 48px; height: 48px; border: 4px solid #e2e8f0; border-bottom-color: #4f46e5;
+            border-radius: 50%; animation: rotation 0.8s linear infinite; margin-bottom: 1rem;
+        }
+        .dark .spinner { border: 4px solid #334155; border-bottom-color: #6366f1; }
+        @keyframes rotation { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .upload-box {
+            border: 2px dashed #cbd5e1; border-radius: 1rem; padding: 3rem;
+            text-align: center; background-color: #f8fafc; transition: all 0.2s ease;
+            cursor: pointer; position: relative; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; margin: 2rem auto; max-width: 600px;
+        }
+        .upload-box:hover { border-color: #6366f1; background-color: #eef2ff; }
+        .dark .upload-box { border-color: #334155; background-color: #0f172a; }
+        .dark .upload-box:hover { border-color: #6366f1; background-color: #1e293b; }
+        
+        .custom-scroll::-webkit-scrollbar { height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .dark .custom-scroll::-webkit-scrollbar-thumb { background: #334155; }
+        .dark .custom-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        .ts-wrapper { width: 100%; min-width: 150px; }
+        .ts-control { border-radius: 0.75rem !important; padding: 0.5rem 1rem !important; border: 1px solid #e2e8f0 !important; background-color: #ffffff !important; color: #0f172a !important; font-family: 'Inter', sans-serif !important; font-weight: 500 !important; font-size: 0.875rem !important; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; min-height: 42px; transition: all 0.2s ease; }
+        .ts-control.focus { border-color: #4f46e5 !important; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important; }
+        .dark .ts-control { background-color: #0f172a !important; border-color: #334155 !important; color: #f1f5f9 !important; }
+
+        .card-active { border-color: #4f46e5 !important; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1), 0 2px 4px -1px rgba(79, 70, 229, 0.06) !important; }
+        .dark .card-active { border-color: #6366f1 !important; box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.1), 0 2px 4px -1px rgba(99, 102, 241, 0.06) !important; }
+        
+        .critical-pulse { animation: pulse-border 2s infinite; border-left-width: 4px; border-left-color: #ef4444; }
+        .dark .critical-pulse { animation: pulse-border-dark 2s infinite; }
+        
+        @keyframes pulse-border { 0% { background-color: rgba(239, 68, 68, 0.05); } 50% { background-color: rgba(239, 68, 68, 0.15); } 100% { background-color: rgba(239, 68, 68, 0.05); } }
+        @keyframes pulse-border-dark { 0% { background-color: rgba(239, 68, 68, 0.1); } 50% { background-color: rgba(239, 68, 68, 0.2); } 100% { background-color: rgba(239, 68, 68, 0.1); } }
+
+        .mask-edge { mask-image: linear-gradient(to right, black 85%, transparent 100%); -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%); }
+    </style>
+</head>
+<body class="bg-[#f8fafc] dark:bg-[#0b1120] text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300">
+    
+    <!-- Admin Flag for Javascript Check -->
+    <input type="hidden" id="userIsAdmin" value="{{ '1' if current_user.is_authenticated and current_user.role == 'admin' else '0' }}">
+    
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[65] hidden opacity-0 transition-opacity duration-300" onclick="toggleMenu()"></div>
+
+    <!-- Sync Loading Screen -->
+    <div id="loadingOverlay">
+        <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center border border-slate-100 dark:border-slate-700">
+            <div class="spinner"></div>
+            <p class="text-sm font-bold text-slate-900 dark:text-white tracking-widest uppercase">Syncing to Database</p>
+        </div>
+    </div>
+
+    <!-- Top Navigation Bar -->
+    <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-[60] transition-colors duration-300">
+        <div class="flex items-center gap-4">
+            <button id="menuToggle" onclick="toggleMenu()" class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-transparent dark:border-slate-700">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <div class="flex flex-col">
+                <div class="flex items-center gap-3">
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                        <div class="w-6 h-6 bg-indigo-600 rounded-lg flex items-center justify-center">
+                            <i data-lucide="presentation" class="w-4 h-4 text-white"></i>
+                        </div>
+                        Group Tours Managements
+                    </h2>
+                    
+                    <form method="POST" action="/meeting-report" enctype="multipart/form-data" id="uploadForm" class="hidden">
+                        <input type="file" name="file" id="fileInput" accept=".xlsx, .xls" onchange="submitUpload()">
+                    </form>
+                    
+                    {% if current_user.is_authenticated and current_user.role == 'admin' %}
+                    <button onclick="document.getElementById('fileInput').click()" class="text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-md font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors uppercase border border-indigo-100 dark:border-indigo-500/20 flex items-center gap-1">
+                        <i data-lucide="database" class="w-3 h-3"></i> Sync New File
+                    </button>
+                    
+                    <button onclick="openTourModal()" class="text-[10px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-md font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors uppercase border border-emerald-100 dark:border-emerald-500/20 flex items-center gap-1 ml-2">
+                        <i data-lucide="plus" class="w-3 h-3"></i> Add Tour
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <button id="themeToggle" class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700">
+                <i data-lucide="moon" id="themeToggleDarkIcon" class="hidden w-5 h-5"></i>
+                <i data-lucide="sun" id="themeToggleLightIcon" class="hidden w-5 h-5"></i>
+            </button>
+            {% if data %}
+            <div class="text-xs font-semibold px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 hidden md:flex items-center gap-2">
+                <i data-lucide="check-circle-2" class="w-4 h-4"></i> Database Synced
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% include 'sidebar_snippet.html' %}
+
+    <main class="p-6 lg:p-10 max-w-[1600px] mx-auto">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-1.5">Group Tours Managements</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Viewing aggregated group data synced from the database.</p>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="mb-6 p-4 rounded-xl flex items-center gap-3 text-sm font-medium border bg-{{ 'emerald' if category == 'success' else 'rose' }}-50 border-{{ 'emerald' if category == 'success' else 'rose' }}-200 text-{{ 'emerald' if category == 'success' else 'rose' }}-700 dark:bg-{{ 'emerald' if category == 'success' else 'rose' }}-900/20 dark:border-{{ 'emerald' if category == 'success' else 'rose' }}-800 dark:text-{{ 'emerald' if category == 'success' else 'rose' }}-400">
+                <i data-lucide="{{ 'check-circle' if category == 'success' else 'alert-circle' }}" class="w-5 h-5"></i>
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% if not data %}
+        <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+            <i data-lucide="database" class="w-12 h-12 text-indigo-400 mb-4 animate-bounce"></i>
+            <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">No Database Synced</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 max-w-md">Upload your Master Data Excel file. The system will process it, create a new table, and sync it to the live database.</p>
+            <span class="mt-6 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center gap-2">
+                <i data-lucide="upload-cloud" class="w-5 h-5"></i> Select File
+            </span>
+        </div>
+        {% else %}
+
+        <!-- DYNAMIC TOP SUMMARY BAR -->
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-y-4 sm:gap-y-0 sm:divide-x divide-slate-200 dark:divide-slate-700">
+            <!-- Zones (Pax) -->
+            <div class="flex items-center gap-3 px-2 md:px-4">
+                <div class="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-lg"><i data-lucide="map" class="w-4 h-4"></i></div>
+                <div class="flex-1 overflow-hidden">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Zones (Total Pax)</p>
+                    <div class="flex items-center flex-nowrap overflow-x-auto custom-scroll pb-1 text-sm font-semibold text-slate-700 dark:text-slate-300 mask-edge">
+                        <span>A: <span id="sum-za" class="text-indigo-600 dark:text-indigo-400">0 (0)</span></span>
+                        <span class="text-slate-300 dark:text-slate-600 mx-2">|</span>
+                        <span>B: <span id="sum-zb" class="text-indigo-600 dark:text-indigo-400">0 (0)</span></span>
+                        <span class="text-slate-300 dark:text-slate-600 mx-2">|</span>
+                        <span>C: <span id="sum-zc" class="text-indigo-600 dark:text-indigo-400">0 (0)</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tickets -->
+            <div class="flex items-center gap-3 px-2 sm:pl-4 overflow-hidden">
+                <div class="p-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-lg"><i data-lucide="ticket" class="w-4 h-4"></i></div>
+                <div class="flex-1 overflow-hidden">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Tickets Status</p>
+                    <div id="sum-tickets" class="flex items-center flex-nowrap overflow-x-auto custom-scroll pb-1 text-sm font-semibold text-slate-700 dark:text-slate-300 mask-edge"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SUMMARY METRICS CARDS -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-4 mb-8">
+            <div id="card-all" onclick="filterByCard('all')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md card-active flex flex-col justify-between">
+                <div class="flex justify-between items-start mb-2">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">All Groups</p>
+                    <div class="p-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="layers" class="w-4 h-4"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-2xl font-bold text-slate-800 dark:text-white tabular-nums leading-none" id="card-total-groups">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-groups">0 Pax</p>
+                </div>
+            </div>
+            
+            <div id="card-closed" onclick="filterByCard('closed')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+                <div class="flex justify-between items-start mb-2">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Closed</p>
+                    <div class="p-1.5 bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="lock" class="w-4 h-4"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-2xl font-bold text-slate-700 dark:text-slate-300 tabular-nums leading-none" id="card-total-closed">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-closed">0 Pax</p>
+                </div>
+            </div>
+
+            <div id="card-finished" onclick="filterByCard('finished')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+                <div class="flex justify-between items-start mb-2">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Finished</p>
+                    <div class="p-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="flag" class="w-4 h-4"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-2xl font-bold text-indigo-700 dark:text-indigo-300 tabular-nums leading-none" id="card-total-finished">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-finished">0 Pax</p>
+                </div>
+            </div>
+
+            <div id="card-cancel" onclick="filterByCard('cancel')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+                <div class="flex justify-between items-start mb-2">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cancelled</p>
+                    <div class="p-1.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="x-circle" class="w-4 h-4"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-2xl font-bold text-rose-600 dark:text-rose-400 tabular-nums leading-none" id="card-total-cancel">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-cancel">0 Pax</p>
+                </div>
+            </div>
+
+            <div id="card-onsale" onclick="filterByCard('onsale')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+                <div class="flex justify-between items-start mb-2">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">On Sale</p>
+                    <div class="p-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="megaphone" class="w-4 h-4"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums leading-none" id="card-total-onsale">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-onsale">0 Remain</p>
+                </div>
+            </div>
+            
+            <div id="card-sold" onclick="filterByCard('sold')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+                <div class="flex justify-between items-start mb-2">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pax Sold</p>
+                    <div class="p-1.5 bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="users" class="w-4 h-4"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-2xl font-bold text-sky-600 dark:text-sky-400 tabular-nums leading-none" id="card-total-sold">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-sold">0 Groups</p>
+                </div>
+            </div>
+            
+            <div id="card-remain" onclick="filterByCard('remain')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+                <div class="flex justify-between items-start mb-2">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Risk (≤60d)</p>
+                    <div class="p-1.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="clock" class="w-4 h-4"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-2xl font-bold text-orange-600 dark:text-orange-400 tabular-nums leading-none" id="card-total-remain">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-remain">0 Remain</p>
+                </div>
+            </div>
+
+            <div id="card-risk30" onclick="filterByCard('risk30')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+                <div class="flex justify-between items-start mb-2">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Risk (≤30d)</p>
+                    <div class="p-1.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="flame" class="w-4 h-4"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-2xl font-bold text-rose-600 dark:text-rose-400 tabular-nums leading-none" id="card-total-risk30">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-risk30">0 Remain</p>
+                </div>
+            </div>
+
+            <div id="card-risk14" onclick="filterByCard('risk14')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+                <div class="flex justify-between items-start mb-2">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Risk (≤14d)</p>
+                    <div class="p-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg group-hover:scale-110 transition-transform animate-pulse"><i data-lucide="siren" class="w-4 h-4"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-2xl font-bold text-red-600 dark:text-red-400 tabular-nums leading-none" id="card-total-risk14">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-risk14">0 Remain</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- LISTING TABLE -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 overflow-hidden flex flex-col mb-12" id="listingSection">
+            
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h3 class="font-semibold text-lg text-slate-800 dark:text-white flex items-center gap-2">
+                        <i data-lucide="list" class="w-5 h-5 text-indigo-500"></i> Group Tours Listing
+                    </h3>
+                </div>
+                <div class="flex items-center gap-3" data-html2canvas-ignore="true">
+                    <button onclick="captureListingScreenshot()" class="flex items-center justify-center px-4 h-9 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 font-semibold text-xs gap-1.5 group">
+                        <i data-lucide="camera" class="w-4 h-4 group-hover:scale-110 transition-transform"></i> Screenshot
+                    </button>
+                    <button onclick="exportListingExcel()" class="flex items-center justify-center px-4 h-9 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg transition-colors border border-emerald-200 dark:border-emerald-500/20 font-semibold text-xs gap-1.5 group">
+                        <i data-lucide="download" class="w-4 h-4 group-hover:-translate-y-0.5 transition-transform"></i> Export
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="p-5 border-b border-slate-100 dark:border-slate-700/50 flex flex-wrap items-center gap-4 bg-slate-50/50 dark:bg-slate-900/30" data-html2canvas-ignore="true">
+                <div class="flex-1 min-w-[200px]">
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="searchInput" placeholder="Search Tour Code, Dest, Zone or Remark..." class="w-full pl-9 pr-3 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-sm font-medium outline-none focus:border-indigo-500 dark:text-white transition-colors" oninput="applyFilters()">
+                    </div>
+                </div>
+                
+                <div class="w-36">
+                    <select id="monthFilter" class="ts-select w-full" onchange="applyFilters()">
+                        <option value="all">All Months</option>
+                        {% set months = [] %}
+                        {% for row in data %}
+                            {% if row.get('Month', '') and row.get('Month', '') not in months and row.get('Month', '')|string|lower != 'nan' %}
+                                {% set _ = months.append(row.get('Month', '')) %}
+                            {% endif %}
+                        {% endfor %}
+                        {% for month in months|sort %}
+                            <option value="{{ month|lower }}">{{ month }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="w-40">
+                    <select id="destFilter" class="ts-select w-full" onchange="applyFilters()">
+                        <option value="all">All Destinations</option>
+                        {% for dest in meta_data.destinations %}
+                            <option value="{{ dest|lower }}">{{ dest }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="w-36">
+                    <select id="zoneFilter" class="ts-select w-full" onchange="applyFilters()">
+                        <option value="all">All Zones</option>
+                        {% for z in meta_data.zones %}
+                            <option value="{{ z|lower }}">{{ z }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="w-36">
+                    <select id="statusFilter" class="ts-select w-full" onchange="applyFilters()">
+                        <option value="all">All Statuses</option>
+                        {% for st in meta_data.statuses %}
+                            <option value="{{ st|lower }}">{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="w-36">
+                    <select id="ticketFilter" class="ts-select w-full" onchange="applyFilters()">
+                        <option value="all">All Tickets</option>
+                        {% set tickets = [] %}
+                        {% for row in data %}
+                            {% set tk = row.get('Ticket', row.get('Ticket ', ''))|string|trim %}
+                            {% if tk and tk|lower != 'nan' and tk not in tickets %}
+                                {% set _ = tickets.append(tk) %}
+                            {% endif %}
+                        {% endfor %}
+                        {% for tk in tickets|sort %}
+                            <option value="{{ tk|lower }}">{{ tk }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="flex items-center gap-2 ml-auto z-[10]">
+                    <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Show</label>
+                    <select id="pageSize" class="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 dark:text-white outline-none focus:border-indigo-500 transition-all cursor-pointer" onchange="pageSize=parseInt(this.value); currentPage=1; renderTable();">
+                        <option value="10">10 Rows</option>
+                        <option value="25">25 Rows</option>
+                        <option value="50">50 Rows</option>
+                        <option value="100">100 Rows</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Table JS Driven -->
+            <div class="overflow-x-auto custom-scroll min-h-[400px]">
+                <table class="w-full text-left" id="reportTable">
+                    <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200/60 dark:border-slate-700 whitespace-nowrap">
+                        <tr>
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('tour')">
+                                <div class="flex items-center gap-1">
+                                    Tour Code / Month
+                                    <span class="sort-icon-container" id="sort-container-tour">
+                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                    </span>
+                                </div>
+                            </th>
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('zone')">
+                                <div class="flex items-center gap-1">
+                                    Zone / Days
+                                    <span class="sort-icon-container" id="sort-container-zone">
+                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                    </span>
+                                </div>
+                            </th>
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('dep')">
+                                <div class="flex items-center gap-1">
+                                    Schedule
+                                    <span class="sort-icon-container" id="sort-container-dep">
+                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                    </span>
+                                </div>
+                            </th>
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('cap')">
+                                <div class="flex items-center justify-center gap-1">
+                                    Capacity
+                                    <span class="sort-icon-container" id="sort-container-cap">
+                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                    </span>
+                                </div>
+                            </th>
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('sold')">
+                                <div class="flex items-center justify-center gap-1">
+                                    Sold
+                                    <span class="sort-icon-container" id="sort-container-sold">
+                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                    </span>
+                                </div>
+                            </th>
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('remain')">
+                                <div class="flex items-center justify-center gap-1">
+                                    Remain
+                                    <span class="sort-icon-container" id="sort-container-remain">
+                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                    </span>
+                                </div>
+                            </th>
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('status')">
+                                <div class="flex items-center justify-center gap-1">
+                                    Status
+                                    <span class="sort-icon-container" id="sort-container-status">
+                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                    </span>
+                                </div>
+                            </th>
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('price')">
+                                <div class="flex items-center justify-end gap-1">
+                                    Pricing ($)
+                                    <span class="sort-icon-container" id="sort-container-price">
+                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                    </span>
+                                </div>
+                            </th>
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 max-w-[200px]">Remark</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50" id="tableBody">
+                        <!-- Populated by Javascript -->
+                    </tbody>
+                    <tfoot id="tableFoot" class="bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-md sticky bottom-0 z-10 border-t border-slate-200/60 dark:border-slate-700 whitespace-nowrap">
+                        <!-- Populated by Javascript -->
+                    </tfoot>
+                </table>
+            </div>
+            
+            <!-- Main Pagination -->
+            <div class="px-6 py-4 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-700/50 flex flex-col md:flex-row items-center justify-between gap-4" data-html2canvas-ignore="true">
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400" id="visibleCountText">Showing 0 groups</p>
+                <div class="flex gap-2">
+                    <button id="prevBtn" class="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onclick="if(currentPage > 1) { currentPage--; renderTable(); }">Prev</button>
+                    <button id="nextBtn" class="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onclick="if(currentPage < Math.ceil(window.filteredData.length / pageSize)) { currentPage++; renderTable(); }">Next</button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Hidden Data injection -->
+    <script id="flask-data" type="application/json">
+        {{ data | default([]) | tojson | safe }}
+    </script>
+
+    <!-- Row Details Modal -->
+    <div id="rowDetailModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 transition-all duration-300">
+        <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeRowModal()"></div>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-2xl z-10 flex flex-col transform transition-all border border-slate-200 dark:border-slate-700">
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                <h3 id="groupDetailsModalTitle" class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="info" class="w-5 h-5 text-indigo-500"></i> Group Details
+                </h3>
+                <button onclick="closeRowModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6" id="modalContent">
+                <!-- Injected via JS -->
+            </div>
+            <div class="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 flex items-center justify-end rounded-b-2xl" id="rowModalFooter">
+                <!-- Injected via JS to conditionally show Edit Button -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Tour Modal -->
+    <div id="tourFormModal" class="fixed inset-0 z-[110] hidden items-center justify-center p-4 transition-all duration-300">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeTourModal()"></div>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-4xl z-10 flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-700">
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                <h3 id="tourModalTitle" class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="plus" class="w-5 h-5 text-emerald-500"></i> Add New Tour Group
+                </h3>
+                <button onclick="closeTourModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto custom-scroll flex-1">
+                <form id="tourForm" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <input type="hidden" id="tour_is_edit" value="0">
+                    <input type="hidden" id="tour_orig_tc">
+                    <input type="hidden" id="tour_orig_dep">
+                    
+                    <!-- Basic Info -->
+                    <div class="col-span-1 md:col-span-3">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 border-b border-slate-200 dark:border-slate-700 pb-2">Basic Info</h4>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-between">
+                            <span>Tour Code / Destination <span class="text-rose-500">*</span></span>
+                        </label>
+                        <input type="text" id="t_tour_code" list="destList" required placeholder="Select or type..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                        <datalist id="destList">
+                            {% for dest in meta_data.destinations %}
+                            <option value="{{ dest }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+
+                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Month</label><input type="text" id="t_month" placeholder="Auto-fills from Date" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"></div>
+                    
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Zone</label>
+                        <input type="text" id="t_zone" list="zoneList" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                        <datalist id="zoneList">
+                            {% for z in meta_data.zones %}
+                            <option value="{{ z }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    
+                    <!-- Schedule -->
+                    <div class="col-span-1 md:col-span-3 mt-2">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 border-b border-slate-200 dark:border-slate-700 pb-2">Schedule</h4>
+                    </div>
+                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-between"><span>Departure <span class="text-rose-500">*</span></span></label><input type="date" id="t_departure" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"></div>
+                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Arrival</label><input type="date" id="t_arrival" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"></div>
+                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Days</label><input type="number" id="t_days" placeholder="Auto-calculates" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm font-semibold text-blue-600 dark:text-blue-400"></div>
+                    
+                    <!-- Advanced Schedule -->
+                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 mt-2">Close Date</label><input type="date" id="t_close_date" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm" placeholder="Optional"></div>
+                    
+                    <!-- Capacity & Pricing -->
+                    <div class="col-span-1 md:col-span-3 mt-4">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 border-b border-slate-200 dark:border-slate-700 pb-2">Capacity & Details</h4>
+                    </div>
+                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Capacity (Booked)</label><input type="number" id="t_capacity" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm" oninput="calcRemain()"></div>
+                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Sold</label><input type="number" id="t_sold" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm" oninput="calcRemain()"></div>
+                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Remain</label><input type="number" id="t_remain" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"></div>
+                    
+                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Price 10Apx</label><input type="number" step="0.01" id="t_price10apx" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"></div>
+                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Price 10Up</label><input type="number" step="0.01" id="t_price10up" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"></div>
+                    
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Type (GIT/FIT)</label>
+                        <input type="text" id="t_git_fit" list="gitFitList" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                        <datalist id="gitFitList">
+                            <option value="GIT">
+                            <option value="FIT">
+                        </datalist>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Status</label>
+                        <input type="text" id="t_status" list="statusList" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                        <datalist id="statusList">
+                            {% for st in meta_data.statuses %}
+                            <option value="{{ st }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Ticket</label>
+                        <select id="t_ticket" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="Pending">Pending</option>
+                        </select>
+                    </div>
+                    <div class="col-span-1 md:col-span-3"><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Remark</label><input type="text" id="t_remark" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"></div>
+                </form>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3 rounded-b-2xl">
+                <button type="button" onclick="closeTourModal()" class="px-5 py-2.5 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-sm transition-colors">Cancel</button>
+                <button type="button" onclick="saveTourGroup(event)" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors shadow-sm flex items-center gap-2">
+                    <i data-lucide="save" class="w-4 h-4"></i> Save Tour
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Sold Details Modal -->
+    <div id="soldDetailsModal" class="fixed inset-0 z-[110] hidden items-center justify-center p-4 transition-all duration-300">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeSoldDetailsModal()"></div>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-6xl z-10 flex flex-col max-h-[90vh] transform transition-all border border-slate-200 dark:border-slate-700 overflow-hidden">
+            
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-800 relative z-20">
+                <div class="flex-1 min-w-0 pr-4">
+                    <h3 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center flex-wrap gap-2 leading-tight" id="soldDetailsTitle">
+                        <i data-lucide="users" class="w-5 h-5 text-emerald-500 flex-shrink-0"></i> 
+                        <!-- Title injected via JS -->
+                    </h3>
+                </div>
+                
+                <div class="flex items-center gap-3 shrink-0">
+                    <select id="soldDetailsRepFilter" class="text-xs font-medium border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-900 dark:text-white outline-none focus:border-emerald-500 transition-colors shadow-sm" onchange="renderSoldDetailsTable()">
+                        <option value="all">All Reps</option>
+                    </select>
+                    
+                    <button onclick="exportSoldDetailsExcel()" class="flex items-center justify-center px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg transition-colors border border-emerald-200 dark:border-emerald-500/20 font-semibold text-xs gap-1.5 shadow-sm">
+                        <i data-lucide="download" class="w-4 h-4"></i> Export
+                    </button>
+                    <button onclick="closeSoldDetailsModal()" class="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-300 rounded-lg transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="overflow-auto custom-scroll p-0 flex-1 relative z-0 bg-white dark:bg-slate-800">
+                 <table class="w-full text-left">
+                    <thead class="bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-md sticky top-0 z-10 border-b border-slate-200/60 dark:border-slate-700 whitespace-nowrap">
+                        <tr>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">No.</th>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Contacted Date</th>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Customer</th>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Destination</th>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">S.O No</th>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-right">Tour Fare</th>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center">Pax</th>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-right">Total</th>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center">Source</th>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center">Type</th>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Sale Rep</th>
+                        </tr>
+                    </thead>
+                    <tbody id="soldDetailsBody" class="divide-y divide-slate-100 dark:divide-slate-700/50 bg-white dark:bg-slate-800">
+                         <!-- populated via JS -->
+                    </tbody>
+                    <tfoot id="soldDetailsFoot" class="bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-md sticky bottom-0 z-10 border-t border-slate-200/60 dark:border-slate-700 whitespace-nowrap">
+                         <!-- populated via JS -->
+                    </tfoot>
+                 </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        let rawData = [];
+        try {
+            const dataElement = document.getElementById('flask-data');
+            if (dataElement) {
+                let text = dataElement.textContent.trim();
+                if (text && !text.startsWith('{' + '{')) {
+                    text = text.replace(/:\s*NaN/gi, ': null').replace(/:\s*Infinity/gi, ': null').replace(/:\s*-Infinity/gi, ': null').replace(/:\s*None/gi, ': null');
+                    rawData = JSON.parse(text);
+                }
+            }
+        } catch(e) { console.warn("JSON parsing failed, falling back to empty array", e); }
+        
+        window.masterData = Array.isArray(rawData) ? rawData : [];
+        window.filteredData = [];
+        let currentPage = 1;
+        let pageSize = 10;
+        let activeCardFilter = 'all';
+        let currentSort = { col: null, asc: true };
+        
+        window.currentSoldData = []; 
+        let currentSoldDataExport = []; 
+        
+        let currentEditTour = null;
+
+        const getUrl = p => window.location.origin === 'null' ? p.substring(1) : window.location.origin + (p.startsWith('/') ? p : '/' + p);
+
+        const getObjStr = (obj, keyName, fallback = '---') => {
+            if (!obj || typeof obj !== 'object') return fallback;
+            if (obj[keyName] !== undefined && obj[keyName] !== null && String(obj[keyName]).trim() !== '') {
+                const v = String(obj[keyName]).trim();
+                if (!['none', 'nan', 'nat', '<na>', '---'].includes(v.toLowerCase())) return v;
+            }
+            const rowKeys = Object.keys(obj);
+            const searchKey = String(keyName).toLowerCase().trim();
+            const found = rowKeys.find(k => {
+                const kLow = String(k).toLowerCase().trim();
+                if (kLow === searchKey || kLow.replace(/_/g, ' ') === searchKey || kLow.replace(/_/g, '') === searchKey) return true;
+                if (searchKey === 'departure' && (kLow === 'dep_date' || kLow === 'departure_date' || kLow === 'dep' || kLow.includes('depart'))) return true;
+                if (searchKey === 'arrival' && (kLow === 'arr_date' || kLow === 'arrival_date' || kLow === 'arr' || kLow.includes('arriv'))) return true;
+                if (searchKey === 'close_date' && (kLow === 'close_date' || kLow === 'close date' || kLow === 'closedate' || kLow === 'close')) return true;
+                if (searchKey === 'tour_code' && (kLow === 'tourcode' || kLow === 'code' || kLow === 'tour' || kLow === 'destinations')) return true;
+                if (searchKey === 'ticket' && kLow.includes('ticket')) return true;
+                if (searchKey === 'remark' && (kLow.includes('remark') || kLow.includes('note'))) return true;
+                if (searchKey === 'remain' && kLow.includes('remain')) return true;
+                if (searchKey === 'sold' && kLow.includes('sold')) return true;
+                if (searchKey === 'booked' && kLow.includes('book')) return true;
+                if (searchKey === 'price_10apx' && (kLow.includes('10apx') || kLow.includes('price'))) return true;
+                return false;
+            });
+            if (found !== undefined) {
+                const val = obj[found];
+                if (val !== null && val !== undefined && val !== '') {
+                    const strVal = String(val).trim().toLowerCase();
+                    if (!['none', 'nan', 'nat', '<na>', '---'].includes(strVal)) return String(val);
+                }
+            }
+            return fallback;
+        };
+
+        const fmtDate = d => { 
+            if (!d) return '---'; 
+            let strD = String(d).trim();
+            if (['none', 'nan', 'nat', '', '---'].includes(strD.toLowerCase())) return '---'; 
+            let numD = Number(strD);
+            if (!isNaN(numD) && numD > 20000 && numD < 90000) {
+                const dateObj = new Date((Math.floor(numD) - 25569) * 86400 * 1000);
+                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                return `${String(dateObj.getUTCDate()).padStart(2, '0')}-${months[dateObj.getUTCMonth()]}-${dateObj.getUTCFullYear()}`;
+            }
+            let cleanD = strD.split(' ')[0].split('T')[0];
+            let p = cleanD.split(/[-/]/); 
+            if (p.length === 3) {
+                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                let year, monthIdx, day;
+                if (p[0].length === 4) { year = p[0]; monthIdx = parseInt(p[1]) - 1; day = p[2]; } 
+                else if (p[2].length === 4 || p[2].length === 2) {
+                    year = p[2].length === 4 ? p[2] : ('20' + p[2]);
+                    if (isNaN(parseInt(p[1]))) { monthIdx = months.findIndex(m => m.toLowerCase().includes(p[1].toLowerCase().substring(0,3))); day = p[0]; } 
+                    else { let p0 = parseInt(p[0]); let p1 = parseInt(p[1]); if (p1 > 12) { monthIdx = p0 - 1; day = p[1]; } else { monthIdx = p1 - 1; day = p[0]; } }
+                }
+                if (monthIdx >= 0 && monthIdx <= 11) return `${String(day).padStart(2, '0')}-${months[monthIdx]}-${year}`;
+            }
+            let dt = new Date(strD);
+            if (!isNaN(dt.getTime())) {
+                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                return `${String(dt.getDate()).padStart(2, '0')}-${months[dt.getMonth()]}-${dt.getFullYear()}`;
+            }
+            return strD;
+        };
+
+        const fmtDateInput = (d) => {
+            if(!d || d === '---' || String(d).toLowerCase() === 'nan') return '';
+            let strD = String(d).trim();
+            let numD = Number(strD);
+            if (!isNaN(numD) && numD > 20000 && numD < 90000) {
+                const dateObj = new Date((Math.floor(numD) - 25569) * 86400 * 1000);
+                return dateObj.toISOString().split('T')[0];
+            }
+            let dt = new Date(strD);
+            if(!isNaN(dt.getTime())) {
+                const offset = dt.getTimezoneOffset() * 60000;
+                return new Date(dt.getTime() - offset).toISOString().split('T')[0];
+            }
+            return '';
+        };
+
+        const calculateDaysLeft = (dateStr) => {
+            if (!dateStr || String(dateStr).toLowerCase() === 'nan' || String(dateStr).toLowerCase() === 'none' || dateStr === '---') return null;
+            const fDate = fmtDate(dateStr);
+            if(fDate === '---') return null;
+            const p = fDate.split('-');
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const mIdx = months.indexOf(p[1]);
+            if(mIdx === -1) return null;
+            const depDate = new Date(p[2], mIdx, p[0]);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); 
+            const timeDiff = depDate.getTime() - today.getTime();
+            return Math.ceil(timeDiff / (1000 * 3600 * 24));
+        };
+
+        function parseDateForSort(dateStr) {
+            if (!dateStr || dateStr === '---' || dateStr.toLowerCase() === 'nan') return 9999999999999; 
+            let numD = Number(dateStr);
+            if (!isNaN(numD) && numD > 20000) return numD; 
+            let dt = new Date(dateStr);
+            return isNaN(dt.getTime()) ? 9999999999999 : dt.getTime();
+        }
+
+        function calcScheduleFields() {
+            const dep = document.getElementById('t_departure').value;
+            const arr = document.getElementById('t_arrival').value;
+            if (dep) {
+                const d = new Date(dep);
+                const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                document.getElementById('t_month').value = months[d.getMonth()];
+            }
+            if (dep && arr) {
+                const d1 = new Date(dep); const d2 = new Date(arr);
+                const diffTime = Math.abs(d2 - d1);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
+                document.getElementById('t_days').value = diffDays;
+            }
+        }
+
+        document.getElementById('t_departure').addEventListener('change', calcScheduleFields);
+        document.getElementById('t_arrival').addEventListener('change', calcScheduleFields);
+
+        window.masterData.forEach(r => {
+            const depRaw = getObjStr(r, 'Departure', '');
+            const closeRaw = getObjStr(r, 'Close_Date', getObjStr(r, 'Close Date', getObjStr(r, 'CloseDate', '')));
+            const targetDate = (closeRaw && closeRaw !== '---' && closeRaw.toLowerCase() !== 'nan') ? closeRaw : depRaw;
+            r._daysLeft = calculateDaysLeft(targetDate);
+            r._sortVal = (r._daysLeft !== null && r._daysLeft >= 0) ? r._daysLeft : 999999;
+        });
+
+        function updateSummary(dataToSummarize) {
+            let zA = 0, zB = 0, zC = 0; let zAPax = 0, zBPax = 0, zCPax = 0; let tickets = {};
+            let tSold = 0, tRiskGroups = 0, riskRemain = 0; let tRisk30Groups = 0, risk30Remain = 0; let tRisk14Groups = 0, risk14Remain = 0;
+            let closedCount = 0, cancelCount = 0, onSaleCount = 0, finishedCount = 0;
+            let closedPax = 0, cancelPax = 0, onSaleRemain = 0, finishedPax = 0;
+            let activeAllCount = 0, activeAllPax = 0;
+
+            dataToSummarize.forEach(r => {
+                const sold = parseInt(getObjStr(r, 'Sold', '0')) || 0;
+                const remain = parseInt(getObjStr(r, 'Remain', '0')) || parseInt(getObjStr(r, 'REMAIN ', '0')) || parseInt(getObjStr(r, 'REMAIN', '0')) || 0;
+                const stUpper = getObjStr(r, 'Status', '').trim().toUpperCase();
+                const isRiskStatus = stUpper.includes('SALE') || stUpper === '' || stUpper === 'NAN' || stUpper === 'NONE' || stUpper === '---';
+                const isCancelled = stUpper.includes('CANCEL');
+
+                let isClosed = false, isFinished = false, isOnSale = false;
+
+                if(stUpper && stUpper !== 'NAN' && stUpper !== '---' && stUpper !== 'NONE') {
+                    if (stUpper.includes('CLOSED')) { closedCount++; closedPax += sold; isClosed = true; }
+                    else if (stUpper.includes('FINISHED')) { finishedCount++; finishedPax += sold; isFinished = true; }
+
+                    if (isCancelled) { cancelCount++; cancelPax += sold; }
+                    if (stUpper.includes('ON SALE') || stUpper.includes('SALE')) { onSaleCount++; onSaleRemain += remain; isOnSale = true; }
+                }
+
+                if (isClosed || isFinished || isOnSale) {
+                    activeAllCount++;
+                    activeAllPax += sold;
+                }
+
+                if (!isCancelled) {
+                    const z = getObjStr(r, 'Zone', '').toUpperCase();
+                    if(z.includes('ZONE A') || z === 'A') { zA++; zAPax += sold; }
+                    if(z.includes('ZONE B') || z === 'B') { zB++; zBPax += sold; }
+                    if(z.includes('ZONE C') || z === 'C') { zC++; zCPax += sold; }
+
+                    let tk = getObjStr(r, 'Ticket', getObjStr(r, 'Ticket ', '')).trim().toUpperCase();
+                    if(tk && tk !== 'NAN' && tk !== '---' && tk !== 'NONE') tickets[tk] = (tickets[tk] || 0) + 1;
+                    
+                    tSold += sold;
+                    if (remain > 0 && r._daysLeft !== null && r._daysLeft >= 0 && isRiskStatus) {
+                        if (r._daysLeft <= 60) { tRiskGroups++; riskRemain += remain; }
+                        if (r._daysLeft <= 30) { tRisk30Groups++; risk30Remain += remain; }
+                        if (r._daysLeft <= 14) { tRisk14Groups++; risk14Remain += remain; }
+                    }
+                }
+            });
+
+            document.getElementById('sum-za').innerText = `${zA} (${zAPax})`;
+            document.getElementById('sum-zb').innerText = `${zB} (${zBPax})`;
+            document.getElementById('sum-zc').innerText = `${zC} (${zCPax})`;
+
+            let tkHtml = Object.entries(tickets).sort((a,b)=>b[1]-a[1]).map(([k, v]) => `<span class="whitespace-nowrap">${k}: <span class="text-amber-600 dark:text-amber-400">${v}</span></span>`).join('<span class="text-slate-300 dark:text-slate-600 mx-2">|</span>');
+            document.getElementById('sum-tickets').innerHTML = tkHtml || '---';
+
+            const tGroupsEl = document.getElementById('card-total-groups'); if (tGroupsEl) tGroupsEl.innerText = activeAllCount;
+            const tPaxEl = document.getElementById('card-pax-groups'); if (tPaxEl) tPaxEl.innerText = `${activeAllPax} Pax`;
+            
+            const tClosedEl = document.getElementById('card-total-closed'); if (tClosedEl) tClosedEl.innerText = closedCount;
+            const tPaxClosedEl = document.getElementById('card-pax-closed'); if (tPaxClosedEl) tPaxClosedEl.innerText = `${closedPax} Pax`;
+
+            const tFinishedEl = document.getElementById('card-total-finished'); if (tFinishedEl) tFinishedEl.innerText = finishedCount;
+            const tPaxFinishedEl = document.getElementById('card-pax-finished'); if (tPaxFinishedEl) tPaxFinishedEl.innerText = `${finishedPax} Pax`;
+
+            const tCancelEl = document.getElementById('card-total-cancel'); if (tCancelEl) tCancelEl.innerText = cancelCount;
+            const tPaxCancelEl = document.getElementById('card-pax-cancel'); if (tPaxCancelEl) tPaxCancelEl.innerText = `${cancelPax} Pax`;
+
+            const tOnSaleEl = document.getElementById('card-total-onsale'); if (tOnSaleEl) tOnSaleEl.innerText = onSaleCount;
+            const tPaxOnSaleEl = document.getElementById('card-pax-onsale'); if (tPaxOnSaleEl) tPaxOnSaleEl.innerText = `${onSaleRemain} Remain`;
+
+            const tSoldEl = document.getElementById('card-total-sold'); if (tSoldEl) tSoldEl.innerText = tSold;
+            const tPaxSoldEl = document.getElementById('card-pax-sold'); if (tPaxSoldEl) tPaxSoldEl.innerText = `${dataToSummarize.filter(r => (parseInt(getObjStr(r, 'Sold', '0')) || 0) > 0 && !getObjStr(r, 'Status', '').toUpperCase().includes('CANCEL')).length} Groups`;
+            
+            const tRemainEl = document.getElementById('card-total-remain'); if (tRemainEl) tRemainEl.innerText = tRiskGroups;
+            const tPaxRemainEl = document.getElementById('card-pax-remain'); if (tPaxRemainEl) tPaxRemainEl.innerText = `${riskRemain} Remain`;
+
+            const tRisk30El = document.getElementById('card-total-risk30'); if (tRisk30El) tRisk30El.innerText = tRisk30Groups;
+            const tPaxRisk30El = document.getElementById('card-pax-risk30'); if (tPaxRisk30El) tPaxRisk30El.innerText = `${risk30Remain} Remain`;
+
+            const tRisk14El = document.getElementById('card-total-risk14'); if (tRisk14El) tRisk14El.innerText = tRisk14Groups;
+            const tPaxRisk14El = document.getElementById('card-pax-risk14'); if (tPaxRisk14El) tPaxRisk14El.innerText = `${risk14Remain} Remain`;
+        }
+
+        function sortTable(col) {
+            if (currentSort.col === col) currentSort.asc = !currentSort.asc;
+            else { currentSort.col = col; currentSort.asc = true; }
+            applySort(); currentPage = 1; renderTable(); updateSortIcons();
+        }
+
+        function applySort() {
+            if (!currentSort.col) { window.filteredData.sort((a, b) => a._sortVal - b._sortVal); return; }
+            window.filteredData.sort((a, b) => {
+                let valA, valB;
+                if (currentSort.col === 'tour') {
+                    valA = getObjStr(a, 'Tour_Code', getObjStr(a, 'Destinations', '')).toLowerCase();
+                    valB = getObjStr(b, 'Tour_Code', getObjStr(b, 'Destinations', '')).toLowerCase();
+                } else if (currentSort.col === 'zone') {
+                    valA = getObjStr(a, 'Zone', '').toLowerCase(); valB = getObjStr(b, 'Zone', '').toLowerCase();
+                } else if (currentSort.col === 'dep') {
+                    const closeA = getObjStr(a, 'Close_Date', getObjStr(a, 'Close Date', ''));
+                    const depA = getObjStr(a, 'Departure', '');
+                    const targetA = (closeA && closeA !== '---' && closeA.toLowerCase() !== 'nan') ? closeA : depA;
+                    const closeB = getObjStr(b, 'Close_Date', getObjStr(b, 'Close Date', ''));
+                    const depB = getObjStr(b, 'Departure', '');
+                    const targetB = (closeB && closeB !== '---' && closeB.toLowerCase() !== 'nan') ? closeB : depB;
+                    valA = parseDateForSort(targetA); valB = parseDateForSort(targetB);
+                } else if (currentSort.col === 'cap') {
+                    valA = parseInt(getObjStr(a, 'Booked', '0')) || 0; valB = parseInt(getObjStr(b, 'Booked', '0')) || 0;
+                } else if (currentSort.col === 'sold') {
+                    valA = parseInt(getObjStr(a, 'Sold', '0')) || 0; valB = parseInt(getObjStr(b, 'Sold', '0')) || 0;
+                } else if (currentSort.col === 'remain') {
+                    valA = parseInt(getObjStr(a, 'Remain', '0')) || parseInt(getObjStr(a, 'REMAIN ', '0')) || 0;
+                    valB = parseInt(getObjStr(b, 'Remain', '0')) || parseInt(getObjStr(b, 'REMAIN ', '0')) || 0;
+                } else if (currentSort.col === 'status') {
+                    valA = getObjStr(a, 'Status', '').toLowerCase(); valB = getObjStr(b, 'Status', '').toLowerCase();
+                } else if (currentSort.col === 'price') {
+                    valA = parseFloat(getObjStr(a, 'Price_10apx', getObjStr(a, 'Price 10apx', '0'))) || 0;
+                    valB = parseFloat(getObjStr(b, 'Price_10apx', getObjStr(b, 'Price 10apx', '0'))) || 0;
+                }
+                if (valA < valB) return currentSort.asc ? -1 : 1;
+                if (valA > valB) return currentSort.asc ? 1 : -1;
+                return 0;
+            });
+        }
+
+        function updateSortIcons() {
+            document.querySelectorAll('.sort-icon-container').forEach(container => { container.innerHTML = `<i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>`; });
+            if (currentSort.col) {
+                const activeContainer = document.getElementById('sort-container-' + currentSort.col);
+                if (activeContainer) activeContainer.innerHTML = `<i data-lucide="${currentSort.asc ? 'arrow-up' : 'arrow-down'}" class="w-3 h-3 opacity-100 text-indigo-500 transition-opacity"></i>`;
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function applyFilters() {
+            const search = document.getElementById('searchInput').value.toLowerCase().trim();
+            const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+            const monthFilter = document.getElementById('monthFilter').value.toLowerCase();
+            const destFilter = document.getElementById('destFilter').value.toLowerCase();
+            const ticketFilter = document.getElementById('ticketFilter').value.toLowerCase();
+            const zoneFilter = document.getElementById('zoneFilter').value.toLowerCase();
+            
+            const baseFilteredData = window.masterData.filter(r => {
+                const text = Object.values(r).join(' ').toLowerCase();
+                const rStatus = getObjStr(r, 'Status', '').toLowerCase();
+                const rMonth = getObjStr(r, 'Month', '').toLowerCase();
+                const rDest = getObjStr(r, 'Tour_Code', getObjStr(r, 'Destinations', getObjStr(r, 'Destination', ''))).replace(/ /g, '').toLowerCase();
+                const rTicket = getObjStr(r, 'Ticket', getObjStr(r, 'Ticket ', '')).trim().toLowerCase();
+                const rZone = getObjStr(r, 'Zone', '').trim().toLowerCase();
+
+                if (search && !text.includes(search)) return false;
+                if (statusFilter !== 'all' && !rStatus.includes(statusFilter)) return false;
+                if (monthFilter !== 'all' && rMonth !== monthFilter) return false;
+                if (destFilter !== 'all' && rDest !== destFilter) return false;
+                if (ticketFilter !== 'all' && rTicket !== ticketFilter) return false;
+                if (zoneFilter !== 'all' && rZone !== zoneFilter) return false;
+                return true;
+            });
+
+            updateSummary(baseFilteredData);
+
+            window.filteredData = baseFilteredData.filter(r => {
+                const sold = parseInt(getObjStr(r, 'Sold', '0')) || 0;
+                const remain = parseInt(getObjStr(r, 'Remain', '0')) || parseInt(getObjStr(r, 'REMAIN ', '0')) || parseInt(getObjStr(r, 'REMAIN', '0')) || 0;
+                const stUpper = getObjStr(r, 'Status', '').toUpperCase();
+                const isRiskStatus = stUpper.includes('SALE') || stUpper === '' || stUpper === 'NAN' || stUpper === 'NONE' || stUpper === '---';
+
+                if (activeCardFilter === 'sold' && sold <= 0) return false;
+                if (activeCardFilter === 'remain') { if (!(remain > 0 && r._daysLeft !== null && r._daysLeft >= 0 && r._daysLeft <= 60 && isRiskStatus)) return false; }
+                if (activeCardFilter === 'risk30') { if (!(remain > 0 && r._daysLeft !== null && r._daysLeft >= 0 && r._daysLeft <= 30 && isRiskStatus)) return false; }
+                if (activeCardFilter === 'risk14') { if (!(remain > 0 && r._daysLeft !== null && r._daysLeft >= 0 && r._daysLeft <= 14 && isRiskStatus)) return false; }
+                if (activeCardFilter === 'closed' && !stUpper.includes('CLOSED')) return false;
+                if (activeCardFilter === 'finished' && !stUpper.includes('FINISHED')) return false;
+                if (activeCardFilter === 'cancel' && !stUpper.includes('CANCEL')) return false;
+                if (activeCardFilter === 'onsale' && !(stUpper.includes('ON SALE') || stUpper.includes('SALE'))) return false;
+                return true;
+            });
+            
+            applySort(); currentPage = 1; renderTable(); updateSortIcons();
+        }
+
+        function filterByCard(filterType) {
+            activeCardFilter = filterType;
+            ['all', 'closed', 'finished', 'cancel', 'onsale', 'sold', 'remain', 'risk30', 'risk14'].forEach(type => {
+                const card = document.getElementById(`card-${type}`);
+                if(card) {
+                    if(type === filterType) card.classList.add('card-active');
+                    else card.classList.remove('card-active');
+                }
+            });
+            applyFilters();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const tfoot = document.getElementById('tableFoot');
+            const total = window.filteredData.length;
+            const maxPages = Math.ceil(total / pageSize) || 1;
+            if (currentPage > maxPages) currentPage = maxPages;
+
+            let sumBooked = 0; let sumSold = 0; let sumRemain = 0;
+            window.filteredData.forEach(r => {
+                sumBooked += parseInt(getObjStr(r, 'Booked', '0')) || 0;
+                sumSold += parseInt(getObjStr(r, 'Sold', '0')) || 0;
+                sumRemain += parseInt(getObjStr(r, 'Remain', '0')) || parseInt(getObjStr(r, 'REMAIN ', '0')) || parseInt(getObjStr(r, 'REMAIN', '0')) || 0;
+            });
+
+            const slice = window.filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+            if (slice.length === 0) {
+                if(tbody) tbody.innerHTML = `<tr><td colspan="9" class="px-6 py-8 text-center text-slate-400 text-sm">No groups found.</td></tr>`;
+                if (tfoot) tfoot.innerHTML = '';
+            } else {
+                if(tbody) {
+                    tbody.innerHTML = slice.map((r, i) => {
+                        const tourCode = getObjStr(r, 'Tour_Code', getObjStr(r, 'Destinations', getObjStr(r, 'Destination', '---')));
+                        const dest = getObjStr(r, 'Destination', getObjStr(r, 'Destinations', '---'));
+                        const month = getObjStr(r, 'Month', '---');
+                        const zone = getObjStr(r, 'Zone', '---');
+                        const days = getObjStr(r, 'DAY', '0');
+                        const depRaw = getObjStr(r, 'Departure', '');
+                        const arrRaw = getObjStr(r, 'Arrival', '');
+                        const closeRaw = getObjStr(r, 'Close_Date', getObjStr(r, 'Close Date', getObjStr(r, 'CloseDate', '')));
+                        const closeDateStr = (closeRaw && closeRaw !== '---' && closeRaw.toLowerCase() !== 'nan') ? fmtDate(closeRaw) : '---';
+                        
+                        const booked = parseInt(getObjStr(r, 'Booked', '0')) || 0;
+                        const sold = parseInt(getObjStr(r, 'Sold', '0')) || 0;
+                        const remain = parseInt(getObjStr(r, 'Remain', '0')) || parseInt(getObjStr(r, 'REMAIN ', '0')) || parseInt(getObjStr(r, 'REMAIN', '0')) || 0;
+                        const status = getObjStr(r, 'Status', '---');
+                        const ticket = getObjStr(r, 'Ticket', getObjStr(r, 'Ticket ', '---')).trim() || '---';
+                        let p10 = getObjStr(r, 'Price_10apx', getObjStr(r, 'Price 10apx', '0'));
+                        let pUp = getObjStr(r, 'Price_10up', getObjStr(r, 'Price 10up', '0'));
+                        const gitFit = getObjStr(r, 'GIT_FIT', getObjStr(r, 'GIT/FIT', '---'));
+                        const remark = getObjStr(r, 'Remark', '');
+                        
+                        const stUpper = status.toUpperCase();
+                        const isRiskStatus = stUpper.includes('SALE') || stUpper === '' || stUpper === 'NAN' || stUpper === 'NONE' || stUpper === '---';
+                        
+                        let statusBadge = '';
+                        if(stUpper.includes('CLOSED')) statusBadge = `<span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[9px] font-bold uppercase rounded border border-slate-200 dark:border-slate-600">Closed</span>`;
+                        else if(stUpper.includes('FINISHED')) statusBadge = `<span class="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-[9px] font-bold uppercase rounded border border-indigo-200 dark:border-indigo-500/20">${status}</span>`;
+                        else if(stUpper.includes('CANCEL')) statusBadge = `<span class="px-2 py-0.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[9px] font-bold uppercase rounded border border-rose-200 dark:border-rose-500/20">Cancelled</span>`;
+                        else if(stUpper.includes('ON SALE') || stUpper.includes('SALE')) statusBadge = `<span class="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold uppercase rounded border border-emerald-200 dark:border-emerald-500/20">On Sale</span>`;
+                        else statusBadge = `<span class="px-2 py-0.5 bg-slate-50 dark:bg-slate-800 text-slate-500 text-[9px] font-semibold uppercase rounded border border-slate-200 dark:border-slate-700">${status}</span>`;
+
+                        p10 = (p10 !== '0.0' && p10 !== '0' && p10.toLowerCase() !== 'nan' && p10 !== '') ? `$${p10}` : '---';
+                        pUp = (pUp !== '0.0' && pUp !== '0' && pUp.toLowerCase() !== 'nan' && pUp !== '') ? `$${pUp}` : '---';
+
+                        const remarkHTML = (remark !== 'nan' && remark !== '') ? `<p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 line-clamp-2 max-w-[200px]" title="${remark.replace(/"/g, '&quot;')}">${remark}</p>` : `<span class="text-slate-300 dark:text-slate-600">---</span>`;
+
+                        const daysLeft = r._daysLeft;
+                        let isRisk = (daysLeft !== null && daysLeft >= 0 && daysLeft <= 60 && remain > 0 && isRiskStatus);
+                        let trClass = isRisk ? 'bg-rose-50/80 dark:bg-rose-900/20 border-l-4 border-rose-500 cursor-pointer transition-colors critical-pulse' : 'hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer';
+                        let riskBadgeHTML = isRisk ? `<div class="mt-1"><span class="px-2 py-0.5 bg-rose-500 text-white text-[10px] font-bold rounded shadow-sm flex items-center gap-1 w-max"><i data-lucide="alert-triangle" class="w-3 h-3"></i> ${daysLeft} DAYS LEFT</span></div>` : '';
+
+                        const safeRowObj = {
+                            tourCode: tourCode, dest: dest, month: month, zone: zone, days: days,
+                            depDate: fmtDate(depRaw), arrDate: fmtDate(arrRaw), closeDate: closeDateStr,
+                            depDateRaw: depRaw, arrDateRaw: arrRaw, closeDateRaw: closeRaw,
+                            booked: booked, sold: sold, remain: remain,
+                            status: status, ticket: ticket, price10: p10, priceup: pUp, gitFit: gitFit,
+                            remark: remark, isRisk: isRisk, daysLeft: daysLeft
+                        };
+                        const rowJson = encodeURIComponent(JSON.stringify(safeRowObj));
+
+                        return `
+                        <tr class="${trClass}" onclick="openRowModal(decodeURIComponent('${rowJson}'))">
+                            <td class="px-5 py-3">
+                                <div class="text-sm font-bold text-slate-800 dark:text-white truncate max-w-[200px]" title="${tourCode}">${tourCode}</div>
+                                <div class="text-[10px] font-medium text-slate-400 mt-0.5 uppercase tracking-wider">${month}</div>
+                            </td>
+                            <td class="px-5 py-3">
+                                <div class="text-xs font-semibold text-slate-600 dark:text-slate-300">${zone}</div>
+                                <div class="text-[10px] font-medium text-slate-400 uppercase mt-0.5">${days} Days</div>
+                            </td>
+                            <td class="px-5 py-3 whitespace-nowrap">
+                                <div class="text-[11px] text-slate-600 dark:text-slate-300 whitespace-nowrap"><span class="font-medium text-slate-400 w-8 inline-block">Dep:</span> ${fmtDate(depRaw)}</div>
+                                <div class="text-[11px] text-slate-600 dark:text-slate-300 whitespace-nowrap mt-0.5"><span class="font-medium text-slate-400 w-8 inline-block">Arr:</span> ${fmtDate(arrRaw)}</div>
+                                ${closeDateStr !== '---' ? `<div class="text-[11px] text-rose-500 dark:text-rose-400 whitespace-nowrap mt-0.5 font-bold"><span class="font-medium text-slate-400 dark:text-slate-500 w-8 inline-block">Close:</span> ${closeDateStr}</div>` : ''}
+                                ${riskBadgeHTML}
+                            </td>
+                            <td class="px-5 py-3 text-center text-sm font-bold text-slate-700 dark:text-slate-300">${booked}</td>
+                            <td class="px-5 py-3 text-center text-sm font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50/30 dark:bg-emerald-900/10">${sold}</td>
+                            <td class="px-5 py-3 text-center font-semibold text-amber-500 dark:text-amber-400">${remain}</td>
+                            <td class="px-5 py-3 text-center whitespace-nowrap">
+                                <div>${statusBadge}</div>
+                                <div class="text-[9px] font-semibold text-slate-400 mt-1 uppercase">
+                                    <i data-lucide="ticket" class="w-3 h-3 inline-block -mt-0.5 mr-0.5"></i> ${ticket}
+                                </div>
+                            </td>
+                            <td class="px-5 py-3 text-right whitespace-nowrap">
+                                <div class="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                    <span class="text-[9px] text-slate-400 font-normal uppercase mr-1">10Pax:</span>
+                                    ${p10}
+                                </div>
+                                <div class="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5">
+                                    <span class="text-[9px] text-slate-400 font-normal uppercase mr-1">>10Pax:</span>
+                                    ${pUp}
+                                </div>
+                            </td>
+                            <td class="px-5 py-3">${remarkHTML}</td>
+                        </tr>`;
+                    }).join('');
+                }
+
+                if (tfoot) {
+                    tfoot.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="px-5 py-4 text-right text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">Filtered Totals:</td>
+                            <td class="px-5 py-4 text-center text-sm font-bold text-slate-800 dark:text-white">${sumBooked.toLocaleString()}</td>
+                            <td class="px-5 py-4 text-center text-sm font-bold text-emerald-600 dark:text-emerald-400">${sumSold.toLocaleString()}</td>
+                            <td class="px-5 py-4 text-center text-sm font-bold text-amber-600 dark:text-amber-400">${sumRemain.toLocaleString()}</td>
+                            <td colspan="3"></td>
+                        </tr>
+                    `;
+                }
+            }
+
+            const visibleCountEl = document.getElementById('visibleCountText');
+            if (visibleCountEl) visibleCountEl.innerText = `Showing ${(currentPage-1)*pageSize + (slice.length > 0 ? 1 : 0)} to ${Math.min(currentPage*pageSize, total)} of ${total} groups`;
+            
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            if (prevBtn) prevBtn.disabled = currentPage === 1;
+            if (nextBtn) nextBtn.disabled = currentPage >= maxPages;
+            
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // 7. Detail Modal Logic
+        function openRowModal(jsonStr) {
+            const r = JSON.parse(jsonStr);
+            currentEditTour = r;
+            
+            let riskBadge = '';
+            if (r.isRisk) riskBadge = `<span class="px-2 py-1 bg-rose-100 text-rose-700 text-[10px] font-bold rounded-md shadow-sm flex items-center gap-1 w-max"><i data-lucide="alert-triangle" class="w-3 h-3"></i> ${r.daysLeft} DAYS LEFT</span>`;
+
+            const headerTitle = document.getElementById('groupDetailsModalTitle');
+            if (headerTitle) {
+                const displayClose = r.closeDate !== '---' ? r.closeDate : (r.depDate !== '---' ? r.depDate : 'N/A');
+                headerTitle.innerHTML = `<i data-lucide="info" class="w-5 h-5 text-indigo-500"></i> Group Details <span class="ml-2 px-2.5 py-1 bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 text-[10px] font-bold uppercase rounded-lg tracking-widest shadow-sm flex items-center gap-1"><i data-lucide="calendar-off" class="w-3 h-3"></i> Close: ${displayClose}</span>`;
+            }
+
+            document.getElementById('modalContent').innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider mb-1">Tour Information</p>
+                        <p class="text-lg font-bold text-slate-800 dark:text-white truncate" title="${r.tourCode}">${r.tourCode}</p>
+                        <p class="text-sm font-medium text-indigo-500">${r.zone} • ${r.days} Days • ${r.month} ${r.gitFit !== '---' ? `• ${r.gitFit}` : ''}</p>
+                        <div class="mt-2">${riskBadge}</div>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider mb-1">Schedule</p>
+                        <p class="text-sm text-slate-700 dark:text-slate-300"><span class="font-medium mr-2">Departure:</span> ${r.depDate}</p>
+                        <p class="text-sm text-slate-700 dark:text-slate-300"><span class="font-medium mr-2">Arrival:</span> ${r.arrDate}</p>
+                        <p class="text-sm font-semibold text-rose-600 dark:text-rose-400 mt-1"><span class="font-medium text-slate-500 dark:text-slate-400 mr-2">Close Date:</span> ${r.closeDate !== '---' ? r.closeDate : 'Based on Departure'}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider mb-1">Status & Ticket</p>
+                        <p class="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase">${r.status}</p>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1 flex items-center gap-1.5"><i data-lucide="ticket" class="w-4 h-4"></i> ${r.ticket}</p>
+                    </div>
+                </div>
+                <div class="space-y-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider mb-2">Capacity</p>
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                                <p class="text-[10px] text-slate-500 uppercase font-semibold mb-1">Booked</p>
+                                <p class="text-lg font-bold text-slate-800 dark:text-white leading-none">${r.booked}</p>
+                            </div>
+                            <div class="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-lg border border-emerald-200 dark:border-emerald-800 shadow-sm cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-800/40 transition-colors group" onclick="openSoldDetailsModal('${r.tourCode.replace(/'/g, "\\'")}', '${r.depDate}', '${r.arrDate}')">
+                                <p class="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-semibold mb-1 flex items-center justify-center gap-1 group-hover:text-emerald-700 dark:group-hover:text-emerald-300">Sold <i data-lucide="external-link" class="w-3 h-3"></i></p>
+                                <p class="text-lg font-bold text-emerald-700 dark:text-emerald-300 leading-none group-hover:scale-105 transition-transform">${r.sold}</p>
+                            </div>
+                            <div class="bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg border border-amber-200 dark:border-amber-800 shadow-sm">
+                                <p class="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-semibold mb-1">Remain</p>
+                                <p class="text-lg font-bold text-amber-700 dark:text-amber-300 leading-none">${r.remain}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pt-3 border-t border-slate-200 dark:border-slate-700">
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider mb-1.5">Pricing Estimates</p>
+                        <div class="flex justify-between items-center text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                            <span><span class="text-xs text-slate-400 font-normal uppercase mr-1">10 Pax:</span> <span class="text-indigo-600 dark:text-indigo-400">${r.price10}</span></span>
+                            <span><span class="text-xs text-slate-400 font-normal uppercase mr-1">>10 Pax:</span> <span class="text-indigo-600 dark:text-indigo-400">${r.priceup}</span></span>
+                        </div>
+                    </div>
+                    <div class="pt-3 border-t border-slate-200 dark:border-slate-700">
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider mb-1.5">Remarks</p>
+                        <p class="text-sm font-medium text-slate-600 dark:text-slate-300 italic break-words bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">${r.remark && r.remark.toLowerCase() !== 'nan' ? r.remark : 'No remarks recorded.'}</p>
+                    </div>
+                </div>
+            `;
+
+            let footerHtml = '';
+            const isAdmin = document.getElementById('userIsAdmin') && document.getElementById('userIsAdmin').value === '1';
+            
+            if (isAdmin) {
+                footerHtml += `<button onclick="openTourModal(true)" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm flex items-center gap-2 mr-auto"><i data-lucide="edit-3" class="w-4 h-4"></i> Edit Tour</button>`;
+            }
+            
+            footerHtml += `<button onclick="closeRowModal()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm">Close</button>`;
+            document.getElementById('rowModalFooter').innerHTML = footerHtml;
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            const modal = document.getElementById('rowDetailModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeRowModal() {
+            const modal = document.getElementById('rowDetailModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+
+        function openTourModal(isEdit=false) {
+            const modal = document.getElementById('tourFormModal');
+            const form = document.getElementById('tourForm');
+            form.reset();
+
+            if(isEdit && currentEditTour) {
+                document.getElementById('tourModalTitle').innerHTML = '<i data-lucide="edit" class="w-5 h-5 text-amber-500"></i> Edit Tour Group';
+                document.getElementById('tour_is_edit').value = '1';
+                document.getElementById('tour_orig_tc').value = currentEditTour.tourCode;
+                document.getElementById('tour_orig_dep').value = currentEditTour.depDateRaw || currentEditTour.depDate;
+
+                document.getElementById('t_tour_code').value = currentEditTour.tourCode !== '---' ? currentEditTour.tourCode : '';
+                document.getElementById('t_month').value = currentEditTour.month !== '---' ? currentEditTour.month : '';
+                document.getElementById('t_zone').value = currentEditTour.zone !== '---' ? currentEditTour.zone : '';
+                document.getElementById('t_days').value = currentEditTour.days !== '0' ? currentEditTour.days : '';
+                
+                document.getElementById('t_departure').value = fmtDateInput(currentEditTour.depDateRaw);
+                document.getElementById('t_arrival').value = fmtDateInput(currentEditTour.arrDateRaw);
+                document.getElementById('t_close_date').value = fmtDateInput(currentEditTour.closeDateRaw);
+                
+                document.getElementById('t_capacity').value = currentEditTour.booked;
+                document.getElementById('t_sold').value = currentEditTour.sold;
+                document.getElementById('t_remain').value = currentEditTour.remain;
+                
+                document.getElementById('t_price10apx').value = currentEditTour.price10 !== '---' ? currentEditTour.price10.replace('$', '') : '';
+                document.getElementById('t_price10up').value = currentEditTour.priceup !== '---' ? currentEditTour.priceup.replace('$', '') : '';
+                
+                document.getElementById('t_git_fit').value = currentEditTour.gitFit !== '---' ? currentEditTour.gitFit : '';
+                document.getElementById('t_status').value = currentEditTour.status !== '---' ? currentEditTour.status : 'On Sale';
+                document.getElementById('t_ticket').value = currentEditTour.ticket !== '---' ? currentEditTour.ticket : 'Pending';
+                document.getElementById('t_remark').value = currentEditTour.remark !== '---' ? currentEditTour.remark : '';
+                
+                closeRowModal(); 
+            } else {
+                document.getElementById('tourModalTitle').innerHTML = '<i data-lucide="plus" class="w-5 h-5 text-emerald-500"></i> Add New Tour Group';
+                document.getElementById('tour_is_edit').value = '0';
+            }
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function closeTourModal() {
+            const modal = document.getElementById('tourFormModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function calcRemain() {
+            const cap = parseFloat(document.getElementById('t_capacity').value) || 0;
+            const sold = parseFloat(document.getElementById('t_sold').value) || 0;
+            document.getElementById('t_remain').value = Math.max(0, cap - sold);
+        }
+
+        async function saveTourGroup(event) {
+            const payload = {
+                is_edit: document.getElementById('tour_is_edit').value,
+                orig_tour_code: document.getElementById('tour_orig_tc').value,
+                orig_dep: document.getElementById('tour_orig_dep').value,
+                
+                tour_code: document.getElementById('t_tour_code').value,
+                destination: document.getElementById('t_tour_code').value,
+                month: document.getElementById('t_month').value,
+                zone: document.getElementById('t_zone').value,
+                days: document.getElementById('t_days').value,
+                departure: document.getElementById('t_departure').value,
+                arrival: document.getElementById('t_arrival').value,
+                close_date: document.getElementById('t_close_date').value,
+                capacity: document.getElementById('t_capacity').value,
+                sold: document.getElementById('t_sold').value,
+                remain: document.getElementById('t_remain').value,
+                price_10apx: document.getElementById('t_price10apx').value,
+                price_10up: document.getElementById('t_price10up').value,
+                git_fit: document.getElementById('t_git_fit').value,
+                status: document.getElementById('t_status').value,
+                ticket: document.getElementById('t_ticket').value,
+                remark: document.getElementById('t_remark').value
+            };
+
+            if(!payload.tour_code) return alert("Tour Code / Destination field is required!");
+            if(!payload.departure) return alert("Departure Date is required!");
+
+            const btn = event.currentTarget;
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Saving...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(getUrl('/api/save_tour'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+                alert("Saved successfully!");
+                location.reload();
+            } catch (err) {
+                alert(err.message);
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+            }
+        }
+
+        // ==============================================================
+        // NEW: SOLD DETAILS DRILLDOWN MODAL
+        // ==============================================================
+        async function openSoldDetailsModal(tourCode, depDate, arrDate) {
+            const modal = document.getElementById('soldDetailsModal');
+            const tbody = document.getElementById('soldDetailsBody');
+            const title = document.getElementById('soldDetailsTitle');
+            const repFilter = document.getElementById('soldDetailsRepFilter');
+            const tfoot = document.getElementById('soldDetailsFoot');
+            
+            window.currentSoldData = [];
+            currentSoldDataExport = []; 
+            repFilter.innerHTML = '<option value="all">All Reps</option>';
+            tfoot.innerHTML = '';
+            
+            title.innerHTML = `
+                <i data-lucide="users" class="w-5 h-5 text-emerald-500 flex-shrink-0"></i> 
+                Sold Details: <span class="font-bold text-slate-800 dark:text-white mx-1">${tourCode}</span> 
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/50 px-2 py-1 rounded ml-1 border border-slate-200 dark:border-slate-700">(${depDate} to ${arrDate})</span>
+            `;
+            
+            tbody.innerHTML = `<tr><td colspan="11" class="px-6 py-16 text-center text-slate-400"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-3 text-emerald-500"></i><p class="font-medium text-sm">Querying financial ledger for exact schedule match...</p></td></tr>`;
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
+            try {
+                const p = new URLSearchParams({ table: 'financial_sales_ledger' });
+                const resFin = await fetch(getUrl(`/api/data?${p.toString()}`), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    referrer: window.location.origin + '/revenue-sync-temp' 
+                });
+
+                const dataFin = await resFin.json();
+                let rawFin = dataFin.raw_data || [];
+                
+                let filtered = rawFin.filter(r => {
+                    const dest = String(r['Destination'] || r['Tour Code'] || r['Tour_Code'] || '').toLowerCase().trim();
+                    const tcLower = String(tourCode).toLowerCase().trim();
+                    
+                    const rDep = fmtDate(r['Dep_Date'] || r['Dep. Date'] || r['Departure Date'] || r['Departure']);
+                    const rArr = fmtDate(r['Arr_Date'] || r['Arr. Date'] || r['Arrival Date'] || r['Arrival']);
+
+                    const matchDest = dest === tcLower || dest.includes(tcLower) || tcLower.includes(dest);
+                    const matchDep = (rDep === depDate);
+                    const matchArr = (rArr === arrDate);
+                    const skipDep = (depDate === '---');
+                    const skipArr = (arrDate === '---');
+
+                    let status = getObjStr(r, 'Status', '').toUpperCase();
+                    let statusMatch = true;
+                    if (status !== '') {
+                        statusMatch = status.includes('6-CONFIRMED') || status.includes('BOOKED') || status.includes('CLOSED') || status.includes('PAID') || status.includes('FINISHED');
+                    }
+
+                    return matchDest && (matchDep || skipDep) && (matchArr || skipArr) && statusMatch;
+                });
+
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="11" class="px-6 py-12 text-center text-slate-500 font-medium">No detailed sales records found for this exact schedule.</td></tr>`;
+                    return;
+                }
+
+                window.currentSoldData = filtered;
+                
+                const uniqueReps = [...new Set(filtered.map(r => getObjStr(r, 'Sale Rep', getObjStr(r, 'Rep', getObjStr(r, 'Agent', '---')))).filter(rep => rep !== '---'))].sort();
+                repFilter.innerHTML = `<option value="all">All Reps</option>` + uniqueReps.map(rep => `<option value="${rep}">${rep}</option>`).join('');
+                repFilter.value = 'all';
+
+                renderSoldDetailsTable();
+
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = `<tr><td colspan="11" class="px-6 py-12 text-center text-rose-500 font-medium">Failed to load data.</td></tr>`;
+            }
+        }
+        
+        function renderSoldDetailsTable() {
+            const tbody = document.getElementById('soldDetailsBody');
+            const tfoot = document.getElementById('soldDetailsFoot');
+            const repFilterVal = document.getElementById('soldDetailsRepFilter').value;
+
+            let displayData = window.currentSoldData;
+            
+            if (repFilterVal !== 'all') {
+                displayData = displayData.filter(r => {
+                    const rep = getObjStr(r, 'Sale Rep', getObjStr(r, 'Rep', getObjStr(r, 'Agent', '---')));
+                    return rep === repFilterVal;
+                });
+            }
+
+            currentSoldDataExport = displayData;
+
+            if (displayData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="px-6 py-12 text-center text-slate-500 font-medium">No records found for this representative.</td></tr>`;
+                tfoot.innerHTML = '';
+                return;
+            }
+
+            let sumPax = 0;
+            let sumTotal = 0;
+
+            tbody.innerHTML = displayData.map((r, i) => {
+                const contactedDate = fmtDate(r['Contacted_Date'] || r['Contacted Date'] || r['Date']);
+                let customer = r['Customer Name'] || r['Customer_Name'] || r['Name'] || ((r['First_Name'] || '') + ' ' + (r['Last_Name'] || '')).trim() || 'Unknown';
+                if (customer === '') customer = 'Unknown';
+                const destination = r['Destination'] || r['Tour Code'] || r['Tour_Code'] || '---';
+                const soNo = r['SO_No'] || r['S.O No'] || r['SO No'] || r['Invoice No'] || '---';
+                const tfStr = r['Tour Fare'] || r['Tour_Fare'] || r['Fare'] || r['Price'] || '0';
+                const tourFare = parseFloat(String(tfStr).replace(/,/g, '').replace(/[^\d.-]/g, '')) || 0;
+                let pax = parseFloat(r['Pax']) || parseFloat(r['QTY']) || parseFloat(r['Sold']) || 1;
+                let totalStr = r['Total'] || r['Amount'] || r['Revenue'] || r['Grand Total'] || '0';
+                let total = parseFloat(String(totalStr).replace(/,/g, '').replace(/[^\d.-]/g, '')) || 0;
+                
+                if (total === 0 && tourFare > 0) total = tourFare * pax;
+
+                const source = r['Source'] || '---';
+                const type = r['Type'] || '---';
+                const rep = r['Sale_Rep'] || r['Sale Rep'] || r['Rep'] || r['Agent'] || '---';
+
+                sumPax += pax;
+                sumTotal += total;
+
+                return `
+                    <tr class="hover:bg-slate-50 dark:bg-slate-700/50 transition-colors border-b border-slate-50 dark:border-slate-700/50 group">
+                        <td class="px-5 py-3 text-xs text-slate-500 dark:text-slate-400">${i + 1}</td>
+                        <td class="px-5 py-3 text-xs font-medium text-slate-700 dark:text-slate-300">${contactedDate}</td>
+                        <td class="px-5 py-3 text-xs font-medium text-slate-800 dark:text-white truncate max-w-[150px]" title="${customer}">${customer}</td>
+                        <td class="px-5 py-3 text-xs font-bold text-slate-800 dark:text-white uppercase truncate max-w-[120px]" title="${destination}">${destination}</td>
+                        <td class="px-5 py-3 text-xs font-semibold text-slate-700 dark:text-slate-300">${soNo}</td>
+                        <td class="px-5 py-3 text-xs font-semibold text-slate-600 dark:text-slate-400 text-right">$${tourFare.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                        <td class="px-5 py-3 text-sm font-bold text-emerald-600 dark:text-emerald-400 text-center">${pax}</td>
+                        <td class="px-5 py-3 text-sm font-bold text-blue-600 dark:text-blue-400 text-right">$${total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                        <td class="px-5 py-3 text-center"><span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[9px] font-bold uppercase rounded border border-slate-200 dark:border-slate-700">${source}</span></td>
+                        <td class="px-5 py-3 text-center"><span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[9px] font-bold uppercase rounded border border-slate-200 dark:border-slate-700">${type}</span></td>
+                        <td class="px-5 py-3 text-xs font-medium text-slate-600 dark:text-slate-300">${rep}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            tfoot.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-5 py-4 text-right text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">Total:</td>
+                    <td class="px-5 py-4 text-center text-sm font-bold text-emerald-600 dark:text-emerald-400">${sumPax}</td>
+                    <td class="px-5 py-4 text-right text-sm font-bold text-blue-600 dark:text-blue-400">$${sumTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                    <td colspan="3"></td>
+                </tr>
+            `;
+        }
+
+        function closeSoldDetailsModal() {
+            document.getElementById('soldDetailsModal').classList.add('hidden');
+            document.getElementById('soldDetailsModal').classList.remove('flex');
+        }
+
+        function exportSoldDetailsExcel() {
+            if (!currentSoldDataExport || currentSoldDataExport.length === 0) return alert("No data to export!");
+            
+            const exportData = currentSoldDataExport.map((r, i) => {
+                const tfStr = r['Tour Fare'] || r['Tour_Fare'] || r['Fare'] || r['Price'] || '0';
+                const tourFare = parseFloat(String(tfStr).replace(/,/g, '').replace(/[^\d.-]/g, '')) || 0;
+                let pax = parseFloat(r['Pax']) || parseFloat(r['QTY']) || parseFloat(r['Sold']) || 1;
+                let totalStr = r['Total'] || r['Amount'] || r['Revenue'] || r['Grand Total'] || '0';
+                let total = parseFloat(String(totalStr).replace(/,/g, '').replace(/[^\d.-]/g, '')) || 0;
+                if (total === 0 && tourFare > 0) total = tourFare * pax;
+                let customer = r['Customer Name'] || r['Customer_Name'] || r['Name'] || ((r['First_Name'] || '') + ' ' + (r['Last_Name'] || '')).trim() || 'Unknown';
+                if (customer === '') customer = 'Unknown';
+
+                return {
+                    'No.': i + 1,
+                    'Contacted Date': fmtDate(r['Contacted Date'] || r['Contacted_Date'] || r['Date']),
+                    'Customer Name': customer,
+                    'Destination': r['Destination'] || r['Tour Code'] || r['Tour_Code'] || '---',
+                    'S.O No': r['S.O No'] || r['SO_No'] || r['Invoice No'] || '---',
+                    'Tour Fare': tourFare,
+                    'Pax': pax,
+                    'Total': total,
+                    'Source': r['Source'] || '---',
+                    'Type': r['Type'] || '---',
+                    'Sale Rep': r['Sale Rep'] || r['Sale_Rep'] || r['Rep'] || r['Agent'] || '---'
+                };
+            });
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Sold_Details");
+            
+            const titleNode = document.getElementById('soldDetailsTitle').cloneNode(true);
+            titleNode.querySelectorAll('i, span').forEach(el => el.remove());
+            const titleStr = titleNode.innerText.replace('Sold Details:', '').trim();
+            
+            XLSX.writeFile(wb, `Sold_Details_${titleStr}.xlsx`);
+        }
+
+        // Export Excel (Listing)
+        function exportListingExcel() {
+            if (!window.filteredData || window.filteredData.length === 0) return alert("No data to export!");
+            const exportData = window.filteredData.map((r, i) => {
+                const closeRaw = getObjStr(r, 'Close_Date', getObjStr(r, 'Close Date', getObjStr(r, 'CloseDate', '')));
+                return {
+                    'No.': i + 1,
+                    'Tour Code / Destination': getObjStr(r, 'Tour_Code', getObjStr(r, 'Destinations', getObjStr(r, 'Destination', '---'))),
+                    'Month': getObjStr(r, 'Month', '---'),
+                    'Zone': getObjStr(r, 'Zone', '---'),
+                    'Days': getObjStr(r, 'DAY', '0'),
+                    'Departure': fmtDate(getObjStr(r, 'Departure', '')),
+                    'Arrival': fmtDate(getObjStr(r, 'Arrival', '')),
+                    'Close Date': (closeRaw && closeRaw !== '---' && closeRaw.toLowerCase() !== 'nan') ? fmtDate(closeRaw) : '---',
+                    'Booked': parseInt(getObjStr(r, 'Booked', '0')) || 0,
+                    'Sold': parseInt(getObjStr(r, 'Sold', '0')) || 0,
+                    'Remain': parseInt(getObjStr(r, 'Remain', '0')) || 0,
+                    'Status': getObjStr(r, 'Status', '---'),
+                    'Ticket': getObjStr(r, 'Ticket', getObjStr(r, 'Ticket ', '---')).trim() || '---',
+                    'Price 10apx': getObjStr(r, 'Price_10apx', getObjStr(r, 'Price 10apx', '0')),
+                    'Price 10up': getObjStr(r, 'Price_10up', getObjStr(r, 'Price 10up', '0')),
+                    'GIT/FIT': getObjStr(r, 'GIT_FIT', getObjStr(r, 'GIT/FIT', '---')),
+                    'Remark': getObjStr(r, 'Remark', '')
+                };
+            });
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Group_Tours_Listing");
+            XLSX.writeFile(wb, "Group_Tours_Listing.xlsx");
+        }
+
+        // Seamless, Off-Screen Screenshot Generation
+        function captureListingScreenshot() {
+            const btn = document.querySelector('button[onclick="captureListingScreenshot()"]');
+            if (!btn) return;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Processing...`;
+            btn.disabled = true;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
+            document.querySelectorAll('svg').forEach(svg => {
+                if (!svg.getAttribute('xmlns')) svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            });
+
+            const originalEl = document.getElementById('listingSection');
+            if (!originalEl) return;
+            
+            const clone = originalEl.cloneNode(true);
+            clone.querySelectorAll('[data-html2canvas-ignore="true"]').forEach(el => el.remove());
+            
+            const actualTable = originalEl.querySelector('table');
+            const targetWidth = actualTable ? Math.max(originalEl.offsetWidth, actualTable.scrollWidth + 48) : originalEl.offsetWidth;
+
+            clone.classList.remove('overflow-hidden', 'mb-12');
+            clone.style.margin = '0';
+            clone.style.width = targetWidth + 'px';
+            
+            const tableContainer = clone.querySelector('.overflow-x-auto');
+            if (tableContainer) {
+                tableContainer.classList.remove('overflow-x-auto', 'custom-scroll');
+                tableContainer.style.overflow = 'visible';
+                tableContainer.style.width = targetWidth + 'px';
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'absolute';
+            wrapper.style.top = '0';
+            wrapper.style.left = '0';
+            wrapper.style.width = targetWidth + 'px';
+            wrapper.style.opacity = '0'; 
+            wrapper.style.pointerEvents = 'none'; 
+            wrapper.style.zIndex = '-9999'; 
+            
+            if (document.documentElement.classList.contains('dark')) wrapper.classList.add('dark');
+            
+            wrapper.appendChild(clone);
+            document.body.appendChild(wrapper);
+
+            setTimeout(() => {
+                htmlToImage.toPng(clone, {
+                    backgroundColor: document.documentElement.classList.contains('dark') ? '#1e293b' : '#ffffff',
+                    pixelRatio: 2, 
+                    width: targetWidth
+                })
+                .then(function (dataUrl) {
+                    const link = document.createElement('a');
+                    link.download = 'Group_Tours_Listing.png';
+                    link.href = dataUrl;
+                    link.click();
+                })
+                .catch(function (error) {
+                    console.error('Screenshot failed:', error);
+                    alert("Failed to capture screenshot.");
+                })
+                .finally(function () {
+                    if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                });
+            }, 150);
+        }
+
+        function submitUpload() {
+            const input = document.getElementById('fileInput');
+            if (input.files && input.files.length > 0) {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                document.getElementById('uploadForm').submit();
+            }
+        }
+        
+        window.toggleMenu = function() {
+            const sidebar = document.getElementById('sidebar'); 
+            const backdrop = document.getElementById('sidebarBackdrop');
+            if(!sidebar) return;
+            sidebar.classList.toggle('sidebar-open');
+            if(backdrop) {
+                if (sidebar.classList.contains('sidebar-open')) { 
+                    backdrop.classList.remove('hidden'); 
+                    setTimeout(() => backdrop.classList.remove('opacity-0'), 10); 
+                } else { 
+                    backdrop.classList.add('opacity-0'); 
+                    setTimeout(() => backdrop.classList.add('hidden'), 300); 
+                }
+            }
+        };
+
+        // Safe Initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.masterData && window.masterData.length > 0) {
+                applyFilters(); 
+            }
+
+            if (typeof TomSelect !== 'undefined') {
+                document.querySelectorAll('.ts-select').forEach(el => {
+                    new TomSelect(el, { create: false });
+                });
+            }
+            
+            const elMenuToggle = document.getElementById('menuToggle'); 
+            if (elMenuToggle) elMenuToggle.onclick = toggleMenu;
+        });
+
+        function logActivity(action, details) {
+            if (isPreviewEnv()) return;
+            fetch('/api/log_activity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: action, details: details })
+            }).catch(e => console.log(e));
+        }
+
+        document.addEventListener('click', function(e) {
+            let btn = e.target.closest('button');
+            if (btn) {
+                let btnName = btn.innerText.trim() || btn.id || 'Icon Button';
+                logActivity('CLICK', 'Clicked button: ' + btnName.substring(0, 30));
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sale Intelligence Dashboard</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { slate: { 850: '#151e2e', 900: '#0f172a' } } } }
+        }
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else { document.documentElement.classList.remove('dark') }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    {% include 'sale/styles.html' %}
+</head>
+<body class="bg-[#f8fafc] dark:bg-[#0b1120] text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300">
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[65] hidden opacity-0 transition-opacity duration-300" onclick="toggleMenu()"></div>
+
+    {% include 'sale/nav.html' %}
+    {% include 'sidebar_snippet.html' %}
+
+    <main class="p-6 lg:p-10 max-w-[1600px] mx-auto">
+        {% include 'sale/header.html' %}
+
+        <div id="dashboardContent" class="hidden opacity-0 transition-opacity duration-500 ease-in-out">
+            {% include 'sale/metrics.html' %}
+            {% include 'sale/charts_and_tables.html' %}
+        </div>
+    </main>
+
+    {% include 'sale/modals.html' %}
+
+    <!-- Hidden Data injection -->
+    <script id="flask-data" type="application/json">
+        {{ data | default([]) | tojson | safe }}
+    </script>
+
+    {% include 'sale/scripts.html' %}
+</body>
+</html>

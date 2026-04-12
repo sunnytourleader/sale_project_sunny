@@ -1,0 +1,257 @@
+<!-- Premium Metric Cards Row (Updated to 7 Cards) -->
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-5 mb-8 text-left relative z-10">
+    <div onclick="openLeadsModal()" class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 cursor-pointer relative overflow-hidden group hover:-translate-y-1 hover:border-blue-300 dark:hover:border-blue-700">
+        <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-transparent dark:from-blue-500/20 dark:to-transparent opacity-0 group-hover:opacity-100 blur-2xl transition-opacity duration-500 pointer-events-none"></div>
+        <div class="flex justify-between items-start relative z-10">
+            <div>
+                <p class="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Total Leads</p>
+                <h3 id="m-leads" class="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight tabular-nums leading-none mt-2">0</h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                <i data-lucide="users" class="w-5 h-5"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div id="card-bookings" onclick="openBookingsModal()" class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 cursor-pointer relative overflow-hidden group hover:-translate-y-1 hover:border-emerald-300 dark:hover:border-emerald-700">
+        <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-gradient-to-br from-emerald-100 to-transparent dark:from-emerald-500/20 dark:to-transparent opacity-0 group-hover:opacity-100 blur-2xl transition-opacity duration-500 pointer-events-none"></div>
+        <div class="flex justify-between items-start relative z-10">
+            <div>
+                <p class="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Bookings</p>
+                <h3 id="m-confirmed" class="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight tabular-nums leading-none mt-2">0</h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                <i data-lucide="check-circle" class="w-5 h-5"></i>
+            </div>
+        </div>
+    </div>
+
+    <div onclick="openFinancialModal()" class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm hover:shadow-lg hover:shadow-cyan-500/10 transition-all duration-300 cursor-pointer relative overflow-hidden group hover:-translate-y-1 hover:border-cyan-300 dark:hover:border-cyan-700">
+        <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-gradient-to-br from-cyan-100 to-transparent dark:from-cyan-500/20 dark:to-transparent opacity-0 group-hover:opacity-100 blur-2xl transition-opacity duration-500 pointer-events-none"></div>
+        <div class="flex justify-between items-start relative z-10">
+            <div>
+                <p class="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">Revenue</p>
+                <h3 id="m-revenue" class="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight tabular-nums leading-none mt-2">$0</h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                <i data-lucide="circle-dollar-sign" class="w-5 h-5"></i>
+            </div>
+        </div>
+    </div>
+
+    <div onclick="openFinancialModal()" class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer relative overflow-hidden group hover:-translate-y-1 hover:border-indigo-300 dark:hover:border-indigo-700">
+        <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-gradient-to-br from-indigo-100 to-transparent dark:from-indigo-500/20 dark:to-transparent opacity-0 group-hover:opacity-100 blur-2xl transition-opacity duration-500 pointer-events-none"></div>
+        <div class="flex justify-between items-start relative z-10">
+            <div>
+                <p class="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Conf. Pax</p>
+                <h3 id="m-pax" class="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight tabular-nums leading-none mt-2">0</h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                <i data-lucide="user-check" class="w-5 h-5"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 cursor-default relative overflow-hidden group hover:-translate-y-1 hover:border-purple-300 dark:hover:border-purple-700">
+        <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-gradient-to-br from-purple-100 to-transparent dark:from-purple-500/20 dark:to-transparent opacity-0 group-hover:opacity-100 blur-2xl transition-opacity duration-500 pointer-events-none"></div>
+        <div class="flex justify-between items-start relative z-10">
+            <div>
+                <p class="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">Repeat</p>
+                <h3 id="m-repeat" class="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight tabular-nums leading-none mt-2">0</h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-300 cursor-default relative overflow-hidden group hover:-translate-y-1 hover:border-amber-300 dark:hover:border-amber-700">
+        <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-gradient-to-br from-amber-100 to-transparent dark:from-amber-500/20 dark:to-transparent opacity-0 group-hover:opacity-100 blur-2xl transition-opacity duration-500 pointer-events-none"></div>
+        <div class="flex justify-between items-start relative z-10">
+            <div>
+                <p class="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">Conversion</p>
+                <h3 id="m-conv" class="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight tabular-nums leading-none mt-2">0%</h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                <i data-lucide="trending-up" class="w-5 h-5"></i>
+            </div>
+        </div>
+    </div>
+
+    <div id="card-untouched" onclick="openUntouchedModal()" class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm hover:shadow-lg hover:shadow-rose-500/10 transition-all duration-300 cursor-pointer relative overflow-hidden group hover:-translate-y-1 hover:border-rose-300">
+        <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-gradient-to-br from-rose-100 to-transparent dark:from-rose-500/20 dark:to-transparent opacity-0 group-hover:opacity-100 blur-2xl transition-opacity duration-500 pointer-events-none"></div>
+        <div class="flex justify-between items-start relative z-10">
+            <div>
+                <p id="lbl-untouched" class="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1 transition-colors">Untouched</p>
+                <h3 id="m-untouched" class="text-3xl font-extrabold text-slate-700 dark:text-slate-300 tracking-tight tabular-nums leading-none mt-2">0</h3>
+            </div>
+            <div id="icon-bg-untouched" class="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 group-hover:scale-110 transition-transform duration-300">
+                <i data-lucide="bell-off" class="w-5 h-5" id="icon-untouched"></i>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 mb-8 flex flex-col w-full">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div>
+            <h3 class="font-semibold text-lg text-slate-800 dark:text-white">Sale Leads Growth KPIs</h3>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">Lead acquisition vs Conversions</p>
+        </div>
+        <div class="flex gap-1 bg-slate-100 dark:bg-slate-900/50 p-1 rounded-xl border border-slate-200/60 dark:border-slate-700">
+            <button data-scale="daily" onclick="updateView('daily')" class="trend-btn px-4 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">Day</button>
+            <button data-scale="weekly" onclick="updateView('weekly')" class="trend-btn px-4 py-1.5 text-xs font-medium rounded-lg transition-all bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm">Week</button>
+            <button data-scale="monthly" onclick="updateView('monthly')" class="trend-btn px-4 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">Month</button>
+            <button data-scale="yearly" onclick="updateView('yearly')" class="trend-btn px-4 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">Year</button>
+        </div>
+    </div>
+    <div class="flex-1 min-h-[350px] w-full relative"><canvas id="chartTrend"></canvas></div>
+</div>
+
+<div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 mb-8 flex flex-col w-full">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div>
+            <h3 class="font-semibold text-lg text-slate-800 dark:text-white">Revenue Growth KPIs</h3>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">Gross confirmed sales over time (Financial Ledger)</p>
+        </div>
+        <div class="flex gap-1 bg-slate-100 dark:bg-slate-900/50 p-1 rounded-xl border border-slate-200/60 dark:border-slate-700">
+            <button data-scale="daily" onclick="updateView('daily')" class="trend-btn px-4 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">Day</button>
+            <button data-scale="weekly" onclick="updateView('weekly')" class="trend-btn px-4 py-1.5 text-xs font-medium rounded-lg transition-all bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm">Week</button>
+            <button data-scale="monthly" onclick="updateView('monthly')" class="trend-btn px-4 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">Month</button>
+            <button data-scale="yearly" onclick="updateView('yearly')" class="trend-btn px-4 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">Year</button>
+        </div>
+    </div>
+    <div class="flex-1 min-h-[350px] w-full relative"><canvas id="chartRevenueTrend"></canvas></div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+    <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 flex flex-col w-full">
+        <div class="mb-8">
+            <h3 class="font-semibold text-lg text-slate-800 dark:text-white">Destination Performance (Top 10)</h3>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">Leads vs Confirmed Bookings</p>
+        </div>
+        <div class="flex-1 min-h-[350px] w-full relative"><canvas id="chartTopDestNew"></canvas></div>
+    </div>
+    
+    <div class="lg:col-span-1 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 flex flex-col overflow-hidden w-full">
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center">
+            <h3 class="font-semibold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4 text-indigo-500"></i> All Destinations Ranking</h3>
+        </div>
+        <div class="flex-1 overflow-y-auto custom-scroll" style="max-height: 450px;">
+            <table class="w-full text-left">
+                <thead class="bg-white dark:bg-slate-800 sticky top-0 border-b border-slate-100 dark:border-slate-700/50 z-10 shadow-sm">
+                    <tr>
+                        <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Destination</th>
+                        <th class="px-3 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Won/Lds</th>
+                        <th class="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Revenue</th>
+                    </tr>
+                </thead>
+                <tbody id="destTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                    <!-- Populated dynamically by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 overflow-hidden flex flex-col">
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 flex justify-between items-center">
+            <h3 class="font-semibold text-lg text-slate-800 dark:text-white flex items-center gap-2">
+                <i data-lucide="award" class="w-5 h-5 text-amber-500"></i> Sale Rep Performance KPIs
+            </h3>
+        </div>
+        <div class="overflow-x-auto flex-1">
+            <table class="w-full">
+                <thead class="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-200/60 dark:border-slate-700"><tr>
+                    <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Rep</th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Leads</th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Won</th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Pax</th>
+                    <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-emerald-500 dark:text-emerald-400">Revenue</th>
+                    <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Rate</th>
+                </tr></thead>
+                <tbody id="repTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody>
+                <tfoot id="repTableFoot" class="bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-600"></tfoot>
+            </table>
+        </div>
+    </div>
+    
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 overflow-hidden flex flex-col">
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 flex justify-between items-center">
+            <h3 class="font-semibold text-lg text-slate-800 dark:text-white flex items-center gap-2">
+                <i data-lucide="map" class="w-5 h-5 text-indigo-500"></i> Zone Performance KPIs 
+            </h3>
+        </div>
+        <div class="overflow-x-auto flex-1">
+            <table class="w-full">
+                <thead class="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-200/60 dark:border-slate-700"><tr>
+                    <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Zone</th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Leads</th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Won</th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Pax</th>
+                    <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-emerald-500 dark:text-emerald-400">Revenue</th>
+                    <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Rate</th>
+                </tr></thead>
+                <tbody id="zoneTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody>
+                <tfoot id="zoneTableFoot" class="bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-600"></tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- NEW: Sub-Charts for Revenue by Rep and Zone -->
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 flex flex-col">
+        <h3 class="font-semibold text-lg text-slate-800 dark:text-white mb-0.5">Revenue by Sale Rep KPIs</h3>
+        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6">Gross confirmed sales generated per representative</p>
+        <div class="flex-1 min-h-[250px] relative"><canvas id="chartRevenueByRep"></canvas></div>
+    </div>
+    
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 flex flex-col">
+        <h3 class="font-semibold text-lg text-slate-800 dark:text-white mb-0.5">Revenue by Zone KPIs</h3>
+        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6">Gross confirmed sales generated per zone</p>
+        <div class="flex-1 min-h-[250px] relative"><canvas id="chartRevenueByZone"></canvas></div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 flex flex-col">
+        <h3 class="font-semibold text-lg text-slate-800 dark:text-white mb-0.5">Lead Sources</h3>
+        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6">Volume by acquisition channel</p>
+        <div class="flex-1 min-h-[220px] relative"><canvas id="chartSources"></canvas></div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 flex flex-col">
+        <h3 class="font-semibold text-lg text-slate-800 dark:text-white mb-0.5">Sales Funnel</h3>
+        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6">Pipeline drop-off stages</p>
+        <div id="funnelContainer" class="flex-1 flex flex-col items-center justify-center min-h-[220px] w-full gap-2"></div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 flex flex-col">
+        <h3 class="font-semibold text-lg text-slate-800 dark:text-white mb-0.5">Pipeline Status</h3>
+        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6">Top 10 unconfirmed lead statuses</p>
+        <div class="flex-1 min-h-[220px] relative"><canvas id="chartUnconfirmedStatus"></canvas></div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 flex flex-col">
+        <div class="flex justify-between items-start mb-6">
+            <div>
+                <h3 class="font-semibold text-lg text-slate-800 dark:text-white mb-0.5">Active Workload</h3>
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Pending opportunities by agent</p>
+            </div>
+            <span class="text-[10px] font-semibold text-blue-500 bg-blue-50 dark:bg-blue-500/10 px-2 py-1 rounded border border-blue-100 dark:border-blue-500/20 cursor-default">Click bar for details</span>
+        </div>
+        <div class="flex-1 min-h-[250px] relative"><canvas id="chartWorkload"></canvas></div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 flex flex-col">
+        <div class="flex justify-between items-start mb-6">
+            <div>
+                <h3 class="font-semibold text-lg text-slate-800 dark:text-white mb-0.5">Destination Demand</h3>
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Pending opportunities by destination</p>
+            </div>
+            <span class="text-[10px] font-semibold text-blue-500 bg-blue-50 dark:bg-blue-500/10 px-2 py-1 rounded border border-blue-100 dark:border-blue-500/20 cursor-default">Click bar for details</span>
+        </div>
+        <div class="flex-1 min-h-[250px] relative"><canvas id="chartDestWorkload"></canvas></div>
+    </div>
+</div>

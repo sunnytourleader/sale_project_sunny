@@ -1,0 +1,85 @@
+=========================
+
+Python / Flask
+
+=========================
+
+pycache/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+Virtual Environments
+
+venv/
+env/
+ENV/
+.venv/
+
+=========================
+
+Secrets & Configuration
+
+=========================
+
+CRITICAL: Never commit your environment variables or database passwords!
+
+.env
+.flaskenv
+config.ini
+instance/
+
+=========================
+
+Uploads & Data
+
+=========================
+
+Ignore user-uploaded data files, excel exports, and CSVs
+
+uploads/
+downloads/
+data/
+*.csv
+*.xlsx
+*.xls
+*.pdf
+
+=========================
+
+Logs and Databases
+
+=========================
+
+*.log
+*.sqlite3
+*.db
+
+=========================
+
+OS & IDE Settings
+
+=========================
+
+Mac
+
+.DS_Store
+.AppleDouble
+.LSOverride
+
+Windows
+
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+VS Code
+
+.vscode/
+
+PyCharm / IntelliJ
+
+.idea/
+*.iws
+*.iml

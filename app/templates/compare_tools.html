@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sale Intelligence - Compare Tools</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { slate: { 850: '#151e2e', 900: '#0f172a' } }
+                }
+            }
+        }
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-open { transform: translateX(0) !important; }
+        
+        .upload-box {
+            border: 2px dashed #cbd5e1;
+            border-radius: 1rem;
+            padding: 2.5rem;
+            text-align: center;
+            background-color: #f8fafc;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .upload-box:hover { border-color: #3b82f6; background-color: #eff6ff; }
+        .dark .upload-box { border-color: #334155; background-color: #0f172a; }
+        .dark .upload-box:hover { border-color: #3b82f6; background-color: #1e293b; }
+        .upload-box input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+        .ts-wrapper { width: 100%; }
+        .ts-control { border-radius: 0.75rem !important; padding: 0.5rem 1rem !important; border: 1px solid #e2e8f0 !important; background-color: #ffffff !important; color: #0f172a !important; font-family: 'Inter', sans-serif !important; font-weight: 500 !important; font-size: 0.875rem !important; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; min-height: 42px; transition: all 0.2s ease; }
+        .dark .ts-control { background-color: #0f172a !important; border-color: #334155 !important; color: #f1f5f9 !important; }
+    </style>
+</head>
+<body class="bg-[#f8fafc] dark:bg-[#0b1120] text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300">
+    
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[65] hidden opacity-0 transition-opacity duration-300" onclick="toggleMenu()"></div>
+
+    <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-[60] transition-colors duration-300">
+        <div class="flex items-center gap-4">
+            <button id="menuToggle" class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-transparent dark:border-slate-700">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <div class="flex items-center gap-3">
+                <h2 class="text-xl font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tight leading-none">STB SALE DASHBOARD</h2>
+                <span class="px-3 py-1 bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 rounded-lg text-[10px] font-semibold uppercase tracking-widest border border-amber-200/60 dark:border-amber-500/20">Compare Tools</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <button id="themeToggle" class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700">
+                <i data-lucide="moon" id="themeToggleDarkIcon" class="hidden w-5 h-5"></i>
+                <i data-lucide="sun" id="themeToggleLightIcon" class="hidden w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-white dark:bg-slate-900 border-r border-slate-200/60 dark:border-slate-800 z-[70] transform -translate-x-full transition-transform duration-300">
+        <div class="flex flex-col h-full p-6">
+            <div class="flex items-center justify-between mb-10 pl-2">
+                <h2 class="text-sm font-semibold text-slate-400 tracking-wider uppercase">Menu</h2>
+                <button onclick="toggleMenu()" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <nav class="flex-1 space-y-1.5 custom-scrollbar overflow-y-auto">
+                {% if user_permissions.get('sales_dashboard', False) %}
+                <a href="/" class="flex items-center px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i> Sales Dashboard
+                </a>
+                {% endif %}
+                
+                {% if user_permissions.get('revenue_dashboard', False) %}
+                <a href="/revenue" class="flex items-center px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer">
+                    <i data-lucide="dollar-sign" class="w-5 h-5 mr-3"></i> Revenue Dashboard
+                </a>
+                {% endif %}
+
+                {% if user_permissions.get('compare_tools', False) %}
+                <a href="/compare-tools" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 transition-all cursor-pointer border border-indigo-100 dark:border-indigo-500/20">
+                    <i data-lucide="git-compare" class="w-5 h-5 mr-3"></i> Compare Tools
+                </a>
+                {% endif %}
+
+                {% if user_permissions.get('meeting_report', False) %}
+                <a href="/meeting-report" class="flex items-center px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer">
+                    <i data-lucide="presentation" class="w-5 h-5 mr-3"></i> Group Tours Report
+                </a>
+                {% endif %}
+
+                {% if user_permissions.get('ocr_tool', False) %}
+                <div class="h-px bg-slate-200 dark:bg-slate-700 my-4"></div>
+                <a href="/ocr-tool" class="flex items-center px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer">
+                    <i data-lucide="scan-line" class="w-5 h-5 mr-3"></i> OCR Chat Helper
+                </a>
+                {% endif %}
+            </nav>
+
+            <!-- User Profile & Logout anchored to the bottom -->
+            {% if current_user and current_user.is_authenticated %}
+            <div class="mt-auto pt-6 border-t border-slate-200/60 dark:border-slate-800">
+                <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm transition-all hover:shadow-md">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md shadow-indigo-500/20 text-lg">
+                            {{ current_user.username[0]|upper }}
+                        </div>
+                        <div class="text-left flex flex-col justify-center">
+                            <p class="text-sm font-bold text-slate-800 dark:text-white leading-tight capitalize truncate max-w-[90px]" title="{{ current_user.username }}">{{ current_user.username }}</p>
+                            <p class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mt-0.5">{{ current_user.role }}</p>
+                        </div>
+                    </div>
+                    <a href="/logout" class="p-2.5 text-rose-500 hover:text-white hover:bg-rose-500 rounded-lg transition-all shadow-sm border border-transparent hover:border-rose-600" title="Secure Logout">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </aside>
+
+    <main class="p-6 lg:p-12 max-w-[1600px] mx-auto">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-slate-900 dark:text-white tracking-tight uppercase">Lead Auditor</h1>
+            <p class="text-slate-500 dark:text-slate-400 font-medium mt-2">Find leads in Digital Marketing that are missing from the Sales Master file.</p>
+        </header>
+
+        {% if not data %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="upload-box bg-white dark:bg-slate-800 shadow-sm border border-slate-200/60 dark:border-slate-700" id="boxSales">
+                <i data-lucide="users" class="w-8 h-8 text-blue-500 mb-3"></i>
+                <h4 class="font-semibold text-slate-800 dark:text-white text-lg">1. Sales Master File</h4>
+                <p class="text-xs font-medium text-slate-500 mt-1 uppercase" id="lblSales">Excel (.xlsx)</p>
+                <input type="file" id="fileSales" accept=".xlsx, .xls">
+            </div>
+
+            <div class="upload-box bg-white dark:bg-slate-800 shadow-sm border border-slate-200/60 dark:border-slate-700" id="boxDigital">
+                <i data-lucide="bar-chart-2" class="w-8 h-8 text-emerald-500 mb-3"></i>
+                <h4 class="font-semibold text-slate-800 dark:text-white text-lg">2. Digital Lead File</h4>
+                <p class="text-xs font-medium text-slate-500 mt-1 uppercase" id="lblDigital">Excel (.xlsx)</p>
+                <input type="file" id="fileDigital" accept=".xlsx, .xls">
+            </div>
+        </div>
+
+        <div class="text-center"><button id="btnAnalyze" class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-semibold uppercase tracking-widest shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto" disabled>Analyze Files</button></div>
+
+        <form method="POST" action="/compare-tools" id="sheetForm" class="hidden mt-8 bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200/60 dark:border-slate-700">
+            <input type="hidden" name="sales_path" id="inputSalesPath"><input type="hidden" name="digital_path" id="inputDigitalPath">
+            <h3 class="font-semibold text-xl text-slate-800 dark:text-white uppercase mb-6 flex items-center gap-2"><i data-lucide="layers" class="w-5 h-5 text-blue-500"></i> Select Sheets</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div><label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Sales Sheet</label><select name="sales_sheet" id="selSalesSheet" class="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900 font-semibold dark:text-white"></select></div>
+                <div><label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Digital Sheet</label><select name="digital_sheet" id="selDigitalSheet" class="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900 font-semibold dark:text-white"></select></div>
+            </div>
+            <div class="mt-8 text-center"><button type="submit" class="px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-semibold uppercase tracking-widest shadow-md transition-all w-full md:w-auto">Run Comparison</button></div>
+        </form>
+
+        {% else %}
+        <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden mb-12">
+            <div class="p-6 lg:p-8 border-b border-slate-100 dark:border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-50 dark:bg-slate-900/50">
+                <div>
+                    <h3 class="font-semibold text-2xl text-rose-600 dark:text-rose-400 uppercase flex items-center gap-3"><i data-lucide="alert-triangle" class="w-6 h-6"></i> Missing Contacts</h3>
+                    <p class="text-xs font-medium text-slate-500 mt-1 uppercase tracking-widest">Found <span id="visibleCount" class="font-bold text-rose-600">{{ match_count }}</span> leads missing from the Sales Master file</p>
+                </div>
+                <div class="flex gap-2">
+                    <a href="/compare-tools" class="px-5 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold transition-colors uppercase">Start Over</a>
+                    <button onclick="exportToExcel()" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 shadow-sm uppercase">Export Excel</button>
+                </div>
+            </div>
+
+            <div class="p-6 grid grid-cols-1 md:grid-cols-5 gap-4 border-b border-slate-100 dark:border-slate-700">
+                <div class="relative">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="searchInput" placeholder="Search..." class="w-full pl-9 pr-3 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900 text-xs font-semibold dark:text-white outline-none focus:border-blue-500" oninput="filterTable()">
+                </div>
+                <div>
+                    <select id="filter-rep" class="ts-filter w-full">
+                        <option value="all">All Reps</option>
+                        {% for rep in unique_reps %}<option value="{{ rep }}">{{ rep }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <select id="filter-dest" class="ts-filter w-full">
+                        <option value="all">All Dests</option>
+                        {% for d in unique_dests %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <select id="filter-channel" class="ts-filter w-full">
+                        <option value="all">All Channels</option>
+                        {% for c in unique_channels %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <select id="filter-product" class="ts-filter w-full">
+                        <option value="all">All Products</option>
+                        {% for p in unique_products %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto min-h-[400px]">
+                <table class="w-full text-left" id="resultsTable">
+                    <thead class="bg-slate-50 dark:bg-slate-800">
+                        <tr>
+                            <th class="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Date/Time</th>
+                            <th class="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Customer Info</th>
+                            <th class="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Destination</th>
+                            <th class="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-slate-500 text-center">Sale Rep</th>
+                            <th class="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Remark</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                        {% for row in data %}
+                        <tr class="result-row hover:bg-rose-50/50 dark:hover:bg-rose-900/10 transition-colors border-l-4 border-rose-500" 
+                            data-rep="{{ row['Sale Rep'] }}" data-dest="{{ row['Destination'] }}" 
+                            data-channel="{{ row['Channel'] }}" data-product="{{ row['Product'] }}">
+                            <td class="px-6 py-4 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                <div class="js-date-clean">{{ row['Date'] }}</div>
+                                <div class="text-[10px] text-slate-400 mt-1 uppercase">{{ row['Drop Time'] }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-semibold text-slate-800 dark:text-white">{{ row['Name'] }}</div>
+                                <div class="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5">{{ row['Phone'] }}</div>
+                                <span class="px-2 py-0.5 mt-1.5 inline-block bg-slate-100 dark:bg-slate-800 text-slate-500 text-[9px] font-bold uppercase rounded border border-slate-200 dark:border-slate-700">{{ row['Channel'] }}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-tight">{{ row['Destination'] }}</div>
+                                <div class="text-[10px] text-slate-400 mt-1 uppercase">{{ row['Product'] }}</div>
+                            </td>
+                            <td class="px-6 py-4 text-xs font-semibold text-slate-700 dark:text-slate-300 text-center uppercase">{{ row['Sale Rep'] }}</td>
+                            <td class="px-6 py-4 text-[11px] text-slate-500 italic max-w-xs truncate" title="{{ row['Remark'] }}">{{ row['Remark'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </main>
+
+    <script>
+        lucide.createIcons();
+        const themeToggleBtn = document.getElementById('themeToggle');
+        themeToggleBtn.addEventListener('click', function() {
+            document.getElementById('themeToggleDarkIcon').classList.toggle('hidden');
+            document.getElementById('themeToggleLightIcon').classList.toggle('hidden');
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('color-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        });
+        if (document.documentElement.classList.contains('dark')) document.getElementById('themeToggleLightIcon').classList.remove('hidden');
+        else document.getElementById('themeToggleDarkIcon').classList.remove('hidden');
+
+        function toggleMenu() {
+            const sidebar = document.getElementById('sidebar'), backdrop = document.getElementById('sidebarBackdrop');
+            sidebar.classList.toggle('sidebar-open');
+            if (sidebar.classList.contains('sidebar-open')) { backdrop.classList.remove('hidden'); setTimeout(() => backdrop.classList.remove('opacity-0'), 10); }
+            else { backdrop.classList.add('opacity-0'); setTimeout(() => backdrop.classList.add('hidden'), 300); }
+        }
+        document.getElementById('menuToggle').onclick = toggleMenu;
+
+        const fileSales = document.getElementById('fileSales'), fileDigital = document.getElementById('fileDigital'), btnAnalyze = document.getElementById('btnAnalyze');
+        const checkFiles = (type, file) => {
+            if (file) { document.getElementById(`lbl${type}`).innerText = file.name; document.getElementById(`box${type}`).classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20'); }
+            if (fileSales?.files.length > 0 && fileDigital?.files.length > 0) btnAnalyze.disabled = false;
+        };
+        fileSales?.addEventListener('change', e => checkFiles('Sales', e.target.files[0]));
+        fileDigital?.addEventListener('change', e => checkFiles('Digital', e.target.files[0]));
+
+        btnAnalyze?.addEventListener('click', async () => {
+            const formData = new FormData(); formData.append('file_sales', fileSales.files[0]); formData.append('file_digital', fileDigital.files[0]);
+            btnAnalyze.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Processing...'; btnAnalyze.disabled = true; lucide.createIcons();
+            try {
+                const res = await fetch('/compare-tools/analyze', { method: 'POST', body: formData }), data = await res.json();
+                if (data.status === 'success') {
+                    document.getElementById('inputSalesPath').value = data.sales_path; document.getElementById('inputDigitalPath').value = data.digital_path;
+                    const pop = (id, opts) => { const el = document.getElementById(id); el.innerHTML = opts.map(o => `<option value="${o}">${o}</option>`).join(''); };
+                    pop('selSalesSheet', data.sales_sheets); pop('selDigitalSheet', data.digital_sheets);
+                    document.getElementById('sheetForm').classList.remove('hidden'); btnAnalyze.classList.add('hidden');
+                } else { alert(data.error); btnAnalyze.innerHTML = 'Analyze Files'; btnAnalyze.disabled = false; lucide.createIcons(); }
+            } catch (e) { alert("Upload failed."); btnAnalyze.innerHTML = 'Analyze Files'; btnAnalyze.disabled = false; lucide.createIcons(); }
+        });
+
+        document.querySelectorAll('.js-date-clean').forEach(el => {
+            let v = el.innerText.trim().toLowerCase();
+            if (['nan','nat','none','','00:00:00'].includes(v)) el.innerText = '---';
+            else el.innerText = el.innerText.replace(/\s*00:00:00\s*/g, '').trim();
+        });
+
+        document.querySelectorAll('.ts-filter').forEach(el => { const ts = new TomSelect(el, { create: false }); ts.on('change', () => filterTable()); });
+
+        function filterTable() {
+            const search = document.getElementById('searchInput')?.value.toLowerCase().trim() || "";
+            const rep = document.getElementById('filter-rep')?.value.toLowerCase().trim() || "all";
+            const dest = document.getElementById('filter-dest')?.value.toLowerCase().trim() || "all";
+            const chan = document.getElementById('filter-channel')?.value.toLowerCase().trim() || "all";
+            const prod = document.getElementById('filter-product')?.value.toLowerCase().trim() || "all";
+            
+            const rows = document.querySelectorAll('.result-row'); let count = 0;
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                const rRep = (row.getAttribute('data-rep') || "").toLowerCase().trim();
+                const rDest = (row.getAttribute('data-dest') || "").toLowerCase().trim();
+                const rChan = (row.getAttribute('data-channel') || "").toLowerCase().trim();
+                const rProd = (row.getAttribute('data-product') || "").toLowerCase().trim();
+                
+                const match = (search === "" || text.includes(search)) && 
+                              (rep === "all" || rRep === rep) && 
+                              (dest === "all" || rDest === dest) && 
+                              (chan === "all" || rChan === chan) && 
+                              (prod === "all" || rProd === prod);
+                              
+                if (match) { row.style.display = ''; count++; } else { row.style.display = 'none'; }
+            });
+            
+            const el = document.getElementById('visibleCount'); 
+            if(el) el.innerText = count;
+        }
+
+        function exportToExcel() { let table = document.getElementById("resultsTable"), wb = XLSX.utils.table_to_book(table, {sheet: "Missing Leads"}); XLSX.writeFile(wb, "Missing_Leads_Report.xlsx"); }
+    </script>
+    <script>
+    // Universal Activity Tracker
+    function logActivity(action, details) {
+        fetch('/api/log_activity', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: action, details: details })
+        }).catch(e => console.log(e));
+    }
+
+    // Automatically track any button clicked
+    document.addEventListener('click', function(e) {
+        let btn = e.target.closest('button');
+        if (btn) {
+            let btnName = btn.innerText.trim() || btn.id || 'Icon Button';
+            logActivity('CLICK', 'Clicked button: ' + btnName.substring(0, 30));
+        }
+    });
+</script>
+</body>
+</html>

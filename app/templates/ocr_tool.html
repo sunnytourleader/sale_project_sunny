@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat OCR - Sale Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) { document.documentElement.classList.add('dark'); } else { document.documentElement.classList.remove('dark') }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
+        #sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-open { transform: translateX(0) !important; }
+        
+        #loadingOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; display: none;
+            align-items: center; justify-content: center; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
+            transition: opacity 0.3s ease; opacity: 0;
+        }
+        .spinner { width: 48px; height: 48px; border: 4px solid #e2e8f0; border-bottom-color: #3b82f6; border-radius: 50%; display: block; animation: rotation 0.8s linear infinite; }
+        .dark .spinner { border: 4px solid #1e293b; border-bottom-color: #3b82f6; }
+        @keyframes rotation { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* Inline Input Styles for Table */
+        .inline-input {
+            width: 100%;
+            background-color: transparent;
+            border: 1px solid transparent;
+            border-radius: 0.375rem;
+            padding: 0.375rem 0.5rem;
+            outline: none;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: inherit;
+            transition: all 0.2s;
+        }
+        .inline-input:hover { border-color: #cbd5e1; }
+        .dark .inline-input:hover { border-color: #475569; }
+        .inline-input:focus {
+            background-color: #ffffff;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+        .dark .inline-input:focus {
+            background-color: #0f172a;
+            border-color: #3b82f6;
+        }
+        
+        /* Highlight errored fields */
+        .input-error {
+            border-color: #f87171 !important;
+            background-color: rgba(254, 226, 226, 0.5) !important;
+            color: #b91c1c !important;
+        }
+        .dark .input-error {
+            background-color: rgba(153, 27, 27, 0.2) !important;
+            color: #f87171 !important;
+        }
+    </style>
+</head>
+<body class="bg-[#f8fafc] dark:bg-[#0b1120] text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300">
+
+    <!-- ORIGINAL HARDCODED DATALISTS -->
+    <datalist id="destinationsList">
+        <option value="ALL DESTINATION"><option value="ARAB"><option value="AUSTRALIA"><option value="BALI">
+        <option value="CANADA"><option value="CDCQJF"><option value="CHANZA+ZJJ"><option value="CHENGDU">
+        <option value="CHINA"><option value="CHONGQING"><option value="CHONGQING+CHENGDU"><option value="CP-KROM">
+        <option value="CRUISE"><option value="DALAT"><option value="DANANG"><option value="DUBAI">
+        <option value="EUR+AUS"><option value="EUROPE"><option value="FINLAND"><option value="FIN-NOR">
+        <option value="GUILIN"><option value="GUIZHOU"><option value="HAINAN"><option value="HARBIN">
+        <option value="HOKKAIDO"><option value="HONGKONG+MACAO"><option value="INDONESIA"><option value="JAPAN">
+        <option value="KOH TRAL"><option value="KOREAN"><option value="KPC-K"><option value="KRAMPUCHEAKROM">
+        <option value="KULSIN"><option value="KUNMING"><option value="LOAS"><option value="MACAU">
+        <option value="NEWZEALAND"><option value="SAIGON,VN"><option value="SAPA"><option value="SHANGHAI">
+        <option value="SINKUL"><option value="SOUTHKOREA"><option value="TAIWAN"><option value="TAY NINH">
+        <option value="TOURS"><option value="TURKEY"><option value="USA"><option value="VIETNAM">
+        <option value="XIAN CHINA"><option value="CANTON FAIR"><option value="KOH RONG"><option value="HONG KONG">
+        <option value="KAMPUCHEA KROM"><option value="TiBe"><option value="KOMPUCHEA KROM"><option value="DOMESTIC">
+    </datalist>
+    <datalist id="zonesList"><option value="Zone A"><option value="Zone B"><option value="Zone C"><option value="Tours"><option value="VISA"><option value="TICKET"></datalist>
+    <datalist id="repsList"><option value="KEM SREYLIS"><option value="MR. SUNNY"><option value="NGET KIMSOUR"><option value="PENG SREYPICH"><option value="SOMBO PICH"><option value="SY VANNAK"></datalist>
+    <datalist id="statusList">
+        <option value="1-NEW LEAD"><option value="2-CONTACTED / RINGING"><option value="3-FOLLOWING UP"><option value="4-APPOINTMENT SET">
+        <option value="5-NEGOTIATING"><option value="6-CONFIRMED / BOOKED"><option value="7-LOST / FAILED"><option value="8-FUTURE INTEREST">
+        <option value="9-CHECK INFO"><option value="10.NO ANSWER"><option value="11-CALLED IN"><option value="12-PAY OFF/FULL PAY">
+        <option value="13.PENDING"><option value="14.CHECK PRICE"><option value="15-WRONG NUMBER"><option value="16-CHECK DATE"><option value="17-WRONG">
+    </datalist>
+    <datalist id="sourceList">
+        <option value="PAGE"><option value="TELEGRAM"><option value="CALL IN"><option value="TIKTOK">
+        <option value="TOUR LEADER"><option value="WALK IN"><option value="CUSTOMER"><option value="OTHER AGENT">
+        <option value="BOSS"><option value="JEA TEANG"><option value="KOL: Vanny"><option value="KOL: Thien">
+        <option value="KOL: OUdom"><option value="KOL: Dr. Tong"><option value="SALE CONTACT"><option value="VISA"><option value="NO GROUP">
+    </datalist>
+    <datalist id="typeList"><option value="NEW"><option value="REPEAT"></datalist>
+
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[65] hidden opacity-0 transition-opacity duration-300" onclick="toggleMenu()"></div>
+
+    <!-- Global Loading Overlay -->
+    <div id="loadingOverlay">
+        <div class="bg-white dark:bg-slate-800 p-10 rounded-3xl shadow-2xl flex flex-col items-center min-w-[320px] transition-all scale-90 opacity-0 border border-slate-100 dark:border-slate-700" id="loadingCard">
+            <div class="spinner mb-6"></div>
+            <p class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-widest animate-pulse text-center">Extracting Chat Data</p>
+            <p class="text-xs font-medium text-blue-500 dark:text-blue-400 mt-3 text-center h-8 flex items-center justify-center" id="loadingQuote">Waking up the robots...</p>
+        </div>
+    </div>
+
+    <!-- Top Navigation Bar -->
+    <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-[60] transition-colors duration-300">
+        <div class="flex items-center gap-4">
+            <button id="menuToggle" onclick="toggleMenu()" class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-transparent dark:border-slate-700">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <div class="flex items-center gap-3">
+                <h2 class="text-xl font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tight leading-none">STB SALE DASHBOARD</h2>
+                <span class="px-3 py-1 bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 rounded-lg text-[10px] font-semibold uppercase tracking-widest border border-blue-200/60 dark:border-blue-500/20">Chat OCR</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <button id="themeToggle" class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700">
+                <i data-lucide="moon" id="themeToggleDarkIcon" class="hidden w-5 h-5"></i>
+                <i data-lucide="sun" id="themeToggleLightIcon" class="hidden w-5 h-5"></i>
+            </button>            
+        </div>
+    </div>
+
+    <!-- Sidebar Menu (Universal) -->
+    {% include 'sidebar_snippet.html' %}
+
+    <main class="p-6 lg:p-10 w-full mx-auto max-w-[1800px]">
+        <header class="mb-8 max-w-4xl mx-auto text-center">
+            <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">Automated Chat Extraction</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Bulk upload chat screenshots to instantly extract customer names and phone numbers. Edit directly in the table before exporting!</p>
+        </header>
+
+        {% if error %}
+        <div class="mb-8 p-4 max-w-4xl mx-auto rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm font-semibold flex items-center gap-3 shadow-sm">
+            <i data-lucide="alert-triangle" class="w-5 h-5"></i> {{ error }}
+        </div>
+        {% endif %}
+
+        <!-- UPLOAD STATE (Visible initially) -->
+        {% if not results %}
+        <div id="uploadContainer" class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 w-full max-w-4xl mx-auto transition-all">
+            <h3 class="font-semibold text-lg text-slate-800 dark:text-white mb-4 flex items-center justify-center gap-2">
+                <i data-lucide="images" class="w-5 h-5 text-blue-500"></i> Upload Screenshots
+            </h3>
+            <label for="chatImages" id="dropZone" class="cursor-pointer flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900/50 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:border-blue-300 dark:hover:border-blue-500 transition-all group">
+                <div class="w-14 h-14 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <i data-lucide="upload-cloud" class="w-7 h-7 text-blue-500"></i>
+                </div>
+                <p class="text-base font-semibold text-slate-700 dark:text-slate-300">Click or Drag & Drop</p>
+                <p class="text-xs font-medium text-slate-400 mt-1 px-4 text-center">Select multiple Chat Screenshots</p>
+                <input type="file" id="chatImages" accept="image/*" multiple class="hidden">
+            </label>
+            <div id="filePreview" class="mt-4 hidden">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-center" id="fileCountTxt">0 Files Selected</p>
+                <div class="flex flex-wrap justify-center gap-2 max-h-32 overflow-y-auto custom-scrollbar p-1" id="fileBadges"></div>
+            </div>
+            <button onclick="startProcessing()" id="extractBtn" class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl transition-all shadow-md shadow-blue-500/20 flex justify-center items-center gap-2 text-lg">
+                <i data-lucide="scan" class="w-5 h-5"></i> Extract Data
+            </button>
+        </div>
+
+        <!-- JS LIVE RESULTS STATE (Hidden initially, shown after scan) -->
+        <div id="jsResultsContainer" class="hidden w-full bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 flex flex-col min-h-[600px] overflow-hidden">
+            <div class="p-6 lg:p-8 border-b border-slate-100 dark:border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-50 dark:bg-slate-900/50">
+                <div>
+                    <h3 class="font-semibold text-2xl text-blue-600 dark:text-blue-400 flex items-center gap-3"><i data-lucide="edit-3" class="w-6 h-6"></i> Live Inline Editor</h3>
+                    <p class="text-xs font-medium text-slate-500 mt-1 uppercase tracking-widest">Click directly on any table cell below to edit the value. Click the image to view the original screenshot.</p>
+                </div>
+                <form method="POST" action="/ocr-tool" id="saveForm" class="w-full md:w-auto">
+                    <input type="hidden" name="batch_results" id="batchResultsData">
+                    <button type="button" onclick="submitBatch()" class="w-full md:w-auto px-6 py-3 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 transition-colors shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2">
+                        <i data-lucide="save" class="w-5 h-5"></i> Save & Generate Excel
+                    </button>
+                </form>
+            </div>
+            
+            <div class="flex-1 overflow-x-auto custom-scrollbar relative w-full bg-white dark:bg-slate-800">
+                <table class="w-full text-left whitespace-nowrap min-w-max">
+                    <thead class="bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm sticky top-0 border-b border-slate-200 dark:border-slate-700 z-10">
+                        <tr>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center w-12">No</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-blue-500 dark:text-blue-400 text-center w-16">Image</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-blue-500 dark:text-blue-400 min-w-[140px]">Customer Name</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-blue-500 dark:text-blue-400 min-w-[120px]">Contact Number</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 min-w-[120px]">Contact Date</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 min-w-[120px]">Source</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 min-w-[100px]">Type</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-purple-500 dark:text-purple-400 min-w-[130px]">Destination</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-purple-500 dark:text-purple-400 min-w-[110px]">Zone</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center w-16">Pax</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 min-w-[120px]">Dep Date</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 min-w-[150px]">Status</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 min-w-[120px]">Next FUP</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 min-w-[120px]">Why Failed</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-purple-500 dark:text-purple-400 min-w-[140px]">Sale Rep</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center w-20">Succ %</th>
+                            <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 min-w-[180px]">Note</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jsResultsBody" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                        <!-- Populated purely by JS to preserve Blob Images -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% else %}
+        
+        <!-- POST-SAVE STATE (Jinja Renders Final Confirmations + Triggers Download) -->
+        <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden mb-12">
+            <div class="p-6 lg:p-8 border-b border-slate-100 dark:border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-emerald-50/50 dark:bg-emerald-900/10">
+                <div>
+                    <h3 class="font-semibold text-2xl text-emerald-600 dark:text-emerald-400 flex items-center gap-3"><i data-lucide="check-circle" class="w-6 h-6"></i> Extraction Complete & Saved</h3>
+                    <p class="text-xs font-medium text-slate-500 mt-1 uppercase tracking-widest">Successfully processed and saved {{ results|length }} records to the Master Database.</p>
+                </div>
+                <div class="flex gap-2">
+                    <a href="/ocr-tool" class="px-5 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold transition-colors uppercase shadow-sm">Process More Files</a>
+                    <!-- Hidden element to automatically trigger the python-generated excel file download on page load -->
+                    <div id="excelData" class="hidden" data-b64="{{ excel_b64 | default('') }}"></div>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto custom-scrollbar min-h-[400px]">
+                <table class="w-full text-left whitespace-nowrap min-w-max">
+                    <thead class="bg-slate-50 dark:bg-slate-800/80 sticky top-0 border-b border-slate-200/60 dark:border-slate-700 z-10">
+                        <tr>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">No.</th>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Customer Info</th>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Schedule & Zone</th>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Sale Rep</th>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Status</th>
+                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                        {% for row in results %}
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                            <td class="px-5 py-3 text-xs text-slate-500 font-semibold text-center">{{ loop.index }}</td>
+                            <td class="px-5 py-3">
+                                <div class="text-sm font-bold text-slate-800 dark:text-white">{{ row['Customer Name'] or '---' }}</div>
+                                <div class="text-[11px] font-bold text-blue-600 dark:text-blue-400 mt-0.5 tracking-widest">{{ row['Contact Number'] or '---' }}</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5 uppercase">Contact: <span>{{ row['Contacted Date'] or '---' }}</span></div>
+                            </td>
+                            <td class="px-5 py-3">
+                                <div class="text-sm font-semibold text-indigo-600 dark:text-indigo-400 truncate max-w-[150px] uppercase">{{ row['Destination'] or '---' }}</div>
+                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5"><span>{{ row['Zone'] or '---' }}</span> | Dep: <span>{{ row.get('Depature Date', row.get('Departure Date', '---')) }}</span></div>
+                            </td>
+                            <td class="px-5 py-3 text-center">
+                                <div class="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase">{{ row['Sale Rep'] or '---' }}</div>
+                            </td>
+                            <td class="px-5 py-3 text-center">
+                                <span class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[9px] font-bold uppercase rounded-md shadow-sm">{{ row['Status'] or '---' }}</span>
+                            </td>
+                            <td class="px-5 py-3">
+                                <div class="text-[10px] text-slate-500 font-semibold uppercase"><span class="text-slate-400">Src:</span> <span>{{ row['Source'] }}</span> | <span class="text-slate-400">Type:</span> <span>{{ row['Type'] }}</span> | <span class="text-slate-400">Pax:</span> <span>{{ row['Pax'] }}</span></div>
+                                <div class="text-[10px] text-slate-500 mt-0.5 italic truncate max-w-[200px]" title="{{ row['Noted'] }}"><span class="text-slate-400 font-semibold uppercase not-italic">Note:</span> <span>{{ row['Noted'] or '---' }}</span></div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Image Viewer Modal -->
+    <div id="imageViewerModal" class="fixed inset-0 z-[110] hidden items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md transition-opacity duration-300 opacity-0" onclick="if(event.target === this) closeImageViewer()">
+        <div class="relative w-full max-w-4xl max-h-[90vh] flex flex-col bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700 transform scale-95 transition-transform duration-300" id="imageViewerCard">
+            <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                <h3 class="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    <i data-lucide="image" class="w-5 h-5 text-blue-500"></i> <span id="imageViewerTitle" class="truncate max-w-md">Original Chat Scan</span>
+                </h3>
+                <button onclick="closeImageViewer()" class="p-1.5 bg-slate-200 hover:bg-rose-100 text-slate-500 hover:text-rose-500 dark:bg-slate-700 dark:hover:bg-rose-500/20 dark:text-slate-400 dark:hover:text-rose-400 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-auto p-4 flex justify-center bg-slate-100 dark:bg-slate-900 custom-scrollbar relative">
+                <img id="imageViewerImg" src="" class="max-w-full h-auto object-contain rounded border border-slate-300 dark:border-slate-700 shadow-sm">
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Injection for Quotes -->
+    <script id="quotes-data" type="application/json">{{ quotes | safe if quotes else '[]' }}</script>
+
+    <script>
+        lucide.createIcons();
+        
+        // Theme Init
+        const themeToggleBtn = document.getElementById('themeToggle');
+        themeToggleBtn.addEventListener('click', function() {
+            document.getElementById('themeToggleDarkIcon').classList.toggle('hidden');
+            document.getElementById('themeToggleLightIcon').classList.toggle('hidden');
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark'); localStorage.setItem('color-theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark'); localStorage.setItem('color-theme', 'dark');
+            }
+        });
+        
+        window.addEventListener('load', () => {
+            if (document.documentElement.classList.contains('dark')) { document.getElementById('themeToggleLightIcon').classList.remove('hidden'); } 
+            else { document.getElementById('themeToggleDarkIcon').classList.remove('hidden'); }
+            
+            // Auto-trigger Excel download if present from Jinja response
+            const excelDataEl = document.getElementById('excelData');
+            if (excelDataEl) {
+                const b64Data = excelDataEl.dataset.b64;
+                if (b64Data && b64Data.length > 0) {
+                    const a = document.createElement("a");
+                    a.href = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + b64Data;
+                    a.download = "OCR_CLIENT_CONTACTS.xlsx";
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }
+            }
+        });
+
+        // Global Menu Toggle
+        window.toggleMenu = function() {
+            const sidebar = document.getElementById('sidebar'); const backdrop = document.getElementById('sidebarBackdrop');
+            if(!sidebar) return;
+            sidebar.classList.toggle('sidebar-open');
+            if (sidebar.classList.contains('sidebar-open')) { if(backdrop) { backdrop.classList.remove('hidden'); setTimeout(() => backdrop.classList.remove('opacity-0'), 10); } } 
+            else { if(backdrop) { backdrop.classList.add('opacity-0'); setTimeout(() => backdrop.classList.add('hidden'), 300); } }
+        };
+
+        // =====================================
+        // FILE UPLOAD AND UI LOGIC
+        // =====================================
+        let selectedFiles = [];
+        let quotesList = [];
+        try { 
+            const qData = document.getElementById('quotes-data').textContent.trim();
+            if (qData) quotesList = JSON.parse(qData);
+        } catch(e) { console.warn("Failed to parse quotes", e); }
+        let quoteInterval;
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('chatImages');
+        const filePreview = document.getElementById('filePreview');
+        const fileCountTxt = document.getElementById('fileCountTxt');
+        const fileBadges = document.getElementById('fileBadges');
+
+        if(dropZone && fileInput) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, preventDefaults, false));
+            function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+            ['dragenter', 'dragover'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-blue-500/10'), false));
+            ['dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-500/10'), false));
+
+            dropZone.addEventListener('drop', (e) => { fileInput.files = e.dataTransfer.files; updateFileUI(); });
+            fileInput.addEventListener('change', updateFileUI);
+        }
+
+        function updateFileUI() {
+            selectedFiles = Array.from(fileInput.files);
+            if(selectedFiles.length > 0) {
+                filePreview.classList.remove('hidden');
+                fileCountTxt.innerText = `${selectedFiles.length} Files Selected`;
+                fileBadges.innerHTML = selectedFiles.map((f) => `<span class="px-2 py-1 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-[10px] font-semibold text-slate-600 dark:text-slate-300 truncate max-w-[120px]" title="${f.name}">${f.name}</span>`).join('');
+            } else {
+                filePreview.classList.add('hidden');
+            }
+        }
+
+        let currentBatchResults = [];
+
+        function getTodayDate() { return new Date().toISOString().split('T')[0]; }
+        function getNextFollowUpDate() { const date = new Date(); date.setDate(date.getDate() + 2); return date.toISOString().split('T')[0]; }
+
+        // =====================================
+        // OCR EXTRACTION -> SPA RENDER
+        // =====================================
+        async function startProcessing() {
+            if(selectedFiles.length === 0) return alert("Please upload at least one image.");
+
+            document.getElementById('extractBtn').classList.add('hidden');
+
+            const loader = document.getElementById('loadingOverlay');
+            const card = document.getElementById('loadingCard');
+            const quoteEl = document.getElementById('loadingQuote');
+            
+            loader.style.display = 'flex'; 
+            setTimeout(() => { loader.style.opacity = '1'; card.style.opacity = '1'; card.style.transform = 'scale(1)'; }, 10);
+            
+            let qIdx = 0;
+            if (quoteEl && quotesList.length > 0) {
+                quoteEl.innerText = quotesList[0];
+                quoteInterval = setInterval(() => {
+                    qIdx = (qIdx + 1) % quotesList.length;
+                    quoteEl.innerText = quotesList[qIdx];
+                }, 2500);
+            }
+
+            // Release old blob URLs if user is repeating process without refresh
+            currentBatchResults.forEach(r => { if(r.imageUrl) URL.revokeObjectURL(r.imageUrl); });
+            currentBatchResults = [];
+
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                const objUrl = URL.createObjectURL(file);
+                const fd = new FormData();
+                fd.append('file', file);
+
+                try {
+                    const response = await fetch('/api/extract_chat', { method: 'POST', body: fd });
+                    const data = await response.json();
+                    
+                    if(data.status === 'Success') {
+                        currentBatchResults.push({
+                            filename: file.name,
+                            name: data.name !== "N/A" ? data.name : "",
+                            phone_number: data.phone_number !== "N/A" ? data.phone_number : "",
+                            error: null,
+                            imageUrl: objUrl
+                        });
+                    } else {
+                        currentBatchResults.push({ filename: file.name, name: '', phone_number: '', error: "Extraction Failed", imageUrl: objUrl });
+                    }
+                } catch (err) {
+                    currentBatchResults.push({ filename: file.name, name: '', phone_number: '', error: "Network Error", imageUrl: objUrl });
+                }
+            }
+            
+            clearInterval(quoteInterval);
+            loader.style.opacity = '0'; card.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300);
+
+            if(currentBatchResults.length > 0) {
+                document.getElementById('uploadContainer').classList.add('hidden');
+                document.getElementById('jsResultsContainer').classList.remove('hidden');
+                renderJSResults();
+            } else {
+                alert("No valid data could be extracted.");
+                document.getElementById('extractBtn').classList.remove('hidden');
+            }
+        }
+
+        // =====================================
+        // INLINE EDITING LOGIC & IMAGE VIEW
+        // =====================================
+        function renderJSResults() {
+            const tbody = document.getElementById('jsResultsBody');
+            const today = getTodayDate();
+            const fupDate = getNextFollowUpDate();
+
+            const inputClass = "inline-input";
+
+            tbody.innerHTML = currentBatchResults.map((r, i) => {
+                const hasNameError = !r.name || r.name.toLowerCase() === 'n/a';
+                const hasPhoneError = !r.phone_number || r.phone_number.toLowerCase() === 'n/a';
+                
+                return `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-100 dark:border-slate-700/50">
+                    <td class="px-2 py-2 text-center text-xs font-semibold text-slate-500">${i+1}</td>
+                    <td class="px-2 py-2 text-center">
+                        <img src="${r.imageUrl}" class="w-10 h-10 object-cover rounded cursor-pointer border border-slate-200 dark:border-slate-600 hover:opacity-80 hover:border-blue-400 transition-all mx-auto shadow-sm" onclick="viewImage('${r.imageUrl}', '${r.filename.replace(/'/g, "\\'")}')" title="Click to view original image">
+                    </td>
+                    <td class="px-2 py-2"><input type="text" id="name-${i}" value="${r.name}" class="${inputClass} ${hasNameError ? 'input-error' : 'text-blue-600 dark:text-blue-400'}" placeholder="Enter Name"></td>
+                    <td class="px-2 py-2"><input type="text" id="phone-${i}" value="${r.phone_number}" class="${inputClass} tracking-widest ${hasPhoneError ? 'input-error' : 'text-blue-600 dark:text-blue-400'}" placeholder="Phone Number"></td>
+                    <td class="px-2 py-2"><input type="date" id="cdate-${i}" value="${today}" class="${inputClass} text-slate-500"></td>
+                    <td class="px-2 py-2"><input type="text" id="src-${i}" list="sourceList" value="PAGE" class="${inputClass} text-slate-500" placeholder="Source"></td>
+                    <td class="px-2 py-2"><input type="text" id="type-${i}" list="typeList" value="NEW" class="${inputClass} text-slate-500" placeholder="Type"></td>
+                    <td class="px-2 py-2"><input type="text" id="dest-${i}" list="destinationsList" class="${inputClass} text-purple-600 dark:text-purple-400 uppercase" placeholder="Destination"></td>
+                    <td class="px-2 py-2"><input type="text" id="zone-${i}" list="zonesList" class="${inputClass} text-purple-600 dark:text-purple-400 uppercase" placeholder="Zone"></td>
+                    <td class="px-2 py-2"><input type="number" id="pax-${i}" value="1" min="1" class="${inputClass} text-center text-slate-700 dark:text-slate-300"></td>
+                    <td class="px-2 py-2"><input type="date" id="dep-${i}" class="${inputClass} text-slate-500"></td>
+                    <td class="px-2 py-2"><input type="text" id="status-${i}" list="statusList" value="9-CHECK INFO" class="${inputClass} uppercase" placeholder="Status"></td>
+                    <td class="px-2 py-2"><input type="date" id="fup-${i}" value="${fupDate}" class="${inputClass} text-slate-500"></td>
+                    <td class="px-2 py-2"><input type="text" id="fail-${i}" class="${inputClass} text-slate-500" placeholder="Reason"></td>
+                    <td class="px-2 py-2"><input type="text" id="rep-${i}" list="repsList" class="${inputClass} text-slate-700 dark:text-slate-300 uppercase" placeholder="Rep"></td>
+                    <td class="px-2 py-2"><input type="number" id="succ-${i}" class="${inputClass} text-center text-slate-500" placeholder="%"></td>
+                    <td class="px-2 py-2"><input type="text" id="note-${i}" value="${r.filename}" class="${inputClass} text-slate-400 font-normal italic" placeholder="Notes"></td>
+                </tr>`;
+            }).join('');
+        }
+
+        // --- IMAGE VIEWER MODAL LOGIC ---
+        function viewImage(url, filename) {
+            document.getElementById('imageViewerTitle').innerText = filename;
+            document.getElementById('imageViewerImg').src = url;
+            
+            const modal = document.getElementById('imageViewerModal');
+            const card = document.getElementById('imageViewerCard');
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Trigger animation
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                card.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeImageViewer() {
+            const modal = document.getElementById('imageViewerModal');
+            const card = document.getElementById('imageViewerCard');
+            
+            modal.classList.add('opacity-0');
+            card.classList.add('scale-95');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.getElementById('imageViewerImg').src = "";
+            }, 300);
+        }
+
+        // --- SUBMIT INLINE DATA TO BACKEND ---
+        function submitBatch() {
+            // Re-build the JSON payload reading directly from the inline inputs
+            const finalPayload = currentBatchResults.map((r, i) => ({
+                "No": "",
+                "Customer Name": document.getElementById(`name-${i}`).value.trim(),
+                "Contact Number": document.getElementById(`phone-${i}`).value.trim(),
+                "Contacted Date": document.getElementById(`cdate-${i}`).value,
+                "Source": document.getElementById(`src-${i}`).value.trim(),
+                "Type": document.getElementById(`type-${i}`).value.trim(),
+                "Destination": document.getElementById(`dest-${i}`).value.trim(),
+                "Zone": document.getElementById(`zone-${i}`).value.trim(),
+                "Pax": parseInt(document.getElementById(`pax-${i}`).value) || 1,
+                "Depature Date": document.getElementById(`dep-${i}`).value,
+                "Status": document.getElementById(`status-${i}`).value.trim(),
+                "Next Follow up Date": document.getElementById(`fup-${i}`).value,
+                "Why Failed": document.getElementById(`fail-${i}`).value.trim(),
+                "Sale Rep": document.getElementById(`rep-${i}`).value.trim(),
+                "Success(%)": document.getElementById(`succ-${i}`).value,
+                "Noted": document.getElementById(`note-${i}`).value.trim(),
+                "Department": ""
+            }));
+
+            // Validate critical fields
+            for(let i=0; i<finalPayload.length; i++) {
+                if(!finalPayload[i]["Customer Name"] || !finalPayload[i]["Contact Number"]) {
+                    alert(`Row ${i+1} is missing a Name or Phone Number. Please correct it before saving.`);
+                    return;
+                }
+            }
+
+            document.getElementById('batchResultsData').value = JSON.stringify(finalPayload);
+            document.getElementById('saveForm').submit();
+        }
+    </script>
+</body>
+</html>

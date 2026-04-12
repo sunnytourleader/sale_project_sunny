@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Sale Intelligence</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) { document.documentElement.classList.add('dark'); } else { document.documentElement.classList.remove('dark') }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
+        #sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-open { transform: translateX(0) !important; }
+        
+        /* Modern Checkboxes for Permissions */
+        .perm-cb { width: 1.25rem; height: 1.25rem; cursor: pointer; border-radius: 0.375rem; border: 1px solid #cbd5e1; transition: all 0.2s ease-in-out; }
+        .dark .perm-cb { border-color: #334155; background-color: #1e293b; }
+        .perm-cb:checked { border-color: transparent; }
+        
+        /* Custom Checkbox CSS for Matrix */
+        .custom-checkbox {
+            appearance: none; background-color: #fff; margin: 0; color: currentColor;
+            width: 1.25rem; height: 1.25rem; border: 2px solid #cbd5e1; border-radius: 0.25rem;
+            display: inline-grid; place-content: center; cursor: pointer; transition: all 0.2s ease-in-out;
+        }
+        .dark .custom-checkbox { background-color: #1e293b; border-color: #475569; }
+        .custom-checkbox::before {
+            content: ""; width: 0.7em; height: 0.7em; transform: scale(0); transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em white; background-color: white; transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .custom-checkbox:checked { background-color: #2563eb; border-color: #2563eb; }
+        .custom-checkbox:checked::before { transform: scale(1); }
+        .custom-checkbox:disabled { background-color: #e2e8f0; border-color: #e2e8f0; cursor: not-allowed; }
+        .dark .custom-checkbox:disabled { background-color: #334155; border-color: #334155; }
+        .custom-checkbox:disabled:checked { background-color: #cbd5e1; border-color: #cbd5e1; }
+        .dark .custom-checkbox:disabled:checked { background-color: #475569; border-color: #475569; }
+    </style>
+</head>
+<body class="bg-[#f8fafc] dark:bg-[#0b1120] text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300">
+
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[65] hidden opacity-0 transition-opacity duration-300" onclick="toggleMenu()"></div>
+
+    <!-- Top Navigation Bar -->
+    <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-[60] transition-colors duration-300">
+        <div class="flex items-center gap-4">
+            <button id="menuToggle" onclick="toggleMenu()" class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-transparent dark:border-slate-700">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <div class="flex items-center gap-3">
+                <h2 class="text-xl font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tight leading-none">STB SALE DASHBOARD</h2>
+                <span class="px-3 py-1 bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 rounded-lg text-[10px] font-semibold uppercase tracking-widest border border-amber-200/60 dark:border-amber-500/20">Admin Config</span>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <button id="themeToggle" class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700">
+                <i data-lucide="moon" id="themeToggleDarkIcon" class="hidden w-5 h-5"></i>
+                <i data-lucide="sun" id="themeToggleLightIcon" class="hidden w-5 h-5"></i>
+            </button>
+
+            <!-- User Menu Profile Dropdown -->
+            {% if current_user and current_user.is_authenticated %}
+            <div class="relative group ml-2">
+                <button class="flex items-center gap-3 p-1.5 pr-3 rounded-xl border border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer">
+                    <div class="w-9 h-9 bg-gradient-to-tr from-amber-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md shadow-amber-500/20">
+                        {{ current_user.username[0]|upper }}
+                    </div>
+                    <div class="text-left hidden md:block">
+                        <p class="text-sm font-bold text-slate-800 dark:text-white leading-tight capitalize">{{ current_user.username }}</p>
+                        <p class="text-[10px] font-bold text-amber-500 uppercase tracking-wider">{{ current_user.role }}</p>
+                    </div>
+                </button>
+                <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 hidden group-hover:block z-[100] overflow-hidden">
+                    <a href="/logout" class="block px-4 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors flex items-center gap-2">
+                        <i data-lucide="log-out" class="w-4 h-4"></i> Secure Logout
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Sidebar Menu (Universal) -->
+    {% include 'sidebar_snippet.html' %}
+
+    <main class="p-6 lg:p-10 max-w-[1600px] mx-auto">
+        
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">System Configuration</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Manage user accounts and configure page access permissions by role.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- Users List Table -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 flex flex-col w-full overflow-hidden">
+                <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+                    <h3 class="font-semibold text-lg text-slate-800 dark:text-white flex items-center gap-2">
+                        <i data-lucide="users" class="w-5 h-5 text-blue-500"></i> Registered Users
+                    </h3>
+                    <button onclick="openModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i> Add User
+                    </button>
+                </div>
+                
+                <div class="overflow-x-auto custom-scrollbar flex-1">
+                    <table class="w-full text-left whitespace-nowrap min-w-max">
+                        <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200/60 dark:border-slate-700">
+                            <tr>
+                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Username</th>
+                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Department</th>
+                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">System Role</th>
+                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50" id="usersTableBody">
+                            <!-- Populated via Javascript below based on python variable `users` -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- DYNAMIC ROLE ACCESS MATRIX CARD -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 flex flex-col w-full h-fit">
+                <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/50">
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2">
+                            <i data-lucide="shield-check" class="w-5 h-5 text-amber-500"></i> Role Access Matrix
+                        </h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Checkboxes instantly update local state. Click 'Save' to apply.</p>
+                    </div>
+                    <button onclick="saveRoleMatrix()" id="saveMatrixBtn" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 min-w-[140px]">
+                        <i data-lucide="save" class="w-4 h-4"></i> Save Setup
+                    </button>
+                </div>
+                
+                <div id="matrixLoader" class="flex flex-col items-center justify-center py-12">
+                    <i data-lucide="loader-2" class="w-8 h-8 text-emerald-500 animate-spin mb-3"></i>
+                    <p class="text-slate-500 text-sm font-medium animate-pulse">Loading Matrix...</p>
+                </div>
+
+                <div id="matrixContainer" class="hidden overflow-x-auto custom-scrollbar w-full flex-1">
+                    <table class="w-full text-left border-collapse min-w-max">
+                        <thead id="matrixHead" class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200/60 dark:border-slate-700">
+                            <!-- Columns Injected via JS -->
+                        </thead>
+                        <tbody id="matrixBody" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                            <!-- Rows Injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Add/Edit User Modal -->
+    <div id="userModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center opacity-0 transition-opacity p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700 transform scale-95 transition-transform" id="userModalCard">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2" id="modalTitle">
+                    <i data-lucide="user" class="w-5 h-5 text-blue-500"></i> Add New User
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-5">
+                <input type="hidden" id="userId">
+                
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Username</label>
+                    <input type="text" id="username" class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm dark:text-white font-semibold transition-all" placeholder="e.g. jdoe">
+                </div>
+                
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Password</label>
+                    <input type="password" id="password" class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm dark:text-white font-medium transition-all" placeholder="Leave blank to keep existing (if editing)">
+                </div>
+
+                <div class="grid grid-cols-2 gap-5">
+                    <!-- DYNAMIC SYSTEM ROLE DROPDOWN -->
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">System Role</label>
+                        <select id="role" onchange="handleRoleChange(this)" class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm dark:text-white font-semibold cursor-pointer transition-all">
+                            {% set all_roles = [] %}
+                            
+                            {% if permissions %}
+                                {% for r in permissions.keys() %}
+                                    {% if r not in all_roles %}{% set _ = all_roles.append(r) %}{% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            
+                            {% if users %}
+                                {% for u in users %}
+                                    {% if u.role and u.role not in all_roles %}{% set _ = all_roles.append(u.role) %}{% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            
+                            {% if not all_roles %}
+                                {% set all_roles = ['admin', 'viewer'] %}
+                            {% endif %}
+                            
+                            {% for r in all_roles|sort %}
+                            <option value="{{ r }}">{{ r|capitalize }}{% if r|lower == 'admin' %} (Full Access){% elif r|lower == 'viewer' %} (Default){% endif %}</option>
+                            {% endfor %}
+                            
+                            <option value="_add_new_" class="font-bold text-blue-600 dark:text-blue-400">+ Add New Role...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Department</label>
+                        <select id="department" class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm dark:text-white font-semibold cursor-pointer transition-all">
+                           <option value="management">Management</option>
+                            <option value="sale">Sale</option>
+                            <option value="ticket">Ticket</option>
+                            <option value="digital">Digital</option>
+                            <option value="visa">Visa</option>
+                            <option value="op">Operation</option>                            
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3 rounded-b-2xl">
+                <button onclick="closeModal()" class="px-5 py-2.5 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-sm transition-colors">Cancel</button>
+                <button onclick="saveUser()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition-colors shadow-sm flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i> Save User
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Initial Data JSON -->
+    <script id="init-users" type="application/json">{{ users | tojson | safe }}</script>
+    <script id="init-perms" type="application/json">{{ permissions | tojson | safe }}</script>
+
+    <script>
+        lucide.createIcons();
+        const themeToggleBtn = document.getElementById('themeToggle');
+        if (document.documentElement.classList.contains('dark')) { document.getElementById('themeToggleLightIcon').classList.remove('hidden'); } 
+        else { document.getElementById('themeToggleDarkIcon').classList.remove('hidden'); }
+
+        themeToggleBtn.addEventListener('click', function() {
+            document.getElementById('themeToggleDarkIcon').classList.toggle('hidden');
+            document.getElementById('themeToggleLightIcon').classList.toggle('hidden');
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark'); localStorage.setItem('color-theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark'); localStorage.setItem('color-theme', 'dark');
+            }
+        });
+
+        // ==========================================
+        // 1. GLOBAL UI & USER MANAGEMENT
+        // ==========================================
+        
+        window.toggleMenu = function() {
+            const sidebar = document.getElementById('sidebar'); 
+            const backdrop = document.getElementById('sidebarBackdrop');
+            if(!sidebar) return;
+            sidebar.classList.toggle('sidebar-open');
+            if (sidebar.classList.contains('sidebar-open')) { 
+                if(backdrop) { backdrop.classList.remove('hidden'); setTimeout(() => backdrop.classList.remove('opacity-0'), 10); } 
+            } else { 
+                if(backdrop) { backdrop.classList.add('opacity-0'); setTimeout(() => backdrop.classList.add('hidden'), 300); } 
+            }
+        };
+
+        const getUrlSafe = p => {
+            if (typeof getUrl === 'function') return getUrl(p);
+            return window.location.origin === 'null' ? p.substring(1) : window.location.origin + (p.startsWith('/') ? p : '/' + p);
+        };
+
+        function isPreviewEnv() {
+            try { return window.location.origin === 'null' || window.location.href.startsWith('blob:') || window.location.hostname.includes('usercontent.goog'); }
+            catch(e) { return true; }
+        }
+
+        let usersData = [];
+
+        try {
+            const uText = document.getElementById('init-users').textContent;
+            if (uText.trim()) { usersData = JSON.parse(uText); }
+        } catch(e) { 
+            console.warn("Failed to parse users data, using mock data", e);
+        }
+
+        if (usersData.length === 0 || isPreviewEnv()) {
+            usersData = [
+                { id: 1, username: "Admin", role: "admin", department: "sale" },
+                { id: 2, username: "User", role: "viewer", department: "sale" }
+            ];
+        }
+
+        function renderUsers() {
+            const tbody = document.getElementById('usersTableBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = usersData.map(u => {
+                const roleBadge = u.role === 'admin' 
+                    ? '<span class="px-2.5 py-1 bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20 text-[10px] font-bold uppercase rounded-md tracking-wider">Admin</span>'
+                    : `<span class="px-2.5 py-1 bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/20 text-[10px] font-bold uppercase rounded-md tracking-wider">${u.role}</span>`;
+
+                return `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold text-xs uppercase">${u.username[0]}</div>
+                            <div>
+                                <p class="text-sm font-bold text-slate-800 dark:text-white capitalize leading-tight">${u.username}</p>
+                                <p class="text-[10px] text-slate-400 font-medium tracking-wider mt-0.5">ID: #${u.id}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold uppercase rounded-md tracking-wider">${u.department || 'N/A'}</span>
+                    </td>
+                    <td class="px-6 py-4">${roleBadge}</td>
+                    <td class="px-6 py-4 text-right space-x-2">
+                        <button onclick='editUser(${JSON.stringify(u).replace(/'/g, "&#39;")})' class="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all" title="Edit User"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                        <button onclick="deleteUser(${u.id})" class="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all" title="Delete User"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        renderUsers();
+
+        // User Management Modals
+        const userModal = document.getElementById('userModal');
+        const userModalInner = document.getElementById('userModalCard');
+
+        window.handleRoleChange = function(selectElement) {
+            if (selectElement.value === '_add_new_') {
+                const newRole = prompt("Enter the name of the new System Role (e.g. Manager):");
+                if (newRole && newRole.trim() !== '') {
+                    const cleanRole = newRole.trim().toLowerCase().replace(/\s+/g, '_');
+                    const option = document.createElement("option");
+                    option.value = cleanRole;
+                    option.text = newRole.trim().charAt(0).toUpperCase() + newRole.trim().slice(1);
+                    
+                    // Insert right before the "Add New..." option
+                    selectElement.insertBefore(option, selectElement.lastElementChild);
+                    selectElement.value = cleanRole;
+                } else {
+                    // Revert selection if user canceled the prompt
+                    selectElement.value = 'viewer';
+                }
+            }
+        };
+
+        window.openModal = function() {
+            const idField = document.getElementById('userId');
+            if (idField) idField.value = '';
+            
+            const userField = document.getElementById('username');
+            const passField = document.getElementById('password');
+            const roleField = document.getElementById('role');
+            const deptField = document.getElementById('department');
+            const titleField = document.getElementById('modalTitle');
+            
+            if (userField) userField.value = '';
+            if (passField) passField.value = '';
+            if (roleField) {
+                // Check if 'viewer' is a valid option, fallback to first child if not
+                const hasViewer = Array.from(roleField.options).some(opt => opt.value === 'viewer');
+                roleField.value = hasViewer ? 'viewer' : roleField.options[0].value;
+            }
+            if (deptField) deptField.value = 'sale';
+            if (titleField) titleField.innerHTML = '<i data-lucide="user-plus" class="w-5 h-5 text-blue-500"></i> Add New User';
+            
+            if (userModal) {
+                userModal.classList.remove('hidden');
+                userModal.classList.add('flex');
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                setTimeout(() => { userModal.classList.remove('opacity-0'); if(userModalInner) userModalInner.classList.remove('scale-95'); }, 10);
+            }
+        };
+
+        window.editUser = function(user) {
+            const idField = document.getElementById('userId');
+            const userField = document.getElementById('username');
+            const passField = document.getElementById('password');
+            const roleField = document.getElementById('role');
+            const deptField = document.getElementById('department');
+            const titleField = document.getElementById('modalTitle');
+            
+            if (idField) idField.value = user.id;
+            if (userField) userField.value = user.username;
+            if (passField) passField.value = ''; 
+            if (roleField) {
+                // Ensure the custom role is available in the dropdown if it was saved via API but hasn't synced
+                if (!Array.from(roleField.options).some(opt => opt.value === user.role)) {
+                    const option = document.createElement("option");
+                    option.value = user.role;
+                    option.text = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+                    roleField.insertBefore(option, roleField.lastElementChild);
+                }
+                roleField.value = user.role;
+            }
+            if (deptField) deptField.value = user.department || 'sale';
+            if (titleField) titleField.innerHTML = '<i data-lucide="user-cog" class="w-5 h-5 text-blue-500"></i> Edit User Account';
+            
+            if (userModal) {
+                userModal.classList.remove('hidden');
+                userModal.classList.add('flex');
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                setTimeout(() => { userModal.classList.remove('opacity-0'); if(userModalInner) userModalInner.classList.remove('scale-95'); }, 10);
+            }
+        };
+
+        window.closeModal = function() {
+            if (userModal) {
+                userModal.classList.add('opacity-0'); 
+                if (userModalInner) userModalInner.classList.add('scale-95');
+                setTimeout(() => { userModal.classList.add('hidden'); userModal.classList.remove('flex'); }, 200);
+            }
+        };
+
+        window.saveUser = async function() {
+            const idField = document.getElementById('userId');
+            const id = idField ? idField.value : '';
+            const payload = {
+                username: document.getElementById('username').value.trim(),
+                role: document.getElementById('role').value,
+                department: document.getElementById('department').value,
+                password: document.getElementById('password').value
+            };
+            
+            if(!payload.username) return alert("Username required");
+            if(!id && !payload.password) return alert("Password required for new users");
+
+            const url = id ? `/api/users/${id}` : '/api/users';
+            const method = id ? 'PUT' : 'POST';
+
+            try {
+                if (isPreviewEnv()) {
+                    alert("Mock Save: Backend is required to permanently update users.");
+                    closeModal();
+                    return;
+                }
+
+                const res = await fetch(getUrlSafe(url), {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if(data.error) return alert(data.error);
+                
+                alert("User saved successfully! Page will refresh.");
+                location.reload();
+            } catch (e) { 
+                alert("Error saving user."); 
+            }
+        };
+
+        window.deleteUser = async function(id) {
+            if(!confirm("Are you sure you want to permanently delete this user?")) return;
+            try {
+                if (isPreviewEnv()) {
+                    alert("Mock Delete: Backend is required to permanently delete users.");
+                    return;
+                }
+
+                const res = await fetch(getUrlSafe(`/api/users/${id}`), { method: 'DELETE' });
+                const data = await res.json();
+                if(data.error) return alert(data.error);
+                location.reload();
+            } catch (e) { 
+                alert("Error deleting user."); 
+            }
+        };
+
+        // ==========================================
+        // 2. ROLE ACCESS MATRIX LOGIC
+        // ==========================================
+        let dbRoles = [];
+        let dbModules = [
+            {key: "sales_dashboard", label: "Sales Dashboard", icon: "layout-dashboard"},
+            {key: "revenue_dashboard", label: "Revenue Dashboard", icon: "dollar-sign"},
+            {key: "compare_tools", label: "Compare Tools", icon: "git-compare"},
+            {key: "meeting_report", label: "Group Tours Report", icon: "presentation"},
+            {key: "ocr_tool", label: "Chat OCR Helper", icon: "message-square"},
+            {key: "user_management", label: "User Management (Admin Only)", icon: "users-cog", admin_only: true}
+        ];
+        let dbMatrix = {}; 
+
+        window.addEventListener('load', () => {
+            loadMatrixFromDOM();
+        });
+
+        function loadMatrixFromDOM() {
+            const loader = document.getElementById('matrixLoader');
+            let dataLoaded = false;
+
+            try {
+                const pText = document.getElementById('init-perms');
+                if (pText && pText.textContent.trim()) {
+                    try {
+                        dbMatrix = JSON.parse(pText.textContent);
+                        dbRoles = Object.keys(dbMatrix);
+                        if (dbRoles.length > 0) dataLoaded = true;
+                    } catch (parseErr) {
+                        console.warn("JSON parse error on permissions data, falling back.", parseErr);
+                    }
+                }
+                
+                if (!dataLoaded || isPreviewEnv()) {
+                    dbRoles = ['admin', 'viewer'];
+                    dbMatrix = {
+                        'admin': { sales_dashboard: true, revenue_dashboard: true, compare_tools: true, meeting_report: true, ocr_tool: true, user_management: true },
+                        'viewer': { sales_dashboard: false, revenue_dashboard: false, compare_tools: true, meeting_report: true, ocr_tool: false, user_management: false }
+                    };
+                }
+
+                // DYNAMIC AUTO-SYNC: If there's a role in the Users Table that isn't in the Role Matrix yet, ADD IT automatically!
+                if (usersData && usersData.length > 0) {
+                    usersData.forEach(u => {
+                        if (u.role && !dbRoles.includes(u.role)) {
+                            dbRoles.push(u.role);
+                            dbMatrix[u.role] = {}; 
+                        }
+                    });
+                }
+
+                // Ensure Admin permanently has User Management checked to prevent lockout
+                if (dbMatrix['admin']) {
+                    dbMatrix['admin']['user_management'] = true;
+                }
+
+                buildMatrixTable();
+                
+                if (loader) loader.classList.add('hidden');
+                
+                const container = document.getElementById('matrixContainer');
+                if (container) {
+                    container.classList.remove('hidden');
+                    container.classList.add('flex');
+                }
+                
+            } catch (err) {
+                console.error("Critical error loading matrix:", err);
+                if (loader) {
+                    loader.innerHTML = `
+                        <div class="flex flex-col items-center justify-center py-10 text-center px-4">
+                            <i data-lucide="alert-triangle" class="w-10 h-10 text-rose-500 mb-3"></i>
+                            <p class="text-rose-600 font-bold text-lg mb-1">Data Load Failed</p>
+                            <p class="text-slate-400 text-xs mt-2">Could not safely render permissions from the server.</p>
+                        </div>
+                    `;
+                }
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        }
+
+        function buildMatrixTable() {
+            const thead = document.getElementById('matrixHead');
+            const tbody = document.getElementById('matrixBody');
+            
+            if (!thead || !tbody) return; 
+            
+            let headHTML = `<tr>
+                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 w-64">Application Module</th>`;
+            
+            const colors = ['text-blue-600 dark:text-blue-400', 'text-emerald-600 dark:text-emerald-400', 'text-indigo-600 dark:text-indigo-400', 'text-purple-600 dark:text-purple-400', 'text-amber-600 dark:text-amber-400'];
+
+            dbRoles.forEach((role, idx) => {
+                const colorClass = role.toLowerCase() === 'admin' ? colors[0] : (colors[idx % colors.length] || colors[1]);
+                headHTML += `<th class="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-widest ${colorClass} min-w-[120px]">${role.replace('_', ' ')} Role</th>`;
+            });
+            headHTML += `</tr>`;
+            thead.innerHTML = headHTML;
+
+            let bodyHTML = '';
+            dbModules.forEach(m => {
+                bodyHTML += `<tr class="hover:bg-slate-50 dark:bg-slate-700/30 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 shrink-0">
+                                <i data-lucide="${m.icon}" class="w-4 h-4"></i>
+                            </div>
+                            <span class="font-semibold text-sm ${m.admin_only ? 'text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-white'}">${m.label}</span>
+                        </div>
+                    </td>`;
+
+                dbRoles.forEach(role => {
+                    const isChecked = (dbMatrix[role] && dbMatrix[role][m.key]) ? 'checked' : '';
+                    const isDisabled = (m.admin_only && role.toLowerCase() === 'admin') ? 'checked disabled' : isChecked;
+                    
+                    bodyHTML += `
+                    <td class="px-6 py-4 text-center">
+                        <input type="checkbox" id="chk_${role}_${m.key}" data-role="${role}" data-perm="${m.key}" ${isDisabled} class="custom-checkbox"/>
+                    </td>`;
+                });
+                bodyHTML += `</tr>`;
+            });
+            
+            tbody.innerHTML = bodyHTML;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        window.saveRoleMatrix = async function() {
+            const btn = document.getElementById('saveMatrixBtn');
+            if (!btn) return;
+            
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Saving...`;
+            btn.disabled = true;
+
+            let payloadData = {};
+            dbRoles.forEach(role => {
+                payloadData[role] = {};
+                dbModules.forEach(m => {
+                    const checkbox = document.getElementById(`chk_${role}_${m.key}`);
+                    if (checkbox) {
+                        payloadData[role][m.key] = checkbox.checked;
+                    }
+                });
+            });
+
+            // Hardcode admin safety logic
+            if (payloadData['admin']) {
+                payloadData['admin']['user_management'] = true;
+            }
+
+            try {
+                if (isPreviewEnv()) {
+                    setTimeout(() => {
+                        btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> Saved!`;
+                        btn.classList.replace('bg-emerald-500', 'bg-blue-500');
+                        btn.classList.replace('hover:bg-emerald-600', 'hover:bg-blue-600');
+                        setTimeout(() => {
+                            btn.innerHTML = originalHtml;
+                            btn.classList.replace('bg-blue-500', 'bg-emerald-500');
+                            btn.classList.replace('hover:bg-blue-600', 'hover:bg-emerald-600');
+                            btn.disabled = false;
+                            if (typeof lucide !== 'undefined') lucide.createIcons();
+                        }, 1500);
+                    }, 600);
+                    return;
+                }
+
+                const res = await fetch(getUrlSafe('/api/permissions'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payloadData)
+                });
+                
+                if (!res.ok) {
+                    let errorDetails = '';
+                    try { const errData = await res.json(); errorDetails = errData.error || ''; } catch(e) {}
+                    throw new Error(`HTTP ${res.status}: ${errorDetails}`);
+                }
+                
+                btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> Saved!`;
+                btn.classList.replace('bg-emerald-500', 'bg-blue-500');
+                btn.classList.replace('hover:bg-emerald-600', 'hover:bg-blue-600');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.replace('bg-blue-500', 'bg-emerald-500');
+                    btn.classList.replace('hover:bg-blue-600', 'hover:bg-emerald-600');
+                    btn.disabled = false;
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }, 2000);
+
+            } catch (err) {
+                alert("Error saving matrix: " + err.message);
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        };
+    </script>
+</body>
+</html>

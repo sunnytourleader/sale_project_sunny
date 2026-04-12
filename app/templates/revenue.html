@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Overview</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { slate: { 850: '#151e2e', 900: '#0f172a' } } } }
+        }
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else { document.documentElement.classList.remove('dark') }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-open { transform: translateX(0) !important; }
+        
+        #loadingOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999;
+            display: none; align-items: center; justify-content: center;
+            background-color: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px);
+            transition: opacity 0.3s ease; opacity: 0; pointer-events: auto; user-select: none;
+        }
+
+        .spinner {
+            width: 48px; height: 48px; border: 4px solid #e2e8f0; border-bottom-color: #10b981;
+            border-radius: 50%; display: block; margin: 0 auto; animation: rotation 0.8s linear infinite;
+        }
+        .dark .spinner { border: 4px solid #1e293b; border-bottom-color: #10b981; }
+        @keyframes rotation { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        /* Refined Scrollbar */
+        .pipeline-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .pipeline-scroll::-webkit-scrollbar-track { background: transparent; }
+        .pipeline-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+        .pipeline-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .dark .pipeline-scroll::-webkit-scrollbar-thumb { background: #334155; }
+        .dark .pipeline-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .custom-scroll::-webkit-scrollbar { height: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark .custom-scroll::-webkit-scrollbar-thumb { background: #475569; }
+        .mask-edge { mask-image: linear-gradient(to right, black 80%, transparent 100%); -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%); }
+
+        /* TomSelect Modern Overrides */
+        .ts-wrapper { width: 100%; min-width: 150px; }
+        .ts-control { border-radius: 0.75rem !important; padding: 0.5rem 1rem !important; border: 1px solid #e2e8f0 !important; background-color: #ffffff !important; color: #0f172a !important; font-family: 'Inter', sans-serif !important; font-weight: 500 !important; font-size: 0.875rem !important; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; min-height: 42px; transition: all 0.2s ease; }
+        .ts-control.focus { border-color: #10b981 !important; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important; }
+        .dark .ts-control { background-color: #0f172a !important; border-color: #334155 !important; color: #f1f5f9 !important; }
+        .ts-control > input { font-weight: 500 !important; font-size: 0.875rem !important; color: inherit !important; }
+        .ts-dropdown { border-radius: 0.75rem !important; border: 1px solid #e2e8f0 !important; background-color: #ffffff !important; color: #0f172a !important; font-family: 'Inter', sans-serif !important; font-weight: 500 !important; font-size: 0.875rem !important; overflow: hidden; margin-top: 4px !important; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important; z-index: 9999 !important; }
+        .dark .ts-dropdown { background-color: #1e293b !important; border-color: #334155 !important; color: #f1f5f9 !important; }
+        .ts-dropdown .option { padding: 0.5rem 1rem !important; transition: background-color 0.1s; cursor: pointer; }
+        .ts-dropdown .active { background-color: #ecfdf5 !important; color: #059669 !important; }
+        .dark .ts-dropdown .active { background-color: #1e293b !important; color: #34d399 !important; }
+    </style>
+</head>
+<body class="bg-[#f8fafc] dark:bg-[#0b1120] text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300">
+    
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[65] hidden opacity-0 transition-opacity duration-300" onclick="toggleMenu()"></div>
+
+    <div id="loadingOverlay">
+        <div class="bg-white dark:bg-slate-800 p-10 rounded-3xl shadow-2xl flex flex-col items-center min-w-[320px] transition-all scale-90 opacity-0 text-center border border-slate-100 dark:border-slate-700" id="loadingCard">
+            <div class="spinner mb-6"></div>
+            <div class="flex flex-col items-center">
+                <p class="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-widest animate-pulse">Financial Sync</p>
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-2">Aggregating revenue data...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Navigation Bar -->
+    <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-[60] transition-colors duration-300">
+        <div class="flex items-center gap-4">
+            <button id="menuToggle" class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-transparent dark:border-slate-700">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <div class="flex flex-col">
+                <div class="flex items-center gap-3">
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                        <div class="w-6 h-6 bg-emerald-500 rounded-lg flex items-center justify-center">
+                            <i data-lucide="dollar-sign" class="w-4 h-4 text-white"></i>
+                        </div>
+                        Financial Overview
+                    </h2>
+                    <button id="headerUploadBtn" class="text-[10px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-md font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors uppercase border border-emerald-100 dark:border-emerald-500/20 flex items-center gap-1">
+                        <i data-lucide="upload-cloud" class="w-3 h-3"></i> Upload
+                    </button>
+                    <input type="file" id="fileInput" class="hidden" accept=".xlsx,.xls,.csv" />
+                </div>
+                <span class="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Ledger Sync Active 
+                    <span id="headerSyncFileName" class="text-emerald-500 dark:text-emerald-400 italic"></span>
+                </span>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <button id="themeToggle" class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700">
+                <i data-lucide="moon" id="themeToggleDarkIcon" class="hidden w-5 h-5"></i>
+                <i data-lucide="sun" id="themeToggleLightIcon" class="hidden w-5 h-5"></i>
+            </button>
+
+
+            <div id="headerSheetContainer" class="hidden flex items-center gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <select id="sheetSelect" class="text-xs font-medium border-none bg-transparent dark:text-white outline-none focus:ring-0 cursor-pointer pl-2"></select>
+                <button id="loadBtn" class="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm hover:bg-emerald-600 transition-all">Sync</button>
+            </div>
+        </div>
+    </div>
+
+<!-- Sidebar -->
+{% include 'sidebar_snippet.html' %}
+
+    <main class="p-6 lg:p-10 max-w-[1600px] mx-auto">
+        <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-1.5">Financial Overview</h1>
+                <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Aggregating gross revenue, deal sizes, and ledger performance.</p>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <form action="/revenue" method="POST" enctype="multipart/form-data" class="flex items-center" id="uploadForm">
+                    <label class="cursor-pointer flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-semibold transition-colors shadow-sm border border-slate-200 dark:border-slate-700">
+                        <i data-lucide="database" class="w-4 h-4"></i> Sync Finance DB
+                        <input type="file" name="file" class="hidden" accept=".csv, .xlsx" onchange="document.getElementById('uploadForm').submit();">
+                    </label>
+                </form>
+
+                <div class="flex items-center gap-4 bg-white dark:bg-slate-800 p-2.5 pr-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 min-w-[280px] transition-colors group z-[50]">
+                    <div class="w-10 h-10 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 rounded-xl flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors border border-slate-100 dark:border-slate-700">
+                        <i data-lucide="user-search" class="w-5 h-5"></i>
+                    </div>
+                    <div class="flex flex-col flex-1">
+                        <select id="workspaceSelect" class="w-full bg-transparent outline-none font-medium text-sm text-slate-800 dark:text-white cursor-pointer appearance-none">
+                            <option value="all">Select Sale Rep</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- General Filters -->
+        <div id="filterRow" class="mb-8 bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 flex flex-wrap gap-4 hidden justify-start transition-colors duration-300 relative z-[40]"></div>
+
+        <div id="dashboardContent" class="hidden opacity-0 transition-opacity duration-500 ease-in-out">
+            
+            <!-- Dynamic Metric Cards - PERFECTLY BALANCED INTO 3 COLUMNS -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 text-left relative z-10">
+                <!-- Total Sale Card (Clickable to Modal) -->
+                <div onclick="openFinancialModal()" class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 cursor-pointer hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-500 transition-all group overflow-hidden relative">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 transition-colors">Total Sale</p>
+                            <h3 class="text-3xl font-bold text-slate-800 dark:text-white mt-1 tabular-nums" id="m-revenue">$0</h3>
+                        </div>
+                        <div class="p-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl group-hover:scale-110 transition-transform">
+                            <i data-lucide="dollar-sign" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-center text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 inline-flex px-2.5 py-1 rounded border border-emerald-100 dark:border-emerald-800/50 uppercase tracking-wider">
+                        View Detailed Ledger <i data-lucide="arrow-right" class="w-3 h-3 ml-1"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Pax</p>
+                            <h3 class="text-3xl font-bold text-slate-800 dark:text-white mt-1 tabular-nums" id="m-pax">0</h3>
+                        </div>
+                        <div class="p-3 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl group-hover:scale-110 transition-transform">
+                            <i data-lucide="users" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Bookings</p>
+                            <h3 class="text-3xl font-bold text-slate-800 dark:text-white mt-1 tabular-nums" id="m-bookings">0</h3>
+                        </div>
+                        <div class="p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl group-hover:scale-110 transition-transform">
+                            <i data-lucide="file-check" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Revenue Growth Chart -->
+            <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 mb-8 flex flex-col w-full">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+                    <div>
+                        <h3 class="font-semibold text-lg text-slate-800 dark:text-white">Revenue Growth</h3>
+                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">Gross confirmed sales over time</p>
+                    </div>
+                    <div class="flex gap-1 bg-slate-100 dark:bg-slate-900/50 p-1 rounded-xl border border-slate-200/60 dark:border-slate-700">
+                        <button data-scale="daily" onclick="updateView('daily')" class="trend-btn px-4 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">Day</button>
+                        <button data-scale="weekly" onclick="updateView('weekly')" class="trend-btn px-4 py-1.5 text-xs font-medium rounded-lg transition-all bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm">Week</button>
+                        <button data-scale="monthly" onclick="updateView('monthly')" class="trend-btn px-4 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">Month</button>
+                    </div>
+                </div>
+                <div class="flex-1 min-h-[350px] w-full"><canvas id="chartRevenueTrend"></canvas></div>
+            </div>
+
+            <!-- Revenue Breakdowns -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 flex flex-col">
+                    <div class="mb-8">
+                        <h3 class="font-semibold text-lg text-slate-800 dark:text-white">Revenue by Destination</h3>
+                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">Top performing routes by total sale volume</p>
+                    </div>
+                    <div class="flex-1 min-h-[300px] w-full"><canvas id="chartRevenueDest"></canvas></div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 flex flex-col">
+                    <div class="mb-8">
+                        <h3 class="font-semibold text-lg text-slate-800 dark:text-white">Revenue by Sale Rep</h3>
+                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">Sales volume generated per representative</p>
+                    </div>
+                    <div class="flex-1 min-h-[300px] w-full"><canvas id="chartRevenueRep"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- NEW Financial Ledger Modal (Matches Request) -->
+    <div id="financialModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 transition-all duration-300">
+        <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeFinancialModal()"></div>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-[95%] xl:max-w-[1400px] z-10 flex flex-col max-h-[90vh] overflow-hidden transform transition-all border border-slate-200 dark:border-slate-700">
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800">
+                <h3 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="book-open" class="w-5 h-5 text-emerald-500"></i> Financial Sales Ledger
+                </h3>
+                <button onclick="closeFinancialModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="px-6 py-4 bg-slate-50/50 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-700/50 flex flex-wrap items-center gap-4 relative z-[40]">
+                <div class="flex-1 min-w-[200px] z-[50]">
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="finSearch" placeholder="Search SO No, Customer Name..." class="w-full pl-9 pr-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-sm font-medium shadow-sm outline-none focus:border-emerald-500 dark:text-white transition-colors" oninput="finPage=1; renderFinancialTable()">
+                    </div>
+                </div>
+                <div class="w-36 z-[40]"><select id="finZoneFilter" class="w-full" onchange="finPage=1; renderFinancialTable()"></select></div>
+                <div class="w-36 z-[30]"><select id="finRepFilter" class="w-full" onchange="finPage=1; renderFinancialTable()"></select></div>
+                <div class="w-40 z-[20]"><select id="finDestFilter" class="w-full" onchange="finPage=1; renderFinancialTable()"></select></div>
+                <div class="ml-auto">
+                    <select id="finPageSize" class="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 dark:text-white outline-none focus:border-emerald-500 transition-colors" onchange="finPageSize=parseInt(this.value); finPage=1; renderFinancialTable()">
+                        <option value="10">10 Rows</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Dynamic Financial Summary -->
+            <div id="finSummarySection" class="px-6 py-3 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs shadow-sm z-[30] relative"></div>
+
+            <div class="overflow-auto pipeline-scroll p-0 flex-1 relative z-0">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50/80 dark:bg-slate-800/80 backdrop-blur-sm sticky top-0 z-10 border-b border-slate-200/60 dark:border-slate-700">
+                        <tr>
+                            <th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Contact Date</th>
+                            <th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Customer Info</th>
+                            <th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Destination</th>
+                            <th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Schedule</th>
+                            <th class="px-6 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">Pax</th>
+                            <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400">Tour Fare</th>
+                            <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400">Revenue</th>
+                            <th class="px-6 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">Sale Rep</th>
+                        </tr>
+                    </thead>
+                    <tbody id="financialTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody>
+                </table>
+            </div>
+            <div class="px-6 py-4 bg-white dark:bg-slate-800 flex items-center justify-between border-t border-slate-100 dark:border-slate-700">
+                <p id="finTableInfo" class="text-xs font-medium text-slate-500 dark:text-slate-400">Showing 0 of 0 entries</p>
+                <div class="flex gap-2">
+                    <button onclick="exportFinancialExcel()" class="px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 rounded-lg text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors mr-4"><i data-lucide="download" class="w-3 h-3 inline"></i> Export</button>
+                    <button id="finPrevBtn" class="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50" onclick="if(finPage>1){finPage--; renderFinancialTable();}">Prev</button>
+                    <button id="finNextBtn" class="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50" onclick="if(finPage<finMaxPages){finPage++; renderFinancialTable();}">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script id="flask-data" type="application/json"></script>
+
+    <script>
+        let serverData = {
+            metrics: { leads: 0, confirmed: 0, confirmed_pax: 0, repeat_clients: 0, conversion: 0, untouched_leads: 0, funnel_engaged: 0 },
+            raw_data: [], active_pipeline: [], sources: [], destinations: [], workload: [], reps: [], zones: [], daily: [], weekly: [], monthly: [], financial_data: []
+        };
+        let lastScale = 'weekly', trendChart, destChart, repChart;
+        window.tsInstances = [];
+        
+        window.financialData = []; let finPage = 1, finPageSize = 10, finMaxPages = 1;
+
+        let isFetching = false;
+        window.isInitialLoad = true;
+
+        Chart.register(ChartDataLabels);
+        let chartGridColor = '#f1f5f9';
+        const isDarkTheme = () => document.documentElement.classList.contains('dark');
+        lucide.createIcons();
+
+        const updateChartColors = (isDark) => {
+            Chart.defaults.color = isDark ? '#94a3b8' : '#64748b';
+            chartGridColor = isDark ? '#334155' : '#f1f5f9';
+            if (trendChart) { trendChart.options.scales.x.grid.color = chartGridColor; trendChart.options.scales.y.grid.color = chartGridColor; trendChart.update(); }
+            if (destChart) { destChart.options.scales.x.grid.color = chartGridColor; destChart.update(); }
+            if (repChart) { repChart.options.scales.x.grid.color = chartGridColor; repChart.update(); }
+        }
+
+        const themeToggleBtn = document.getElementById('themeToggle');
+        themeToggleBtn.addEventListener('click', function() {
+            document.getElementById('themeToggleDarkIcon').classList.toggle('hidden');
+            document.getElementById('themeToggleLightIcon').classList.toggle('hidden');
+            if (localStorage.getItem('color-theme') === 'light') {
+                document.documentElement.classList.add('dark'); localStorage.setItem('color-theme', 'dark'); updateChartColors(true);
+            } else {
+                document.documentElement.classList.remove('dark'); localStorage.setItem('color-theme', 'light'); updateChartColors(false);
+            }
+        });
+        
+        const getUrl = p => window.location.origin === 'null' ? p.substring(1) : window.location.origin + (p.startsWith('/') ? p : '/' + p);
+        const getObjStr = (obj, keyName, fallback = '---') => {
+            const foundKey = Object.keys(obj).find(k => k.toLowerCase() === keyName.toLowerCase());
+            return foundKey && obj[foundKey] && obj[foundKey] !== 'nan' ? obj[foundKey] : fallback;
+        };
+        
+        const fmtDate = d => { 
+            if(!d || d === '---') return '---'; 
+            let dStr = String(d).split('T')[0].split(' ')[0]; // Strips time securely
+            let p = dStr.split('-'); if (p.length !== 3) return dStr;
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            return `${p[2]}-${months[parseInt(p[1])-1]}-${p[0].slice(-2)}`;
+        };
+        
+        const showLoading = () => { 
+            let el = document.getElementById('loadingOverlay'), card = document.getElementById('loadingCard'); 
+            el.style.display = 'flex'; setTimeout(() => { el.style.opacity = '1'; card.style.opacity = '1'; card.style.transform = 'scale(1)'; }, 10); 
+        };
+        
+        const hideLoading = () => { 
+            let el = document.getElementById('loadingOverlay'), card = document.getElementById('loadingCard'); 
+            el.style.opacity = '0'; card.style.opacity = '0'; setTimeout(() => el.style.display = 'none', 300); 
+        };
+
+        window.addEventListener('load', async () => {
+            if (isDarkTheme()) document.getElementById('themeToggleLightIcon').classList.remove('hidden');
+            else document.getElementById('themeToggleDarkIcon').classList.remove('hidden');
+            
+            showLoading(); 
+            try {
+                // Request financial_sales_ledger explicitly for the Revenue page
+                const res = await fetch(getUrl(`/api/check_session?table=financial_sales_ledger`)); 
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.active) {
+                        if (data.status && data.status.includes('Auto-loaded')) document.getElementById('headerSyncFileName').innerText = `(${data.status.split('Auto-loaded ')[1].split(' [')[0]})`;
+                        if (data.filters) updateFilters(data.filters); 
+                        await loadCharts(false); 
+                        window.isInitialLoad = false;
+                        return;
+                    }
+                }
+                throw new Error("No active session or API empty");
+            } catch(e) {
+                console.warn("API check failed. Fallback UI init.");
+                const content = document.getElementById('dashboardContent');
+                if (content) { content.classList.remove('hidden'); setTimeout(() => content.classList.remove('opacity-0'), 10); }
+
+                try {
+                    let injectedData = [];
+                    const flaskDataEl = document.getElementById('flask-data');
+                    if (flaskDataEl) {
+                        const rawText = flaskDataEl.textContent.trim();
+                        if (rawText && rawText !== '""' && rawText !== '[]') injectedData = JSON.parse(rawText);
+                    }
+                    if (injectedData && Array.isArray(injectedData) && injectedData.length > 0) {
+                        serverData.raw_data = injectedData;
+                        window.financialData = injectedData;
+                        
+                        let leads = injectedData.length;
+                        let confirmed = injectedData.filter(d => {
+                            let st = String(d.Status||'').toLowerCase(); return st.includes('success') || st.includes('closed') || st.includes('confirm') || st.includes('booked');
+                        }).length;
+                        let pax = injectedData.reduce((sum, d) => sum + (parseInt(d.Pax) || 0), 0);
+                        
+                        serverData.metrics.leads = leads; serverData.metrics.confirmed = confirmed; serverData.metrics.confirmed_pax = pax; serverData.metrics.conversion = leads ? Math.round((confirmed/leads)*100) : 0;
+                    }
+                } catch(err) { console.error("Error parsing fallback JSON:", err); }
+
+                renderAnalyticCharts();
+                updateTrend();
+                window.isInitialLoad = false;
+                hideLoading();
+            }
+        });
+
+        document.getElementById('headerUploadBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            if (!e.target.files.length) return;
+            const fd = new FormData(); fd.append('file', e.target.files[0]);
+            showLoading();
+            try {
+                const res = await fetch(getUrl('/api/upload'), { method: 'POST', body: fd }); const data = await res.json();
+                if (data.sheets) {
+                    document.getElementById('sheetSelect').innerHTML = data.sheets.map(s => `<option value="${s}">${s}</option>`).join('');
+                    document.getElementById('headerSyncFileName').innerText = `(${e.target.files[0].name})`;
+                    document.getElementById('headerSheetContainer').classList.remove('hidden');
+                }
+            } catch (err) {} hideLoading();
+        });
+
+        document.getElementById('loadBtn').onclick = async () => {
+            showLoading();
+            try {
+                await fetch(getUrl('/api/select_sheet'), { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sheet: document.getElementById('sheetSelect').value }) });
+                document.getElementById('headerSheetContainer').classList.add('hidden');
+                
+                const chk = await fetch(getUrl(`/api/check_session?table=financial_sales_ledger`)); 
+                const chkData = await chk.json();
+                if(chkData.active) { 
+                    updateFilters(chkData.filters); 
+                    await loadCharts(false); 
+                }
+            } catch (err) {} hideLoading();
+        };
+
+        function getFirstDayOfMonth() { const today = new Date(); const y = today.getFullYear(); const m = String(today.getMonth() + 1).padStart(2, '0'); return `${y}-${m}-01`; }
+        function getTodayDate() { const today = new Date(); const y = today.getFullYear(); const m = String(today.getMonth() + 1).padStart(2, '0'); const d = String(today.getDate()).padStart(2, '0'); return `${y}-${m}-${d}`; }
+
+        function updateFilters(f) {
+            const wsSelect = document.getElementById('workspaceSelect');
+            const currWs = wsSelect.value || 'all';
+            if(window.tsInstances) window.tsInstances.forEach(ts => ts.destroy()); 
+            window.tsInstances = [];
+            
+            wsSelect.innerHTML = `<option value="all">Select (Sale Rep)</option>` + f.reps.map(v => `<option value="${v}">${v}</option>`).join('');
+            if(f.reps.includes(currWs)) wsSelect.value = currWs;
+
+            const sDate = window.isInitialLoad ? getFirstDayOfMonth() : (document.getElementById('startD')?.value || f.min_date || getFirstDayOfMonth());
+            const eDate = window.isInitialLoad ? getTodayDate() : (document.getElementById('endD')?.value || f.max_date || getTodayDate());
+
+            const row = document.getElementById('filterRow');
+            row.innerHTML = `
+                <div class="flex flex-col flex-1 min-w-[140px]"><label class="text-[10px] font-semibold text-slate-500 uppercase mb-1.5 ml-1">Zone</label><select id="zoneF" class="ts-select w-full">${['all', ...f.zones].map(v => `<option value="${v}">${v === 'all' ? 'All Zones' : v}</option>`)}</select></div>
+                <div class="flex flex-col flex-1 min-w-[140px]"><label class="text-[10px] font-semibold text-slate-500 uppercase mb-1.5 ml-1">Destination</label><select id="destF" class="ts-select w-full">${['all', ...f.destinations].map(v => `<option value="${v}">${v === 'all' ? 'All Destinations' : v}</option>`)}</select></div>
+                <div class="flex flex-col flex-1 min-w-[140px]"><label class="text-[10px] font-semibold text-slate-500 uppercase mb-1.5 ml-1">Status</label><select id="statusF" class="ts-select w-full">${['all', ...f.statuses].map(v => `<option value="${v}">${v === 'all' ? 'All Statuses' : v}</option>`)}</select></div>
+                <div class="flex flex-col flex-1 min-w-[140px]"><label class="text-[10px] font-semibold text-slate-500 uppercase mb-1.5 ml-1">Date Start</label><input type="date" id="startD" value="${sDate}" class="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-sm font-medium outline-none focus:border-emerald-500 dark:text-white w-full h-[42px]" /></div>
+                <div class="flex flex-col flex-1 min-w-[140px]"><label class="text-[10px] font-semibold text-slate-500 uppercase mb-1.5 ml-1">Date End</label><input type="date" id="endD" value="${eDate}" class="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-sm font-medium outline-none focus:border-emerald-500 dark:text-white w-full h-[42px]" /></div>
+            `;
+            row.classList.remove('hidden');
+            
+            document.querySelectorAll('#filterRow select.ts-select, #workspaceSelect').forEach(el => {
+                const ts = new TomSelect(el, { create: false }); window.tsInstances.push(ts); ts.on('change', () => loadCharts(true));
+            });
+            document.querySelectorAll('#filterRow input[type="date"]').forEach(el => el.addEventListener('change', () => loadCharts(true)));
+        }
+
+        function populateModalSelect(id, dataList, key, defaultLabel, onChangeCallback, defaultVal = null) {
+            const el = document.getElementById(id); if (!el) return;
+            const uniqueVals = [...new Set(dataList.map(r => getObjStr(r, key, '---')))].filter(v => v !== '---').sort();
+            
+            if (el.tomselect) el.tomselect.destroy();
+            el.innerHTML = `<option value="all">${defaultLabel}</option>` + uniqueVals.map(v => `<option value="${v}">${v}</option>`).join('');
+            
+            if (defaultVal && uniqueVals.includes(defaultVal)) el.value = defaultVal;
+            else el.value = 'all';
+
+            const ts = new TomSelect(el, { create: false, dropdownParent: 'body' });
+            if (onChangeCallback) ts.on('change', onChangeCallback);
+        }
+
+        function updateView(scale) {
+            lastScale = scale;
+            document.querySelectorAll('.trend-btn').forEach(btn => {
+                if(btn.dataset.scale === scale) { btn.classList.add('bg-white', 'dark:bg-slate-700', 'text-slate-900', 'dark:text-white', 'shadow-sm'); btn.classList.remove('text-slate-500', 'dark:text-slate-400', 'hover:text-slate-800');
+                } else { btn.classList.remove('bg-white', 'dark:bg-slate-700', 'text-slate-900', 'dark:text-white', 'shadow-sm'); btn.classList.add('text-slate-500', 'dark:text-slate-400', 'hover:text-slate-800'); }
+            });
+            updateTrend();
+        }
+
+        async function loadCharts(isFilterChange = false) {
+            if (isFetching) return; isFetching = true;
+            const content = document.getElementById('dashboardContent');
+            if (isFilterChange) { if (content) content.classList.add('opacity-50', 'pointer-events-none'); } else { showLoading(); }
+
+            try {
+                const p = new URLSearchParams({ 
+                    table: 'financial_sales_ledger',
+                    destination: document.getElementById('destF')?.value || 'all', 
+                    zone: document.getElementById('zoneF')?.value || 'all', 
+                    rep: document.getElementById('workspaceSelect')?.value || 'all',
+                    status: document.getElementById('statusF')?.value || 'all',
+                    start_date: document.getElementById('startD')?.value || '', 
+                    end_date: document.getElementById('endD')?.value || '' 
+                });
+                
+                const res = await fetch(getUrl(`/api/data?${p.toString()}`));
+                if (!res.ok) throw new Error("Network response error");
+                
+                const fetchedData = await res.json();
+                serverData = { ...serverData, ...fetchedData }; 
+                
+                if (content) { content.classList.remove('hidden'); setTimeout(() => content.classList.remove('opacity-0'), 10); }
+                
+                const m = serverData.metrics;
+                window.financialData = serverData.raw_data || [];
+
+                let totalRev = 0, totalPax = 0, totalBk = window.financialData.length;
+                window.financialData.forEach(r => {
+                    totalRev += parseFloat(getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0'))));
+                    totalPax += parseInt(r.Pax) || parseInt(r.QTY) || parseInt(r.Adult) || parseInt(r.Quantity) || 0;
+                });
+
+                document.getElementById('m-revenue').innerText = '$' + totalRev.toLocaleString();
+                document.getElementById('m-pax').innerText = totalPax.toLocaleString();
+                document.getElementById('m-bookings').innerText = totalBk.toLocaleString();
+                
+                renderAnalyticCharts();
+                updateTrend();
+            } catch (err) {
+                console.error("Dashboard Render Error:", err);
+                if (content) { content.classList.remove('hidden'); setTimeout(() => content.classList.remove('opacity-0'), 10); }
+            } finally {
+                if (isFilterChange && content) content.classList.remove('opacity-50', 'pointer-events-none');
+                else hideLoading();
+                lucide.createIcons();
+                isFetching = false;
+            }
+        }
+
+        // ==========================================
+        // 💰 FINANCIAL TOTAL SALES MODAL
+        // ==========================================
+        function openFinancialModal() { 
+            if (!serverData) return; finPage = 1; 
+            populateModalSelect('finZoneFilter', window.financialData, 'Zone', 'All Zones', () => { finPage=1; renderFinancialTable(); });
+            populateModalSelect('finRepFilter', window.financialData, 'Sale Rep', 'All Reps', () => { finPage=1; renderFinancialTable(); });
+            populateModalSelect('finDestFilter', window.financialData, 'Destination', 'All Dests', () => { finPage=1; renderFinancialTable(); });
+            
+            renderFinancialTable(); 
+            const modal = document.getElementById('financialModal'); modal.classList.remove('hidden'); modal.classList.add('flex'); document.body.style.overflow = 'hidden'; lucide.createIcons();
+        }
+        function closeFinancialModal() { const modal = document.getElementById('financialModal'); modal.classList.add('hidden'); modal.classList.remove('flex'); document.body.style.overflow = ''; }
+
+        function renderFinancialTable() {
+            const zF = document.getElementById('finZoneFilter').value; const rF = document.getElementById('finRepFilter').value; const dF = document.getElementById('finDestFilter').value;
+            const searchQ = document.getElementById('finSearch').value.toLowerCase().trim();
+
+            const filtered = window.financialData.filter(r => {
+                let match = true;
+                if(zF !== 'all' && getObjStr(r, 'Zone', '').toLowerCase() !== zF.toLowerCase()) match = false;
+                if(rF !== 'all' && getObjStr(r, 'Sale Rep', '').toLowerCase() !== rF.toLowerCase()) match = false;
+                if(dF !== 'all' && getObjStr(r, 'Destination', '').toLowerCase() !== dF.toLowerCase()) match = false;
+                if (match && searchQ) {
+                    const cName = getObjStr(r, 'Customer Name', '').toLowerCase(); const so = getObjStr(r, 'S.O No', getObjStr(r, 'SO No', '')).toLowerCase();
+                    if (!cName.includes(searchQ) && !so.includes(searchQ)) match = false;
+                } return match;
+            });
+
+            // Cleaned up summary: Only showing By Zone and Total Pax/Rev
+            let zoneStats = {}; let totalRev = 0, totalPax = 0;
+            filtered.forEach(r => {
+                const z = getObjStr(r, 'Zone', '---'); 
+                const pax = parseInt(r.Pax) || parseInt(r.QTY) || parseInt(r.Adult) || parseInt(r.Quantity) || 0;
+                const rev = parseFloat(getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0'))));
+                if(!zoneStats[z]) zoneStats[z] = {pax: 0, rev: 0}; 
+                zoneStats[z].pax += pax; zoneStats[z].rev += rev;
+                totalPax += pax; totalRev += rev;
+            });
+            
+            let zHtml = Object.entries(zoneStats).sort((a,b)=>b[1].rev-a[1].rev).map(([z, s]) => `<span class="font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">${z}: <span class="text-emerald-500 font-bold">$${Math.round(s.rev).toLocaleString()}</span> <span class="text-slate-400 text-[10px] ml-0.5">(${s.pax} pax)</span></span>`).join('<span class="text-slate-300 dark:text-slate-600 mx-1.5">|</span>');
+            
+            let sumHTML = `<div class="flex items-center gap-2"><span class="text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider text-[10px]">Filtered Totals:</span> <span class="font-bold text-emerald-600 dark:text-emerald-400 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded shadow-sm">$${totalRev.toLocaleString()} <span class="text-slate-500 text-[10px] font-medium ml-1">(${totalPax} Pax)</span></span></div>`;
+            if(zHtml) sumHTML += `<div class="flex items-center gap-2 border-l border-slate-200 dark:border-slate-700 pl-4 overflow-hidden"><span class="text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider text-[10px]">Zone Revenue:</span> <div class="flex items-center overflow-x-auto custom-scroll pb-1 mask-edge">${zHtml}</div></div>`;
+            document.getElementById('finSummarySection').innerHTML = sumHTML || 'No financial records available.';
+
+            const total = filtered.length; finMaxPages = Math.ceil(total / finPageSize) || 1; if (finPage > finMaxPages) finPage = finMaxPages;
+            const slice = filtered.slice((finPage - 1) * finPageSize, finPage * finPageSize);
+            const tbody = document.getElementById('financialTableBody');
+
+            if (slice.length === 0) { tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-8 text-center text-slate-400 text-sm">No financial records found.</td></tr>`; } 
+            else {
+                tbody.innerHTML = slice.map(r => {
+                    const soNo = getObjStr(r, 'S.O No', getObjStr(r, 'SO No', '---'));
+                    const cName = getObjStr(r, 'Customer Name', getObjStr(r, 'Name', 'Unknown'));
+                    const depDate = fmtDate(getObjStr(r, 'Dep. Date', getObjStr(r, 'Dep Date', getObjStr(r, 'Departure', '---'))));
+                    const arrDate = fmtDate(getObjStr(r, 'Arr. Date', getObjStr(r, 'Arr Date', getObjStr(r, 'Arrival', '---'))));
+                    const tourFare = parseFloat(getObjStr(r, 'Tour Fare', getObjStr(r, 'Tour_Fare', getObjStr(r, 'Amount', '0'))));
+                    const revenue = parseFloat(getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0'))));
+                    const pax = parseInt(r.Pax) || parseInt(r.QTY) || parseInt(r.Adult) || parseInt(r.Quantity) || 0;
+                    const contactDate = fmtDate(r.DateStr || r['Contacted Date'] || r['Date'] || r['Contact Date']);
+
+                    const cInfo = `<div class="text-sm font-semibold text-slate-800 dark:text-white truncate max-w-[150px]" title="${cName}">${cName}</div><div class="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">SO: <span class="text-emerald-500">${soNo}</span></div>`;
+                    const schedule = `<div class="text-[11px] text-slate-600 dark:text-slate-300 whitespace-nowrap"><span class="font-medium text-slate-400 w-8 inline-block">Dep:</span> ${depDate}</div><div class="text-[11px] text-slate-600 dark:text-slate-300 whitespace-nowrap mt-0.5"><span class="font-medium text-slate-400 w-8 inline-block">Arr:</span> ${arrDate}</div>`;
+
+                    return `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                        <td class="px-6 py-3 text-xs text-slate-500 whitespace-nowrap">${contactDate}</td>
+                        <td class="px-6 py-3">${cInfo}</td>
+                        <td class="px-6 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 truncate max-w-[150px]">${getObjStr(r, 'Destination', '---')}</td>
+                        <td class="px-6 py-3">${schedule}</td>
+                        <td class="px-6 py-3 text-center text-sm font-bold text-indigo-600">${pax}</td>
+                        <td class="px-6 py-3 text-right text-sm font-medium text-slate-600 dark:text-slate-400">$${tourFare.toLocaleString()}</td>
+                        <td class="px-6 py-3 text-right text-sm font-bold text-emerald-600">$${revenue.toLocaleString()}</td>
+                        <td class="px-6 py-3 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">${getObjStr(r, 'Sale Rep', getObjStr(r, 'Rep', '---'))}</td>
+                    </tr>`;
+                }).join('');
+            }
+            document.getElementById('finTableInfo').innerText = `Showing ${total ? (finPage-1)*finPageSize+1 : 0} to ${Math.min(finPage*finPageSize, total)} of ${total}`;
+            document.getElementById('finPrevBtn').disabled = finPage === 1; document.getElementById('finNextBtn').disabled = finPage >= finMaxPages;
+        }
+
+        function exportFinancialExcel() {
+            if(window.financialData.length === 0) return alert("No data");
+            const ws = XLSX.utils.json_to_sheet(window.financialData); const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Financial_Ledger"); XLSX.writeFile(wb, "Financial_Sales_Export.xlsx");
+        }
+
+        // ==========================================
+        // CHARTS LOGIC
+        // ==========================================
+        function renderAnalyticCharts() {
+            const isDark = isDarkTheme(); const gridColor = isDark ? '#334155' : '#f1f5f9'; const labelColor = isDark ? '#94a3b8' : '#64748b';
+            
+            if (destChart) destChart.destroy();
+            
+            let destStats = {}; let repStats = {};
+            window.financialData.forEach(r => {
+                const dest = getObjStr(r, 'Destination', 'Unknown');
+                const rep = getObjStr(r, 'Sale Rep', 'Unknown');
+                const rev = parseFloat(getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0'))));
+                if (dest !== 'Unknown' && dest !== '0') destStats[dest] = (destStats[dest] || 0) + rev;
+                if (rep !== 'Unknown' && rep !== '0') repStats[rep] = (repStats[rep] || 0) + rev;
+            });
+
+            const topDests = Object.keys(destStats).map(d => ({ name: d, rev: destStats[d] })).sort((a,b) => b.rev - a.rev).slice(0, 10);
+            if (topDests.length > 0) {
+                destChart = new Chart(document.getElementById('chartRevenueDest'), {
+                    type: 'bar', data: { labels: topDests.map(d => d.name.substring(0, 15)), datasets: [{ data: topDests.map(d => d.rev), backgroundColor: '#10b981', borderRadius: 4 }] },
+                    options: { 
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { align: 'right', anchor: 'end', color: '#10b981', font: { weight: 'bold', size: 10 }, formatter: v => '$' + v.toLocaleString() } }, scales: { x: { display: false, suggestedMax: Math.max(...topDests.map(d => d.rev)) * 1.2 }, y: { grid: { display: false }, border: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: labelColor } } }, layout: { padding: { right: 45 } } 
+                    }
+                });
+            }
+
+            if (repChart) repChart.destroy();
+            const topReps = Object.keys(repStats).map(d => ({ name: d, rev: repStats[d] })).sort((a,b) => b.rev - a.rev).slice(0, 10);
+            if (topReps.length > 0) {
+                repChart = new Chart(document.getElementById('chartRevenueRep'), {
+                    type: 'bar', data: { labels: topReps.map(d => d.name), datasets: [{ data: topReps.map(d => d.rev), backgroundColor: '#3b82f6', borderRadius: 4 }] },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { align: 'top', anchor: 'end', color: labelColor, font: { weight: 'bold' }, formatter: v => '$' + v.toLocaleString() } }, scales: { x: { grid: { display: false }, border: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: labelColor } }, y: { display: false, suggestedMax: Math.max(...topReps.map(d => d.rev)) * 1.2 } }, layout: { padding: { top: 20 } } 
+                    }
+                });
+            }
+        }
+
+        function updateTrend() {
+            const isDark = isDarkTheme(); const gridColor = isDark ? '#334155' : '#f1f5f9'; const labelColor = isDark ? '#94a3b8' : '#64748b';
+            
+            let trendStats = {};
+            window.financialData.forEach(r => {
+                let dateKey = '';
+                if (lastScale === 'daily') {
+                    dateKey = r.DateStr || r['Contacted Date'] || r['Date'];
+                    if(dateKey) dateKey = dateKey.split('T')[0];
+                } else if (lastScale === 'weekly') {
+                    dateKey = r.Week || ''; if (dateKey && !dateKey.includes('W')) dateKey = 'W' + dateKey;
+                } else if (lastScale === 'monthly') {
+                    let m = r.Month || ''; 
+                    if (m.includes('-')) { let p = m.split('-'); const mm = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; dateKey = `${mm[parseInt(p[1])-1]} ${p[0]}`; }
+                    else dateKey = m;
+                }
+                if (!dateKey) return;
+                
+                const rev = parseFloat(getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0'))));
+                if (!trendStats[dateKey]) trendStats[dateKey] = 0;
+                trendStats[dateKey] += rev;
+            });
+
+            // Sort keys chronologically
+            let labels = Object.keys(trendStats).sort();
+            let dataArr = labels.map(k => trendStats[k]);
+
+            if (trendChart) trendChart.destroy();
+            trendChart = new Chart(document.getElementById('chartRevenueTrend'), {
+                type: 'bar',
+                data: { labels: labels, datasets: [{ type: 'bar', label: 'Gross Revenue', data: dataArr, backgroundColor: '#8b5cf6', borderRadius: 4, barPercentage: 0.6 }] },
+                options: { 
+                    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, layout: { padding: { top: 20 } },
+                    plugins: { legend: { display: false }, datalabels: { display: true, align: 'top', anchor: 'end', font: { weight: 'bold', size: 10 }, color: '#8b5cf6', formatter: v => '$' + v.toLocaleString() } },
+                    scales: { y: { type: 'linear', position: 'left', beginAtZero: true, grid: { color: gridColor }, border: { dash: [4, 4] }, suggestedMax: Math.max(...dataArr, 0) * 1.15, ticks: { callback: v => '$' + v, color: labelColor } }, x: { grid: { display: false }, ticks: { color: labelColor } } }
+                }
+            });
+        }
+        
+        function toggleMenu() {
+            const sidebar = document.getElementById('sidebar'); const backdrop = document.getElementById('sidebarBackdrop');
+            sidebar.classList.toggle('sidebar-open');
+            if (sidebar.classList.contains('sidebar-open')) { backdrop.classList.remove('hidden'); setTimeout(() => backdrop.classList.remove('opacity-0'), 10); } 
+            else { backdrop.classList.add('opacity-0'); setTimeout(() => backdrop.classList.add('hidden'), 300); }
+        }
+        const elMenuToggle = document.getElementById('menuToggle'); if (elMenuToggle) elMenuToggle.onclick = toggleMenu;
+    </script>
+</body>
+</html>

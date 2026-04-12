@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Configuration - Role Access</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { slate: { 850: '#151e2e', 900: '#0f172a' } } } }
+        }
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else { document.documentElement.classList.remove('dark') }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-open { transform: translateX(0) !important; }
+        
+        /* Custom Checkbox exactly matching your screenshot */
+        .custom-checkbox {
+            appearance: none;
+            background-color: #fff;
+            margin: 0;
+            color: currentColor;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid #cbd5e1;
+            border-radius: 0.25rem;
+            display: inline-grid;
+            place-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .dark .custom-checkbox { background-color: #1e293b; border-color: #475569; }
+        
+        .custom-checkbox::before {
+            content: "";
+            width: 0.7em;
+            height: 0.7em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em white;
+            background-color: white;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .custom-checkbox:checked {
+            background-color: #2563eb;
+            border-color: #2563eb;
+        }
+        .custom-checkbox:checked::before {
+            transform: scale(1);
+        }
+        .custom-checkbox:disabled {
+            background-color: #e2e8f0;
+            border-color: #e2e8f0;
+            cursor: not-allowed;
+        }
+        .dark .custom-checkbox:disabled { background-color: #334155; border-color: #334155; }
+        .custom-checkbox:disabled:checked {
+            background-color: #cbd5e1;
+            border-color: #cbd5e1;
+        }
+        .dark .custom-checkbox:disabled:checked { background-color: #475569; border-color: #475569; }
+    </style>
+</head>
+<body class="bg-[#f8fafc] dark:bg-[#0b1120] text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300">
+    
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[65] hidden opacity-0 transition-opacity duration-300" onclick="toggleMenu()"></div>
+
+    <!-- Top Navigation Bar -->
+    <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-[60] transition-colors duration-300">
+        <div class="flex items-center gap-4">
+            <button id="menuToggle" onclick="toggleMenu()" class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-transparent dark:border-slate-700">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <div class="flex items-center gap-3">
+                <h2 class="text-xl font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tight leading-none">STB SALE DASHBOARD</h2>
+                <span class="px-3 py-1 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 rounded-lg text-[10px] font-semibold uppercase tracking-widest border border-slate-200 dark:border-slate-700">Config</span>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <button id="themeToggle" class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700">
+                <i data-lucide="moon" id="themeToggleDarkIcon" class="hidden w-5 h-5"></i>
+                <i data-lucide="sun" id="themeToggleLightIcon" class="hidden w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    {% include 'sidebar_snippet.html' %}
+
+    <main class="p-6 lg:p-10 max-w-[1200px] mx-auto">
+
+        <!-- Loader -->
+        <div id="matrixLoader" class="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm mt-8">
+            <i data-lucide="loader-2" class="w-10 h-10 text-emerald-500 animate-spin mb-4"></i>
+            <p class="text-slate-500 dark:text-slate-400 font-medium animate-pulse">Loading Matrix from Database...</p>
+        </div>
+
+        <!-- Matrix Container -->
+        <div id="matrixContainer" class="hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 overflow-hidden flex-col mt-4">
+            
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h3 class="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-amber-500"></i> Role Access Matrix
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Checkboxes instantly update local state. Click 'Save' to apply.</p>
+                </div>
+                <button onclick="saveRoleMatrix()" id="saveMatrixBtn" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 min-w-[140px]">
+                    <i data-lucide="save" class="w-4 h-4"></i> Save Setup
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-left border-collapse min-w-max">
+                    <thead id="matrixHead" class="bg-slate-50/50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-700">
+                        <!-- Injected via JS -->
+                    </thead>
+                    <tbody id="matrixBody" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                        <!-- Injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+        
+        // Theme Toggle Logic
+        const themeToggleBtn = document.getElementById('themeToggle');
+        if (themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', function() {
+                document.getElementById('themeToggleDarkIcon').classList.toggle('hidden');
+                document.getElementById('themeToggleLightIcon').classList.toggle('hidden');
+                if (localStorage.getItem('color-theme') === 'light') {
+                    document.documentElement.classList.add('dark'); localStorage.setItem('color-theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark'); localStorage.setItem('color-theme', 'light');
+                }
+            });
+        }
+        
+        window.addEventListener('load', () => {
+            if (document.documentElement.classList.contains('dark')) {
+                document.getElementById('themeToggleLightIcon').classList.remove('hidden');
+            } else {
+                document.getElementById('themeToggleDarkIcon').classList.remove('hidden');
+            }
+            fetchRoleMatrix();
+        });
+
+        window.toggleMenu = function() {
+            const sidebar = document.getElementById('sidebar'); const backdrop = document.getElementById('sidebarBackdrop');
+            if(!sidebar) return;
+            sidebar.classList.toggle('sidebar-open');
+            if (sidebar.classList.contains('sidebar-open')) { if(backdrop) { backdrop.classList.remove('hidden'); setTimeout(() => backdrop.classList.remove('opacity-0'), 10); } } 
+            else { if(backdrop) { backdrop.classList.add('opacity-0'); setTimeout(() => backdrop.classList.add('hidden'), 300); } }
+        };
+
+        const getUrl = p => window.location.origin === 'null' ? p.substring(1) : window.location.origin + (p.startsWith('/') ? p : '/' + p);
+
+        function isPreviewEnv() {
+            try { return window.location.origin === 'null' || window.location.href.startsWith('blob:') || window.location.hostname.includes('usercontent.goog'); }
+            catch(e) { return true; }
+        }
+
+        // Global State
+        let dbRoles = [];
+        let dbModules = [];
+        let dbMatrix = {}; // Current state from DB
+
+        async function fetchRoleMatrix() {
+            try {
+                if (isPreviewEnv()) throw new Error("Preview Env Bypass");
+
+                const res = await fetch(getUrl('/api/roles/matrix'));
+                if (!res.ok) throw new Error("Failed to fetch matrix data.");
+                
+                const data = await res.json();
+                if(data.error) throw new Error(data.error);
+
+                dbRoles = data.roles || [];
+                dbModules = data.modules || [];
+                dbMatrix = data.matrix || {};
+
+                buildMatrixTable();
+                
+                document.getElementById('matrixLoader').classList.add('hidden');
+                document.getElementById('matrixContainer').classList.remove('hidden');
+                document.getElementById('matrixContainer').classList.add('flex');
+            } catch (err) {
+                console.warn("API check failed. Fallback UI init.", err);
+                
+                // Fallback Mock Data matching the UI Screenshot
+                dbRoles = ['admin', 'viewer'];
+                dbModules = [
+                    {key: "sales_dashboard", label: "Sales Dashboard", icon: "layout-dashboard"},
+                    {key: "revenue_dashboard", label: "Revenue Dashboard", icon: "dollar-sign"},
+                    {key: "compare_tools", label: "Compare Tools", icon: "git-compare"},
+                    {key: "meeting_report", label: "Group Tours Report", icon: "monitor"},
+                    {key: "ocr_tool", label: "Chat OCR Helper", icon: "message-square"},
+                    {key: "user_management", label: "User Management (Admin Only)", icon: "user", admin_only: true}
+                ];
+                dbMatrix = {
+                    'admin': { sales_dashboard: true, revenue_dashboard: true, compare_tools: true, meeting_report: true, ocr_tool: true, user_management: true },
+                    'viewer': { sales_dashboard: false, revenue_dashboard: false, compare_tools: true, meeting_report: true, ocr_tool: true, user_management: false }
+                };
+
+                buildMatrixTable();
+                
+                document.getElementById('matrixLoader').classList.add('hidden');
+                document.getElementById('matrixContainer').classList.remove('hidden');
+                document.getElementById('matrixContainer').classList.add('flex');
+            }
+        }
+
+        function buildMatrixTable() {
+            const thead = document.getElementById('matrixHead');
+            const tbody = document.getElementById('matrixBody');
+            
+            // 1. Build Header dynamically based on Roles and matching the custom colors
+            let headHTML = `<tr>
+                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 w-64">Application Module</th>`;
+            
+            const colors = ['text-blue-600 dark:text-blue-400', 'text-emerald-600 dark:text-emerald-400', 'text-indigo-600 dark:text-indigo-400', 'text-purple-600 dark:text-purple-400'];
+
+            dbRoles.forEach((role, idx) => {
+                const colorClass = role.toLowerCase() === 'admin' ? colors[0] : (colors[idx % colors.length] || colors[1]);
+                headHTML += `<th class="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-widest ${colorClass} min-w-[120px]">${role.replace('_', ' ')} Role</th>`;
+            });
+            headHTML += `</tr>`;
+            thead.innerHTML = headHTML;
+
+            // 2. Build Body Rows mapped directly to modules
+            let bodyHTML = '';
+            
+            dbModules.forEach(m => {
+                bodyHTML += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 shrink-0">
+                                <i data-lucide="${m.icon}" class="w-4 h-4"></i>
+                            </div>
+                            <span class="font-semibold text-sm ${m.admin_only ? 'text-slate-500 dark:text-slate-400' : 'text-slate-800 dark:text-white'}">${m.label}</span>
+                        </div>
+                    </td>`;
+
+                dbRoles.forEach(role => {
+                    // Check local matrix map safely
+                    const isChecked = (dbMatrix[role] && dbMatrix[role][m.key]) ? 'checked' : '';
+                    
+                    // Admin gets hardcoded greyed out 'User Management' according to screenshot
+                    const isDisabled = (m.admin_only && role.toLowerCase() === 'admin') ? 'checked disabled' : isChecked;
+                    
+                    bodyHTML += `
+                    <td class="px-6 py-4 text-center">
+                        <input type="checkbox" id="chk_${role}_${m.key}" data-role="${role}" data-perm="${m.key}" ${isDisabled} class="custom-checkbox"/>
+                    </td>`;
+                });
+                
+                bodyHTML += `</tr>`;
+            });
+            
+            tbody.innerHTML = bodyHTML;
+            lucide.createIcons();
+        }
+
+        async function saveRoleMatrix() {
+            const btn = document.getElementById('saveMatrixBtn');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Saving...`;
+            btn.disabled = true;
+
+            // Gather Data
+            let payloadData = [];
+            dbRoles.forEach(role => {
+                let rolePerms = {};
+                dbModules.forEach(m => {
+                    const checkbox = document.getElementById(`chk_${role}_${m.key}`);
+                    if (checkbox) {
+                        rolePerms[m.key] = checkbox.checked;
+                    }
+                });
+                payloadData.push({
+                    role: role,
+                    permissions: rolePerms
+                });
+            });
+
+            try {
+                if (isPreviewEnv()) {
+                    // Mock saving process for preview
+                    setTimeout(() => {
+                        btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> Saved!`;
+                        btn.classList.replace('bg-emerald-500', 'bg-blue-500');
+                        btn.classList.replace('hover:bg-emerald-600', 'hover:bg-blue-600');
+                        setTimeout(() => {
+                            btn.innerHTML = originalHtml;
+                            btn.classList.replace('bg-blue-500', 'bg-emerald-500');
+                            btn.classList.replace('hover:bg-blue-600', 'hover:bg-emerald-600');
+                            btn.disabled = false;
+                            lucide.createIcons();
+                        }, 2000);
+                    }, 800);
+                    return;
+                }
+
+                const res = await fetch(getUrl('/api/roles/matrix'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payloadData)
+                });
+                
+                const responseData = await res.json();
+                if (!res.ok || responseData.error) throw new Error(responseData.error || "Failed to save.");
+                
+                btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> Saved!`;
+                btn.classList.replace('bg-emerald-500', 'bg-blue-500');
+                btn.classList.replace('hover:bg-emerald-600', 'hover:bg-blue-600');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.replace('bg-blue-500', 'bg-emerald-500');
+                    btn.classList.replace('hover:bg-blue-600', 'hover:bg-emerald-600');
+                    btn.disabled = false;
+                    lucide.createIcons();
+                }, 2000);
+
+            } catch (err) {
+                alert("Error saving matrix: " + err.message);
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                lucide.createIcons();
+            }
+        }
+    </script>
+</body>
+</html>
