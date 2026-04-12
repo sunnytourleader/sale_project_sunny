@@ -10,9 +10,3 @@ sale_dashboard/
     ├── services.py        (Keep your existing DataService file here!)
     ├── templates/         (Keep your existing HTML files here)
     └── static/            (Keep your existing assets here)
-
-
-
-1- 14 or 15 -> Flight -> 18 or 19 
-2- Richman Tokyo 
-3- 
