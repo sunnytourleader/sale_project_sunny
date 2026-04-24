@@ -63,7 +63,7 @@
                     {% endif %}">
                     <i data-lucide="scan-qr-code" class="w-5 h-5 mr-3"></i> Chat OCR
                 </a>
-                {% endif %}
+                {% endif %}               
 
                 {% if user_permissions.get('user_management', False) %}
                 <div class="h-px bg-slate-200 dark:bg-slate-700 my-4"></div>
@@ -75,6 +75,16 @@
                     {% endif %}">
                      <i data-lucide="users" class="w-5 h-5 mr-3"></i>  User Management
                 </a>
+
+                <a href="/analytics/daily-report" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all cursor-pointer
+                    {% if request.endpoint == 'admin.users_page' %}
+                        bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20
+                    {% else %}
+                        text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent
+                    {% endif %}">
+                     <i data-lucide="square-dashed-mouse-pointer" class="w-5 h-5 mr-3"></i> Daily Exec Report
+                </a>
+                
                 {% endif %}
             </nav>
 
@@ -95,7 +105,7 @@
                         <i data-lucide="log-out" class="w-4 h-4"></i>
                     </a>
                 </div>
-            </div>
+            </div>            
             {% endif %}
 
         </div>

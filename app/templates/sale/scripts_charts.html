@@ -1,0 +1,517 @@
+<script>
+    // ==========================================
+    // CHART RENDERING FUNCTIONS
+    // ==========================================
+    function renderAnalyticCharts() {
+        const isDark = isDarkTheme(); 
+        const gridColor = isDark ? '#334155' : '#f1f5f9'; 
+        const labelColor = isDark ? '#94a3b8' : '#64748b';
+        
+        // 1. Lead Sources
+        if (sourceChart) sourceChart.destroy();
+        const srcData = (serverData.sources || []).filter(s => s.Source && String(s.Source) !== '0' && String(s.Source).toLowerCase() !== 'nan').sort((a,b) => b.Leads - a.Leads).slice(0, 5);
+        if (srcData.length > 0) {
+            const el = document.getElementById('chartSources');
+            if (el) {
+                sourceChart = new Chart(el, {
+                    type: 'doughnut', 
+                    data: { 
+                        labels: srcData.map(d => d.Source), 
+                        datasets: [{ 
+                            data: srcData.map(d => d.Leads), 
+                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'], 
+                            borderWidth: 0, 
+                            hoverOffset: 4 
+                        }] 
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { 
+                            legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11 }, color: labelColor } }, 
+                            datalabels: { color: '#fff', font: { weight: 'bold', size: 11 }, formatter: (v, ctx) => { let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0); let p = Math.round((v * 100) / sum); return p > 5 ? p + "%" : ""; } } 
+                        }, 
+                        cutout: '65%' 
+                    }
+                });
+            }
+        }
+
+        // 2. Unconfirmed Status
+        if (unconfirmedStatusChart) unconfirmedStatusChart.destroy();
+        const statusMap = {};
+        (serverData.raw_data || []).forEach(r => {
+            const stUpper = String(r.Status || '').toUpperCase(); 
+            const isConf = stUpper.includes('6-CONFIRMED') || stUpper.includes('BOOKED') || stUpper.includes('CLOSED') || stUpper.includes('PAID') || stUpper.includes('SUCCESS');
+            if (!isConf && !stUpper.includes('CANCEL')) { 
+                let st = getObjStr(r, 'Status', 'Not Specified'); 
+                if (!st || st === '0' || String(st).toLowerCase() === 'nan' || String(st).trim() === '') st = 'Not Specified'; 
+                statusMap[st] = (statusMap[st] || 0) + 1; 
+            }
+        });
+        const unconfData = Object.keys(statusMap).map(s => ({ status: s, count: statusMap[s] })).sort((a,b) => b.count - a.count).slice(0, 10);
+        if (unconfData.length > 0) {
+            const el = document.getElementById('chartUnconfirmedStatus');
+            if (el) {
+                unconfirmedStatusChart = new Chart(el, {
+                    type: 'bar', 
+                    data: { labels: unconfData.map(d => d.status.substring(0, 15)), datasets: [{ data: unconfData.map(d => d.count), backgroundColor: '#ef4444', borderRadius: 4 }] },
+                    options: { 
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false, 
+                        plugins: { legend: { display: false }, datalabels: { align: 'right', anchor: 'end', color: '#ef4444', font: { weight: 'bold', size: 10 }, formatter: v => v + ' Leads' } }, 
+                        scales: { x: { display: false, suggestedMax: Math.max(...unconfData.map(d => d.count)) * 1.2 }, y: { grid: { display: false }, border: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: labelColor } } }, 
+                        layout: { padding: { right: 35 } } 
+                    }
+                });
+            }
+        }
+
+        // 3. Destination Workload
+        if (destWorkloadChart) destWorkloadChart.destroy();
+        const activeDestMap = {}; 
+        (serverData.active_pipeline || []).forEach(r => { 
+            const dest = (r.Destination && String(r.Destination).toLowerCase() !== 'not specified' && String(r.Destination) !== '0') ? String(r.Destination) : 'Unknown'; 
+            if(dest !== 'Unknown') activeDestMap[dest] = (activeDestMap[dest] || 0) + 1; 
+        });
+        const dwData = Object.keys(activeDestMap).map(d => ({ dest: d, count: activeDestMap[d] })).sort((a,b) => b.count - a.count).slice(0, 5);
+        if (dwData.length > 0) {
+            const el = document.getElementById('chartDestWorkload');
+            if (el) {
+                destWorkloadChart = new Chart(el, {
+                    type: 'bar', 
+                    data: { labels: dwData.map(d => d.dest), datasets: [{ data: dwData.map(d => d.count), backgroundColor: '#8b5cf6', borderRadius: 4 }] },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, 
+                        onClick: (e, active) => { if (active.length > 0 && typeof window.openDrilldownModal === 'function') window.openDrilldownModal('dest', destWorkloadChart.data.labels[active[0].index]); }, 
+                        onHover: (e, el) => { e.native.target.style.cursor = el[0] ? 'pointer' : 'default'; },
+                        plugins: { legend: { display: false }, datalabels: { align: 'top', anchor: 'end', color: labelColor, font: { weight: 'bold' } } }, 
+                        scales: { 
+                            x: { grid: { display: false }, border: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: labelColor, callback: function(val) { const label = this.getLabelForValue(val); return label.length > 12 ? label.substring(0, 12) + '...' : label; } } }, 
+                            y: { display: false, suggestedMax: Math.max(...dwData.map(d => d.count)) * 1.2 } 
+                        }, 
+                        layout: { padding: { top: 20 } } 
+                    }
+                });
+            }
+        }
+
+        // 4. Agent Workload
+        if (workloadChart) workloadChart.destroy();
+        const wlData = (serverData.workload || []).sort((a,b) => b.Pending_Leads - a.Pending_Leads).slice(0, 5);
+        if (wlData.length > 0) {
+            const el = document.getElementById('chartWorkload');
+            if (el) {
+                workloadChart = new Chart(el, {
+                    type: 'bar', 
+                    data: { labels: wlData.map(d => d['Sale Rep']), datasets: [{ data: wlData.map(d => d.Pending_Leads), backgroundColor: '#f59e0b', borderRadius: 4 }] },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, 
+                        onClick: (e, active) => { if (active.length > 0 && typeof window.openDrilldownModal === 'function') window.openDrilldownModal('rep', workloadChart.data.labels[active[0].index]); }, 
+                        onHover: (e, el) => { e.native.target.style.cursor = el[0] ? 'pointer' : 'default'; },
+                        plugins: { legend: { display: false }, datalabels: { align: 'top', anchor: 'end', color: labelColor, font: { weight: 'bold' } } }, 
+                        scales: { 
+                            x: { grid: { display: false }, border: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: labelColor, callback: function(val) { const label = this.getLabelForValue(val); return label.length > 10 ? label.substring(0, 10) + '...' : label; } } }, 
+                            y: { display: false, suggestedMax: Math.max(...wlData.map(d => d.Pending_Leads)) * 1.2 } 
+                        }, 
+                        layout: { padding: { top: 20 } } 
+                    }
+                });
+            }
+        }
+
+        // 5. NEW: Top 10 Tour Packages (Full Width Vertical Column Chart)
+        if (topToursChart) topToursChart.destroy();
+        let tourStats = {};
+        window.financialData.forEach(r => {
+            const pkg = getObjStr(r, 'Tour Package', getObjStr(r, 'Package', getObjStr(r, 'Tour Code', getObjStr(r, 'Tour Name', 'Unknown')))).trim();
+            const revStr = getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0')));
+            const rev = parseFloat(String(revStr).replace(/[^\d.-]/g, '')) || 0;
+            if (pkg !== 'Unknown' && pkg !== '---' && pkg !== '') { 
+                tourStats[pkg] = (tourStats[pkg] || 0) + rev; 
+            }
+        });
+        
+        let topTours = Object.keys(tourStats).map(k => ({ name: k, rev: tourStats[k] })).sort((a,b) => b.rev - a.rev).slice(0, 10);
+        
+        // Fallback: If no explicit 'Tour Package' columns exist, group by Destination so the chart isn't empty
+        if (topTours.length === 0) {
+            window.financialData.forEach(r => {
+                const pkg = getObjStr(r, 'Destination', 'Unknown').trim();
+                const revStr = getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0')));
+                const rev = parseFloat(String(revStr).replace(/[^\d.-]/g, '')) || 0;
+                if (pkg !== 'Unknown' && pkg !== '---' && pkg !== '') { 
+                    tourStats[pkg] = (tourStats[pkg] || 0) + rev; 
+                }
+            });
+            topTours = Object.keys(tourStats).map(k => ({ name: k, rev: tourStats[k] })).sort((a,b) => b.rev - a.rev).slice(0, 10);
+        }
+
+        if (topTours.length > 0) {
+            const el = document.getElementById('chartTopTours');
+            if (el) {
+                topToursChart = new Chart(el, {
+                    type: 'bar',
+                    data: { 
+                        labels: topTours.map(d => d.name.length > 20 ? d.name.substring(0, 20) + '...' : d.name), 
+                        datasets: [{ 
+                            data: topTours.map(d => Math.round(d.rev)), 
+                            backgroundColor: '#10b981', 
+                            borderRadius: 4,
+                            barPercentage: 0.5 
+                        }] 
+                    },
+                    options: {
+                        indexAxis: 'x', // EXPLICITLY SET AS VERTICAL COLUMN CHART
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { display: false }, 
+                            datalabels: { 
+                                align: 'top', 
+                                anchor: 'end', 
+                                color: '#10b981', 
+                                font: { weight: 'bold', size: 11 }, 
+                                formatter: v => '$' + v.toLocaleString() 
+                            } 
+                        },
+                        scales: { 
+                            x: { 
+                                grid: { display: false }, 
+                                border: { display: false }, 
+                                ticks: { font: { family: 'Inter', size: 11 }, color: labelColor } 
+                            }, 
+                            y: { 
+                                display: false, 
+                                suggestedMax: Math.max(...topTours.map(d => d.rev)) * 1.2 
+                            } 
+                        },
+                        layout: { padding: { top: 25 } }
+                    }
+                });
+            }
+        }
+    }
+
+    function renderTopDestChart() {
+        const isDark = isDarkTheme(); const labelColor = isDark ? '#94a3b8' : '#64748b'; const gridColor = isDark ? '#334155' : '#f1f5f9';
+        if (topDestNewChart) topDestNewChart.destroy();
+        
+        let finDestMap = {};
+        window.financialData.forEach(r => {
+            let dest = getObjStr(r, 'Destination', 'Unknown');
+            let revStr = getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0')));
+            finDestMap[dest] = (finDestMap[dest] || 0) + (parseFloat(String(revStr).replace(/[^\d.-]/g, '')) || 0);
+        });
+
+        // FIX: Only show destinations with Confirmed Bookings > 0
+        let allDestData = (serverData.destinations || []).filter(d => d.Destination && String(d.Destination).toLowerCase() !== 'not specified' && String(d.Destination) !== '0' && (d.Confirmed > 0));
+        allDestData.sort((a,b) => {
+            const confA = a.Confirmed || 0; const confB = b.Confirmed || 0;
+            return confB - confA;
+        });
+
+        const destData = allDestData.slice(0, 10);
+        const el = document.getElementById('chartTopDestNew');
+        if (el) {
+            topDestNewChart = new Chart(el, {
+                type: 'bar',
+                data: {
+                    labels: destData.map(d => String(d.Destination).substring(0, 15)),
+                    datasets: [
+                        { type: 'line', label: 'Conversion %', data: destData.map(d => d.Leads > 0 ? Math.round((d.Confirmed/d.Leads)*100) : 0), borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', borderWidth: 2, tension: 0.4, yAxisID: 'y1', datalabels: { align: 'bottom', backgroundColor: '#8b5cf6', color: '#fff', borderRadius: 4, font: { weight: 'bold', size: 9 }, padding: 4, formatter: v => v + '%' } },
+                        { type: 'bar', label: 'Leads', data: destData.map(d => d.Leads), backgroundColor: '#0ea5e9', borderRadius: 4, barPercentage: 0.6, yAxisID: 'y', datalabels: { align: 'top', anchor: 'end', color: labelColor, font: { size: 10 }, formatter: v => v > 0 ? v : '' } },
+                        { type: 'bar', label: 'Won', data: destData.map(d => d.Confirmed), backgroundColor: '#10b981', borderRadius: 4, barPercentage: 0.6, yAxisID: 'y', datalabels: { align: 'top', anchor: 'end', color: labelColor, font: { size: 10 }, formatter: v => v > 0 ? v : '' } }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                    onClick: (event, activeElements) => {
+                        if (activeElements.length > 0 && typeof window.openDrilldownModal === 'function') {
+                            const idx = activeElements[0].index;
+                            const fullDestName = destData[idx].Destination;
+                            window.openDrilldownModal('dest', fullDestName);
+                        }
+                    },
+                    onHover: (event, chartElement) => {
+                        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+                    },
+                    plugins: { legend: { position: 'top', labels: { font: { family: 'Inter', color: labelColor }, usePointStyle: true } } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { family: 'Inter' }, color: labelColor } },
+                        y: { type: 'linear', display: true, position: 'left', grid: { color: gridColor }, beginAtZero: true },
+                        y1: { type: 'linear', display: true, position: 'right', grid: { display: false }, beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }
+                    }
+                }
+            });
+        }
+    }
+
+    function updateTrend() {
+        const isDark = isDarkTheme(); const gridColor = isDark ? '#334155' : '#f1f5f9'; const labelColor = isDark ? '#94a3b8' : '#64748b';
+        
+        // --- 1. CRM Lead Trend Chart ---
+        const rawData = serverData[lastScale] || [];
+        const sortKey = lastScale === 'weekly' ? 'Week' : (lastScale === 'monthly' ? 'Month' : (lastScale === 'yearly' ? 'Year' : 'DateStr'));
+        const data = [...rawData].sort((a, b) => (a[sortKey] || '') > (b[sortKey] || '') ? 1 : -1);
+
+        let finAgg = {};
+        window.financialData.forEach(r => {
+            let k = r[sortKey] || getAggKey(r, lastScale);
+            if (!k) return;
+            if (!finAgg[k]) finAgg[k] = { Revenue: 0, Pax: 0 };
+            let revStr = getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0')));
+            finAgg[k].Revenue += parseFloat(String(revStr).replace(/[^\d.-]/g, '')) || 0;
+            finAgg[k].Pax += parseInt(r.Pax) || parseInt(r.QTY) || parseInt(r.Adult) || parseInt(r.Quantity) || 0;
+        });
+
+        data.forEach(d => {
+            let k = d[sortKey];
+            d.FinRevenue = finAgg[k] ? finAgg[k].Revenue : 0;
+            d.FinPax = finAgg[k] ? finAgg[k].Pax : 0;
+        });
+        
+        const labels = data.map(d => {
+            if (lastScale === 'yearly') return d.Year || '';
+            if (lastScale === 'weekly') { let w = d.Week || ''; return String(w).includes('W') ? w : 'W' + w; }
+            if (lastScale === 'monthly') {
+                let m = String(d.Month || ''); if (!m.includes('-')) return m;
+                let p = m.split('-'); const mm = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${mm[parseInt(p[1])-1]} ${p[0]}`;
+            }
+            return fmtDate(d.DateStr || ''); 
+        });
+
+        if (trendChart) trendChart.destroy();
+        const trendEl = document.getElementById('chartTrend');
+        if (trendEl) {
+            trendChart = new Chart(trendEl, {
+                type: 'bar',
+                data: { 
+                    labels: labels, 
+                    datasets: [
+                        { 
+                            type: 'line', 
+                            label: 'Conversion %', 
+                            data: data.map(d => d.Leads > 0 ? Math.round((d.Confirmed/d.Leads)*100) : 0), 
+                            borderColor: '#8b5cf6', 
+                            backgroundColor: '#8b5cf6', 
+                            borderWidth: 2, 
+                            borderDash: [5, 5], 
+                            tension: 0.4, 
+                            yAxisID: 'y1', 
+                            order: 1, 
+                            datalabels: { 
+                                display: function(context) { return (lastScale !== 'monthly' && lastScale !== 'yearly'); },
+                                align: 'bottom', backgroundColor: '#8b5cf6', color: '#fff', borderRadius: 4, font: { weight: 'bold', size: 9 }, padding: 4, 
+                                formatter: v => v > 0 ? v + '%' : '' 
+                            } 
+                        },
+                        { 
+                            type: 'bar', 
+                            label: 'Leads', 
+                            data: data.map(d => d.Leads), 
+                            backgroundColor: '#3b82f6', 
+                            borderRadius: 4, 
+                            barPercentage: 0.6, 
+                            yAxisID: 'y', 
+                            order: 2, 
+                            datalabels: { 
+                                display: function(context) {
+                                    if (lastScale !== 'monthly' && lastScale !== 'yearly') return true;
+                                    const meta = context.chart.getDatasetMeta(context.datasetIndex);
+                                    const bar = meta.data[context.dataIndex];
+                                    return bar && typeof bar.height === 'number' ? bar.height > 75 : true; 
+                                },
+                                align: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 'center' : 'top', 
+                                anchor: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 'center' : 'end', 
+                                font: { family: 'Inter', weight: '600', size: 10, lineHeight: 1.4 }, 
+                                textAlign: 'center',
+                                color: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? '#ffffff' : '#3b82f6', 
+                                textShadowBlur: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 4 : 0,
+                                textShadowColor: 'rgba(0,0,0,0.4)',
+                                formatter: (v, context) => { 
+                                    if (lastScale === 'monthly' || lastScale === 'yearly') { 
+                                        if (v === 0) return ''; 
+                                        const raw = data[context.dataIndex]; 
+                                        const conv = raw.Leads > 0 ? Math.round((raw.Confirmed/raw.Leads)*100) : 0; 
+                                        return [`Conv: ${conv}%`, `Lds: ${raw.Leads}`, `Won: ${raw.Confirmed}`, `Pax: ${raw.FinPax.toLocaleString()}`, `Rev: $${Math.round(raw.FinRevenue).toLocaleString()}`]; 
+                                    } 
+                                    return v > 0 ? v : ''; 
+                                } 
+                            } 
+                        }, 
+                        { 
+                            type: 'bar', 
+                            label: 'Won', 
+                            data: data.map(d => d.Confirmed), 
+                            backgroundColor: '#10b981', 
+                            borderRadius: 4, 
+                            barPercentage: 0.6, 
+                            yAxisID: 'y', 
+                            order: 3, 
+                            datalabels: { 
+                                display: function(context) { return (lastScale !== 'monthly' && lastScale !== 'yearly'); },
+                                align: 'top', anchor: 'end', font: { weight: 'bold', size: 10 }, color: '#10b981', 
+                                formatter: v => v > 0 ? v : ''
+                            } 
+                        }
+                    ]
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, layout: { padding: { top: 20 } },
+                    onClick: (event, activeElements) => {
+                        if (activeElements.length > 0 && typeof window.openDrilldownModal === 'function') {
+                            const idx = activeElements[0].index;
+                            const label = trendChart.data.labels[idx];
+                            const rawObj = data[idx];
+                            window.openDrilldownModal('trend-bookings', label, rawObj);
+                        }
+                    },
+                    onHover: (event, chartElement) => {
+                        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+                    },
+                    plugins: { 
+                        legend: { position: 'top', labels: { font: { family: 'Inter', color: labelColor }, usePointStyle: true } },
+                        tooltip: {
+                            position: 'average', yAlign: 'center',
+                            callbacks: {
+                                title: function(context) {
+                                    let title = context[0].label;
+                                    if (lastScale === 'weekly' && title.includes('W')) {
+                                        let parts = title.split('W');
+                                        let year = parts[0].replace('-', '');
+                                        let week = parts[1];
+                                        return title + ` (${getWeekDateRange(year, week)})`;
+                                    }
+                                    return title;
+                                },
+                                afterBody: function(context) {
+                                    const idx = context[0].dataIndex;
+                                    const raw = data[idx];
+                                    return `\nTotal Pax: ${raw.FinPax.toLocaleString()}\nRevenue: $${Math.round(raw.FinRevenue).toLocaleString()}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: { 
+                        y: { type: 'linear', position: 'left', beginAtZero: true, grid: { color: gridColor }, border: { dash: [4, 4] }, ticks: { color: labelColor }, suggestedMax: Math.max(...data.map(d => Math.max(d.Leads || 0, d.Confirmed || 0))) * 1.15 }, 
+                        y1: { type: 'linear', position: 'right', beginAtZero: true, max: 100, grid: { display: false }, ticks: { callback: v => v + '%', color: labelColor } }, 
+                        x: { grid: { display: false }, ticks: { color: labelColor } } 
+                    }
+                }
+            });
+        }
+
+        // --- 2. Financial Revenue Trend Chart ---
+        let revAgg = {};
+        const revSortKey = lastScale === 'weekly' ? 'Week' : (lastScale === 'monthly' ? 'Month' : (lastScale === 'yearly' ? 'Year' : 'DateStr'));
+        
+        window.financialData.forEach(r => {
+            let k = r[revSortKey];
+            if (!k) return;
+            if (!revAgg[k]) revAgg[k] = { Revenue: 0, Pax: 0 };
+            let revStr = getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0')));
+            revAgg[k].Revenue += parseFloat(String(revStr).replace(/[^\d.-]/g, '')) || 0;
+            revAgg[k].Pax += parseInt(r.Pax) || parseInt(r.QTY) || parseInt(r.Adult) || parseInt(r.Quantity) || 0;
+        });
+
+        let revData = Object.keys(revAgg).map(k => ({ [revSortKey]: k, Revenue: revAgg[k].Revenue, Pax: revAgg[k].Pax }));
+        revData.sort((a, b) => (a[revSortKey] || '') > (b[revSortKey] || '') ? 1 : -1);
+
+        const revLabels = revData.map(d => {
+            if (lastScale === 'yearly') return d.Year || '';
+            if (lastScale === 'weekly') { let w = d[revSortKey] || ''; return String(w).includes('W') ? w : 'W' + w; }
+            if (lastScale === 'monthly') {
+                let m = String(d[revSortKey] || ''); if (!m.includes('-')) return m;
+                let p = m.split('-'); const mm = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${mm[parseInt(p[1])-1]} ${p[0]}`;
+            }
+            return fmtDate(d[revSortKey] || ''); 
+        });
+
+        if (revenueTrendChart) revenueTrendChart.destroy();
+        const revTrendEl = document.getElementById('chartRevenueTrend');
+        if (revTrendEl) {
+            revenueTrendChart = new Chart(revTrendEl, {
+                type: 'bar',
+                data: { 
+                    labels: revLabels, 
+                    datasets: [
+                        { 
+                            type: 'line', label: 'Total Pax', data: revData.map(d => d.Pax), borderColor: '#f59e0b', backgroundColor: '#f59e0b', borderWidth: 2, tension: 0.4, yAxisID: 'y1', order: 1, 
+                            datalabels: { display: false } 
+                        },
+                        { 
+                            type: 'bar', label: 'Revenue ($)', data: revData.map(d => Math.round(d.Revenue)), backgroundColor: '#10b981', borderRadius: 4, barPercentage: 0.6, yAxisID: 'y', order: 2, 
+                            datalabels: { 
+                                display: function(context) {
+                                    if (lastScale !== 'monthly' && lastScale !== 'yearly') return true;
+                                    const meta = context.chart.getDatasetMeta(context.datasetIndex);
+                                    const bar = meta.data[context.dataIndex];
+                                    return bar && typeof bar.height === 'number' ? bar.height > 40 : true; 
+                                },
+                                align: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 'center' : 'top', 
+                                anchor: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 'center' : 'end', 
+                                font: { family: 'Inter', weight: '600', size: 10, lineHeight: 1.4 }, 
+                                textAlign: 'center',
+                                color: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? '#ffffff' : '#10b981', 
+                                textShadowBlur: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 4 : 0,
+                                textShadowColor: 'rgba(0,0,0,0.4)',
+                                formatter: (v, context) => { 
+                                    if (lastScale === 'monthly' || lastScale === 'yearly') { 
+                                        if (v === 0) return ''; 
+                                        const raw = revData[context.dataIndex]; 
+                                        return [`Pax: ${raw.Pax.toLocaleString()}`, `Rev: $${Math.round(raw.Revenue).toLocaleString()}`]; 
+                                    } 
+                                    return v > 0 ? '$' + (v/1000).toFixed(1) + 'k' : ''; 
+                                } 
+                            } 
+                        }
+                    ]
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, layout: { padding: { top: 20 } },
+                    onClick: (event, activeElements) => {
+                        if (activeElements.length > 0 && typeof window.openFinancialModal === 'function') {
+                            const idx = activeElements[0].index;
+                            const label = revenueTrendChart.data.labels[idx];
+                            const rawObj = revData[idx];
+                            window.openFinancialModal('trend-revenue', label, rawObj);
+                        }
+                    },
+                    onHover: (event, chartElement) => {
+                        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+                    },
+                    plugins: { 
+                        legend: { position: 'top', labels: { font: { family: 'Inter', color: labelColor }, usePointStyle: true } },
+                        tooltip: {
+                            position: 'average', yAlign: 'center',
+                            callbacks: {
+                                title: function(context) {
+                                    let title = context[0].label;
+                                    if (lastScale === 'weekly' && title.includes('W')) {
+                                        let parts = title.split('W');
+                                        let year = parts[0].replace('-', '');
+                                        let week = parts[1];
+                                        return title + ` (${getWeekDateRange(year, week)})`;
+                                    }
+                                    return title;
+                                },
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    if (context.dataset.label === 'Revenue ($)') label += '$' + context.raw.toLocaleString();
+                                    else label += context.raw.toLocaleString();
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: { 
+                        y: { type: 'linear', position: 'left', beginAtZero: true, grid: { color: gridColor }, border: { dash: [4, 4] }, suggestedMax: Math.max(...revData.map(d => d.Revenue || 0)) * 1.15, ticks: { callback: v => '$' + (v/1000) + 'k', color: labelColor } }, 
+                        y1: { type: 'linear', position: 'right', beginAtZero: true, grid: { display: false }, ticks: { color: labelColor } }, 
+                        x: { grid: { display: false }, ticks: { color: labelColor } } 
+                    }
+                }
+            });
+        }
+    }
+</script>

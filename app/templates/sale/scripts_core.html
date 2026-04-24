@@ -1,0 +1,714 @@
+<script>
+    // ==========================================
+    // 1. GLOBAL UI FUNCTIONS (Loads Immediately)
+    // ==========================================
+    window.toggleMenu = function() {
+        const sidebar = document.getElementById('sidebar'); 
+        const backdrop = document.getElementById('sidebarBackdrop');
+        
+        if (sidebar) {
+            sidebar.classList.toggle('sidebar-open');
+            
+            if (backdrop) {
+                if (sidebar.classList.contains('sidebar-open')) { 
+                    backdrop.classList.remove('hidden'); 
+                    setTimeout(() => { backdrop.classList.remove('opacity-0'); }, 10); 
+                } else { 
+                    backdrop.classList.add('opacity-0'); 
+                    setTimeout(() => { backdrop.classList.add('hidden'); }, 300); 
+                }
+            }
+        }
+    };
+
+    // ==========================================
+    // 2. DATA & STATE MANAGEMENT
+    // ==========================================
+    let serverData = {
+        metrics: { leads: 0, confirmed: 0, confirmed_pax: 0, repeat_clients: 0, conversion: 0, untouched_leads: 0, funnel_engaged: 0 },
+        raw_data: [], active_pipeline: [], sources: [], destinations: [], workload: [], reps: [], zones: [], daily: [], weekly: [], monthly: [], yearly: [], financial_data: []
+    };
+    
+    let lastScale = 'weekly';
+    let trendChart = null, sourceChart = null, unconfirmedStatusChart = null, destWorkloadChart = null, workloadChart = null, topDestNewChart = null, revenueTrendChart = null, topToursChart = null, revenueByZoneChart = null;
+    
+    window.tsInstances = [];
+    window.allPipelineData = [];
+    window.confirmedBookings = []; let bkPage = 1, bkPageSize = 10, bkMaxPages = 1;
+    window.allUntouchedData = []; let utPage = 1, utPageSize = 10, utMaxPages = 1;
+    window.allCustomersData = []; let ldPage = 1, ldPageSize = 10, ldMaxPages = 1;
+    window.financialData = []; let finPage = 1, finPageSize = 10, finMaxPages = 1;
+
+    let ddData = []; let ddType = ''; let ddMaxPages = 1; let ddPage = 1; let ddPageSize = 10; let ddRawObj = null;
+    window.currentFinFilterType = null; window.currentFinFilterValue = null; window.currentFinRawObj = null;
+
+    let isFetching = false;
+    window.isInitialLoad = true;
+    let chartGridColor = '#f1f5f9';
+
+    // Clickable Table Sort State Tracking
+    window.sortConfig = {
+        rep: { col: 'revenue', asc: false },
+        zone: { col: 'revenue', asc: false },
+        dest: { col: 'revenue', asc: false } // DEST SORT CONFIG
+    };
+
+    const isDarkTheme = () => document.documentElement.classList.contains('dark');
+    const getUrl = p => window.location.origin === 'null' ? p.substring(1) : window.location.origin + (p.startsWith('/') ? p : '/' + p);
+
+    function isPreviewEnv() {
+        try { return window.location.origin === 'null' || window.location.href.startsWith('blob:') || window.location.hostname.includes('usercontent.goog'); }
+        catch(e) { return true; }
+    }
+
+    const updateChartColors = (isDark) => {
+        if (typeof Chart === 'undefined') return;
+        Chart.defaults.color = isDark ? '#94a3b8' : '#64748b';
+        chartGridColor = isDark ? '#334155' : '#f1f5f9';
+        if (trendChart) { trendChart.options.scales.x.grid.color = chartGridColor; trendChart.options.scales.y.grid.color = chartGridColor; trendChart.update(); }
+        if (revenueTrendChart) { revenueTrendChart.options.scales.x.grid.color = chartGridColor; revenueTrendChart.options.scales.y.grid.color = chartGridColor; revenueTrendChart.update(); }
+        if (sourceChart) { sourceChart.update(); }
+        if (unconfirmedStatusChart) { unconfirmedStatusChart.options.scales.x.grid.color = chartGridColor; unconfirmedStatusChart.update(); }
+        if (destWorkloadChart) { destWorkloadChart.options.scales.x.grid.color = chartGridColor; destWorkloadChart.update(); }
+        if (workloadChart) { workloadChart.options.scales.x.grid.color = chartGridColor; workloadChart.update(); }
+        if (topDestNewChart) { topDestNewChart.options.scales.x.grid.color = chartGridColor; topDestNewChart.options.scales.y.grid.color = chartGridColor; topDestNewChart.update(); }
+        if (topToursChart) { topToursChart.options.scales.x.grid.color = chartGridColor; topToursChart.options.scales.y.grid.color = chartGridColor; topToursChart.update(); }
+        if (revenueByZoneChart) { revenueByZoneChart.options.scales.x.grid.color = chartGridColor; revenueByZoneChart.options.scales.y.grid.color = chartGridColor; revenueByZoneChart.update(); }
+    };
+
+    const themeToggleBtn = document.getElementById('themeToggle');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', function() {
+            const darkIcon = document.getElementById('themeToggleDarkIcon');
+            const lightIcon = document.getElementById('themeToggleLightIcon');
+            if (darkIcon) darkIcon.classList.toggle('hidden');
+            if (lightIcon) lightIcon.classList.toggle('hidden');
+            
+            if (localStorage.getItem('color-theme') === 'light') {
+                document.documentElement.classList.add('dark'); 
+                localStorage.setItem('color-theme', 'dark'); 
+                updateChartColors(true);
+            } else {
+                document.documentElement.classList.remove('dark'); 
+                localStorage.setItem('color-theme', 'light'); 
+                updateChartColors(false);
+            }
+        });
+    }
+
+    const getObjStr = (obj, keyName, fallback = '---') => {
+        const searchKey = String(keyName).toLowerCase();
+        const foundKey = Object.keys(obj).find(k => String(k).toLowerCase() === searchKey);
+        return foundKey && obj[foundKey] != null && String(obj[foundKey]).toLowerCase() !== 'nan' ? String(obj[foundKey]) : fallback;
+    };
+
+    const getVal = (obj, k, f=0) => { 
+        let v = getObjStr(obj, k, f); 
+        return typeof v === 'string' ? parseFloat(v.replace(/[^\d.-]/g,'')) : v; 
+    };
+    
+    const fmtDate = (d) => { 
+        if(!d || d === '---') return '---'; 
+        let dStr = String(d).split('T')[0].split(' ')[0];
+        let p = dStr.split('-'); 
+        if (p.length !== 3) return dStr;
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return `${p[2]}-${months[parseInt(p[1])-1]}-${p[0].slice(-2)}`;
+    };
+
+    const sortDescByDate = (a, b) => {
+        const da = new Date(a.DateStr || a['Contacted Date'] || a['Date'] || a['Contact Date'] || 0);
+        const db = new Date(b.DateStr || b['Contacted Date'] || b['Date'] || b['Contact Date'] || 0);
+        return db - da;
+    };
+
+    const getWeekDateRange = (year, week) => {
+        const d = new Date(year, 0, 1);
+        d.setDate(d.getDate() - d.getDay() + 1 + ((week - 1) * 7));
+        const start = d.toLocaleDateString('en-GB', {day:'2-digit', month:'short'});
+        d.setDate(d.getDate() + 6);
+        const end = d.toLocaleDateString('en-GB', {day:'2-digit', month:'short'});
+        return `${start} - ${end}`;
+    };
+
+    const getWeekStr = (dStr) => {
+        if (!dStr || dStr === '---') return '';
+        let d = new Date(dStr);
+        if (isNaN(d.getTime())) return '';
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() + 4 - (d.getDay()||7));
+        let yearStart = new Date(d.getFullYear(),0,1);
+        let weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+        return `${d.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+    };
+
+    const getAggKey = (r, scale) => {
+        let dStr = r.DateStr || r['Contacted Date'] || r['Date'] || r['Contact Date'];
+        if (!dStr) return null;
+        let standardDate = "";
+        if (dStr.includes('T')) dStr = dStr.split('T')[0];
+        if (dStr.includes('-')) {
+            let p = dStr.split('-');
+            if (p[0].length === 4) standardDate = dStr; 
+            else if (p[2].length === 4) standardDate = `${p[2]}-${p[1]}-${p[0]}`; 
+        } else {
+            let dt = new Date(dStr);
+            if(!isNaN(dt.getTime())) {
+                standardDate = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+            }
+        }
+        if (!standardDate) return null;
+        
+        if (scale === 'daily') return standardDate;
+        if (scale === 'monthly') return standardDate.substring(0, 7);
+        if (scale === 'yearly') return standardDate.substring(0, 4);
+        if (scale === 'weekly') return getWeekStr(standardDate);
+        return null;
+    };
+
+    const showLoading = () => { 
+        let el = document.getElementById('loadingOverlay');
+        let card = document.getElementById('loadingCard'); 
+        if (el && card) { 
+            el.style.display = 'flex'; 
+            setTimeout(() => { el.style.opacity = '1'; card.style.opacity = '1'; card.style.transform = 'scale(1)'; }, 10); 
+        }
+    };
+    
+    const hideLoading = () => { 
+        let el = document.getElementById('loadingOverlay');
+        let card = document.getElementById('loadingCard'); 
+        if (el && card) { 
+            el.style.opacity = '0'; card.style.opacity = '0'; 
+            setTimeout(() => { el.style.display = 'none'; }, 300); 
+        }
+    };
+
+    // ==========================================
+    // 3. LEADERBOARD SORTING LOGIC
+    // ==========================================
+    
+    window.sortLeaderboard = function(type, col) {
+        if (window.sortConfig[type].col === col) {
+            window.sortConfig[type].asc = !window.sortConfig[type].asc;
+        } else {
+            window.sortConfig[type].col = col;
+            window.sortConfig[type].asc = false;
+        }
+        
+        if (type === 'rep' && serverData.reps) {
+            window.renderLeaderboard('repTableBody', 'repTableFoot', serverData.reps, 'Sale Rep', 'emerald', false, window.sortConfig.rep, 'rep');
+        } else if (type === 'zone' && serverData.zones) {
+            window.renderLeaderboard('zoneTableBody', 'zoneTableFoot', serverData.zones, 'Zone', 'indigo', true, window.sortConfig.zone, 'zone');
+        } else if (type === 'dest' && serverData.destinations) {
+            // FIX: Ensure Confirmed > 0 to filter out zero-win destinations
+            let validDests = serverData.destinations.filter(d => d.Destination && String(d.Destination).toLowerCase() !== 'not specified' && String(d.Destination) !== '0' && d.Confirmed > 0);
+            window.renderLeaderboard('destTableBody', 'destTableFoot', validDests, 'Destination', 'blue', true, window.sortConfig.dest, 'dest');
+        }
+    };
+
+    window.renderLeaderboard = function(id, footId, data, keyName, colorName, showConvTotal, config, typePrefix) {
+        const elBody = document.getElementById(id);
+        const elFoot = document.getElementById(footId);
+        if (!elBody || !elFoot) return;
+
+        // Reset Header Icons
+        const headers = ['name', 'leads', 'won', 'pax', 'revenue', 'rate'];
+        headers.forEach(h => {
+            const iconEl = document.getElementById(`${typePrefix}-icon-${h}`);
+            if (iconEl) iconEl.innerHTML = '';
+        });
+        
+        // Set Active Header Icon
+        const activeIconEl = document.getElementById(`${typePrefix}-icon-${config.col}`);
+        if (activeIconEl) {
+            activeIconEl.innerHTML = config.asc 
+                ? '<i data-lucide="chevron-up" class="w-3 h-3 inline text-blue-500"></i>' 
+                : '<i data-lucide="chevron-down" class="w-3 h-3 inline text-blue-500"></i>';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        let finMap = {};
+        window.financialData.forEach(r => {
+            let k = getObjStr(r, keyName, getObjStr(r, 'Sale Rep', getObjStr(r, 'Zone', 'Unknown')));
+            let revStr = getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0')));
+            finMap[k] = (finMap[k] || 0) + (parseFloat(String(revStr).replace(/[^\d.-]/g, '')) || 0);
+        });
+
+        let totalLeads = 0, totalBookings = 0, totalConfPax = 0, totalRev = 0;
+        
+        // Map and Calculate Core Stats
+        let sortedData = data.map(r => {
+            const label = getObjStr(r, keyName, getObjStr(r, 'Sale Rep', getObjStr(r, 'Zone', 'Unknown')));
+            const conv = r.Leads > 0 ? parseFloat((r.Confirmed / r.Leads * 100).toFixed(1)) : 0;
+            const rev = finMap[label] || 0;
+            
+            totalLeads += r.Leads || 0; 
+            totalBookings += r.Confirmed || 0; 
+            totalConfPax += r.Confirmed_Pax || 0; 
+            totalRev += rev;
+            
+            return { ...r, label, conv, rev };
+        });
+
+        // Perform Sort
+        sortedData.sort((a, b) => {
+            let valA, valB;
+            switch (config.col) {
+                case 'name': valA = a.label.toLowerCase(); valB = b.label.toLowerCase(); break;
+                case 'leads': valA = a.Leads || 0; valB = b.Leads || 0; break;
+                case 'won': valA = a.Confirmed || 0; valB = b.Confirmed || 0; break;
+                case 'pax': valA = a.Confirmed_Pax || 0; valB = b.Confirmed_Pax || 0; break;
+                case 'revenue': valA = a.rev; valB = b.rev; break;
+                case 'rate': valA = a.conv; valB = b.conv; break;
+                default: valA = a.rev; valB = b.rev; break;
+            }
+            if (valA < valB) return config.asc ? -1 : 1;
+            if (valA > valB) return config.asc ? 1 : -1;
+            return 0;
+        });
+
+        // Render ALL rows (Removed .slice limit to allow scrolling through all destinations/reps)
+        elBody.innerHTML = sortedData.map((r, i) => {
+            let rankHTML = `<span class="text-slate-400 text-xs font-bold w-5 inline-block text-center">${i+1}</span>`;
+            // Only show medal if sorting by revenue/won descending and it's index 0
+            if (i === 0 && config.asc === false && (config.col === 'revenue' || config.col === 'won' || config.col === 'rate')) {
+                rankHTML = `<span class="text-amber-500"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></span>`;
+            }
+            const typeParam = keyName === 'Sale Rep' ? 'rep-perf' : (keyName === 'Zone' ? 'zone-perf' : 'dest');
+            return `
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer" onclick="openDrilldownModal('${typeParam}', '${r.label.replace(/'/g, "\\'")}')">
+                <td class="px-6 py-3 font-medium text-slate-700 dark:text-slate-200 text-sm flex items-center gap-3 truncate">${rankHTML} <span class="truncate">${r.label}</span></td>
+                <td class="px-4 py-3 text-center text-xs text-slate-500">${(r.Leads || 0).toLocaleString()}</td>
+                <td class="px-4 py-3 text-center text-sm font-semibold text-${colorName}-600">${(r.Confirmed || 0).toLocaleString()}</td>
+                <td class="px-4 py-3 text-center text-sm font-semibold text-slate-700 dark:text-slate-300">${(r.Confirmed_Pax || 0).toLocaleString()}</td>
+                <td class="px-4 py-3 text-right text-sm font-bold text-emerald-600 dark:text-emerald-400">$${Math.round(r.rev).toLocaleString()}</td>
+                <td class="px-6 py-3 min-w-[80px]"><div class="flex items-center justify-between gap-2"><div class="hidden sm:block w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden"><div class="h-full bg-${colorName}-500 rounded-full" style="width: ${r.conv}%"></div></div><span class="text-xs font-semibold text-slate-600 dark:text-slate-400">${r.conv}%</span></div></td>
+            </tr>`;
+        }).join('');
+        
+        const avgConv = totalLeads > 0 ? (totalBookings / totalLeads * 100).toFixed(1) : 0;
+        elFoot.innerHTML = `<tr><td class="px-6 py-4 font-semibold text-slate-800 dark:text-white text-xs uppercase">Overall Total</td><td class="px-4 py-4 text-center text-xs font-bold text-slate-800 dark:text-white">${totalLeads.toLocaleString()}</td><td class="px-4 py-4 text-center text-sm font-bold text-${colorName}-600">${totalBookings.toLocaleString()}</td><td class="px-4 py-4 text-center text-sm font-bold text-slate-800 dark:text-white">${totalConfPax.toLocaleString()}</td><td class="px-4 py-4 text-right text-sm font-bold text-emerald-600 dark:text-emerald-400">$${Math.round(totalRev).toLocaleString()}</td><td class="px-6 py-4">${showConvTotal ? `<span class="text-sm font-bold text-slate-800 dark:text-white">${avgConv}%</span>` : ''}</td></tr>`;
+        
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
+
+
+    // ==========================================
+    // 4. INITIALIZATION ON LOAD
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+        const elMenuToggle = document.getElementById('menuToggle');
+        if (elMenuToggle) {
+            elMenuToggle.addEventListener('click', window.toggleMenu);
+        }
+    });
+
+    window.addEventListener('load', async () => {
+        if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+            Chart.register(ChartDataLabels);
+        }
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        if (isDarkTheme()) {
+            const lightIcon = document.getElementById('themeToggleLightIcon'); 
+            if(lightIcon) lightIcon.classList.remove('hidden');
+        } else {
+            const darkIcon = document.getElementById('themeToggleDarkIcon'); 
+            if(darkIcon) darkIcon.classList.remove('hidden');
+        }
+        
+        showLoading(); 
+        try {
+            if (isPreviewEnv()) throw new Error("Preview Env Bypass");
+
+            const res = await fetch(getUrl(`/api/check_session?table=client_contacts_leads`)); 
+            if (res.ok) {
+                const data = await res.json();
+                if (data.active) {
+                    if (data.status && data.status.includes('Auto-loaded')) {
+                        const syncFileEl = document.getElementById('headerSyncFileName');
+                        if (syncFileEl) syncFileEl.innerText = `(${data.status.split('Auto-loaded ')[1].split(' [')[0]})`;
+                    }
+                    if (data.filters) updateFilters(data.filters); 
+                    await loadCharts(false); 
+                    window.isInitialLoad = false;
+                    return;
+                }
+            }
+            throw new Error("No active session or API empty");
+        } catch(e) {
+            console.warn("API check failed. Fallback UI init.");
+            const content = document.getElementById('dashboardContent');
+            if (content) { 
+                content.classList.remove('hidden'); 
+                setTimeout(() => { content.classList.remove('opacity-0'); }, 10); 
+            }
+
+            try {
+                let injectedData = [];
+                const flaskDataEl = document.getElementById('flask-data');
+                if (flaskDataEl) {
+                    const rawText = flaskDataEl.textContent.trim();
+                    if (rawText && rawText !== '""' && rawText !== '[]') {
+                        try { injectedData = JSON.parse(rawText); } catch(err) { console.warn("Could not parse JSON fallback."); }
+                    }
+                }
+                if (injectedData && Array.isArray(injectedData) && injectedData.length > 0) {
+                    serverData.raw_data = injectedData;
+                    window.allCustomersData = injectedData;
+                    let leads = injectedData.length;
+                    let confirmed = injectedData.filter(d => { 
+                        let st = String(d.Status||'').toLowerCase(); 
+                        return st.includes('success') || st.includes('closed') || st.includes('confirm') || st.includes('booked'); 
+                    }).length;
+                    let pax = injectedData.reduce((sum, d) => sum + (parseInt(d.Pax) || 0), 0);
+                    serverData.metrics.leads = leads; 
+                    serverData.metrics.confirmed = confirmed; 
+                    serverData.metrics.confirmed_pax = pax; 
+                    serverData.metrics.conversion = leads ? Math.round((confirmed/leads)*100) : 0;
+                    
+                    const mLeadsEl = document.getElementById('m-leads'); if(mLeadsEl) mLeadsEl.innerText = leads.toLocaleString(); 
+                    const mConfirmedEl = document.getElementById('m-confirmed'); if(mConfirmedEl) mConfirmedEl.innerText = confirmed.toLocaleString(); 
+                    const mPaxEl = document.getElementById('m-pax'); if(mPaxEl) mPaxEl.innerText = pax.toLocaleString(); 
+                    const mConvEl = document.getElementById('m-conv'); if(mConvEl) mConvEl.innerText = serverData.metrics.conversion + '%';
+                    
+                    let revTotal = 0;
+                    injectedData.forEach(d => {
+                        let st = String(d.Status||'').toLowerCase();
+                        if (st.includes('success') || st.includes('closed') || st.includes('confirm') || st.includes('booked')) {
+                            revTotal += parseFloat(String(d.Revenue || d.Total || d.Amount || '0').replace(/[^\d.-]/g, '')) || 0;
+                        }
+                    });
+                    const mRevenueEl = document.getElementById('m-revenue');
+                    if (mRevenueEl) mRevenueEl.innerText = '$' + Math.round(revTotal).toLocaleString();
+                }
+            } catch(err) {
+                console.error("Fallback error", err);
+            }
+
+            if (typeof renderAnalyticCharts === 'function') renderAnalyticCharts();
+            if (typeof renderTopDestChart === 'function') renderTopDestChart();
+            if (typeof updateTrend === 'function') updateTrend();
+            window.isInitialLoad = false;
+            hideLoading();
+        }
+    });
+
+    const headerUploadBtn = document.getElementById('headerUploadBtn');
+    if (headerUploadBtn) {
+        headerUploadBtn.addEventListener('click', () => {
+            const input = document.getElementById('fileInput');
+            if (input) input.click();
+        });
+    }
+    
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', async (e) => {
+            if (isPreviewEnv()) return alert("File uploads require the local Flask backend to be running.");
+            if (!e.target.files.length) return;
+            const fd = new FormData(); 
+            fd.append('file', e.target.files[0]);
+            showLoading();
+            try {
+                const res = await fetch(getUrl('/api/upload'), { method: 'POST', body: fd }); 
+                const data = await res.json();
+                if (data.sheets) {
+                    const sheetSelect = document.getElementById('sheetSelect');
+                    if (sheetSelect) {
+                        sheetSelect.innerHTML = data.sheets.map(s => `<option value="${s}">${s}</option>`).join('');
+                    }
+                    const syncFileName = document.getElementById('headerSyncFileName');
+                    if (syncFileName) syncFileName.innerText = `(${e.target.files[0].name})`;
+                    const sheetContainer = document.getElementById('headerSheetContainer');
+                    if (sheetContainer) sheetContainer.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error(err);
+            } 
+            hideLoading();
+        });
+    }
+
+    const loadBtn = document.getElementById('loadBtn');
+    if (loadBtn) {
+        loadBtn.addEventListener('click', async () => {
+            showLoading();
+            try {
+                if (isPreviewEnv()) { 
+                    alert("Sync requires backend server."); 
+                    hideLoading(); 
+                    return; 
+                }
+                const sheetSelect = document.getElementById('sheetSelect');
+                await fetch(getUrl('/api/select_sheet'), { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ sheet: sheetSelect ? sheetSelect.value : '' }) 
+                });
+                
+                const sheetContainer = document.getElementById('headerSheetContainer');
+                if (sheetContainer) sheetContainer.classList.add('hidden');
+                
+                const chk = await fetch(getUrl(`/api/check_session?table=client_contacts_leads`)); 
+                const chkData = await chk.json();
+                if(chkData.active) { 
+                    updateFilters(chkData.filters); 
+                    await loadCharts(false); 
+                }
+            } catch (err) {
+                console.error(err);
+            } 
+            hideLoading();
+        });
+    }
+
+    function getFirstDayOfMonth() { 
+        const today = new Date(); 
+        const y = today.getFullYear(); 
+        const m = String(today.getMonth() + 1).padStart(2, '0'); 
+        return `${y}-${m}-01`; 
+    }
+    
+    function getTodayDate() { 
+        const today = new Date(); 
+        const y = today.getFullYear(); 
+        const m = String(today.getMonth() + 1).padStart(2, '0'); 
+        const d = String(today.getDate()).padStart(2, '0'); 
+        return `${y}-${m}-${d}`; 
+    }
+
+    function updateFilters(f) {
+        const wsSelect = document.getElementById('workspaceSelect');
+        const currWs = wsSelect ? (wsSelect.value || 'all') : 'all';
+        
+        if (window.tsInstances) {
+            window.tsInstances.forEach(ts => ts.destroy()); 
+        }
+        window.tsInstances = [];
+        
+        if (wsSelect) {
+            wsSelect.innerHTML = `<option value="all">Select (Sale Rep)</option>` + (f.reps || []).map(v => `<option value="${v}">${v}</option>`).join('');
+            if ((f.reps || []).includes(currWs)) {
+                wsSelect.value = currWs;
+            }
+        }
+
+        const startD = document.getElementById('startD');
+        const endD = document.getElementById('endD');
+        const sDate = window.isInitialLoad ? getFirstDayOfMonth() : (startD ? startD.value : (f.min_date || getFirstDayOfMonth()));
+        const eDate = window.isInitialLoad ? getTodayDate() : (endD ? endD.value : (f.max_date || getTodayDate()));
+
+        const row = document.getElementById('filterRow');
+        if (row) {
+            row.innerHTML = `
+                <div class="flex flex-col flex-1 min-w-[140px]"><select id="zoneF" class="ts-select w-full">${['all', ...(f.zones || [])].map(v => `<option value="${v}">${v === 'all' ? 'All Zones' : v}</option>`).join('')}</select></div>
+                <div class="flex flex-col flex-1 min-w-[140px]"><select id="destF" class="ts-select w-full">${['all', ...(f.destinations || [])].map(v => `<option value="${v}">${v === 'all' ? 'All Destinations' : v}</option>`).join('')}</select></div>
+                <div class="flex flex-col flex-1 min-w-[140px]"><select id="statusF" class="ts-select w-full">${['all', ...(f.statuses || [])].map(v => `<option value="${v}">${v === 'all' ? 'All Statuses' : v}</option>`).join('')}</select></div>
+                <div class="flex flex-col flex-1 min-w-[140px]"><input type="date" id="startD" value="${sDate}" class="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-sm font-medium outline-none focus:border-blue-500 dark:text-white w-full h-[42px]" /></div>
+                <div class="flex flex-col flex-1 min-w-[140px]"><input type="date" id="endD" value="${eDate}" class="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-sm font-medium outline-none focus:border-blue-500 dark:text-white w-full h-[42px]" /></div>
+            `;
+            row.classList.remove('hidden');
+            
+            if (typeof TomSelect !== 'undefined') {
+                document.querySelectorAll('#filterRow select.ts-select, #workspaceSelect').forEach(el => {
+                    const ts = new TomSelect(el, { create: false }); 
+                    window.tsInstances.push(ts); 
+                    ts.on('change', () => loadCharts(true));
+                });
+            }
+            document.querySelectorAll('#filterRow input[type="date"]').forEach(el => {
+                el.addEventListener('change', () => loadCharts(true));
+            });
+        }
+    }
+
+    function populateModalSelect(id, dataList, key, defaultLabel, onChangeCallback, defaultVal = null) {
+        const el = document.getElementById(id); 
+        if (!el) return;
+        
+        const uniqueVals = [...new Set(dataList.map(r => getObjStr(r, key, '---')))].filter(v => v !== '---').sort();
+        if (el.tomselect) el.tomselect.destroy();
+        
+        el.innerHTML = `<option value="all">${defaultLabel}</option>` + uniqueVals.map(v => `<option value="${v}">${v}</option>`).join('');
+        
+        if (defaultVal && uniqueVals.includes(defaultVal)) {
+            el.value = defaultVal;
+        } else {
+            el.value = 'all';
+        }
+
+        if (typeof TomSelect !== 'undefined') {
+            const ts = new TomSelect(el, { create: false, dropdownParent: 'body' });
+            if (onChangeCallback) ts.on('change', onChangeCallback);
+        }
+    }
+
+    window.updateView = function(scale) {
+        lastScale = scale;
+        document.querySelectorAll('.trend-btn').forEach(btn => {
+            if (btn.dataset.scale === scale) { 
+                btn.classList.add('bg-white', 'dark:bg-slate-700', 'text-slate-900', 'dark:text-white', 'shadow-sm'); 
+                btn.classList.remove('text-slate-500', 'dark:text-slate-400', 'hover:text-slate-800');
+            } else { 
+                btn.classList.remove('bg-white', 'dark:bg-slate-700', 'text-slate-900', 'dark:text-white', 'shadow-sm'); 
+                btn.classList.add('text-slate-500', 'dark:text-slate-400', 'hover:text-slate-800'); 
+            }
+        });
+        if (typeof updateTrend === 'function') updateTrend();
+    };
+
+    async function loadCharts(isFilterChange = false) {
+        if (isFetching) return; 
+        isFetching = true;
+        const content = document.getElementById('dashboardContent');
+        if (isFilterChange) { 
+            if (content) content.classList.add('opacity-50', 'pointer-events-none'); 
+        } else { 
+            showLoading(); 
+        }
+
+        try {
+            if (isPreviewEnv()) throw new Error("Preview Env Bypass");
+
+            const destF = document.getElementById('destF');
+            const zoneF = document.getElementById('zoneF');
+            const workspaceSelect = document.getElementById('workspaceSelect');
+            const statusF = document.getElementById('statusF');
+            const startD = document.getElementById('startD');
+            const endD = document.getElementById('endD');
+
+            const p = new URLSearchParams({ 
+                table: 'client_contacts_leads',
+                destination: destF ? destF.value : 'all', 
+                zone: zoneF ? zoneF.value : 'all', 
+                rep: workspaceSelect ? workspaceSelect.value : 'all',
+                status: statusF ? statusF.value : 'all',
+                start_date: startD ? startD.value : '', 
+                end_date: endD ? endD.value : '' 
+            });
+            
+            const res = await fetch(getUrl(`/api/data?${p.toString()}`));
+            if (!res.ok) throw new Error("Network response error");
+            
+            const fetchedData = await res.json();
+            serverData = { ...serverData, ...fetchedData }; 
+            
+            let yearlyMap = {};
+            (serverData.monthly || []).forEach(m => {
+                let year = String(m.Month || '').split('-')[0];
+                if (!year) return;
+                if (!yearlyMap[year]) yearlyMap[year] = { Year: year, Leads: 0, Confirmed: 0 };
+                yearlyMap[year].Leads += (m.Leads || 0);
+                yearlyMap[year].Confirmed += (m.Confirmed || 0);
+            });
+            serverData.yearly = Object.values(yearlyMap);
+            
+            if (content) { 
+                content.classList.remove('hidden'); 
+                setTimeout(() => { content.classList.remove('opacity-0'); }, 10); 
+            }
+            
+            const m = serverData.metrics;
+            if (m) {
+                const mLeadsEl = document.getElementById('m-leads'); if(mLeadsEl) mLeadsEl.innerText = (m.leads || 0).toLocaleString();
+                const mConfirmedEl = document.getElementById('m-confirmed'); if(mConfirmedEl) mConfirmedEl.innerText = (m.confirmed || 0).toLocaleString();
+                const mPaxEl = document.getElementById('m-pax'); if(mPaxEl) mPaxEl.innerText = (m.confirmed_pax || 0).toLocaleString();
+                const mRepeatEl = document.getElementById('m-repeat'); if(mRepeatEl) mRepeatEl.innerText = (m.repeat_clients || 0).toLocaleString();
+                const mConvEl = document.getElementById('m-conv'); if(mConvEl) mConvEl.innerText = (m.conversion || 0) + '%';
+                
+                const untouchCard = document.getElementById('card-untouched');
+                const mUntouchedEl = document.getElementById('m-untouched');
+                const lblUntouched = document.getElementById('lbl-untouched');
+                const iconBgUntouched = document.getElementById('icon-bg-untouched');
+
+                if (mUntouchedEl) mUntouchedEl.innerText = (m.untouched_leads || 0).toLocaleString();
+                
+                if (untouchCard && mUntouchedEl && lblUntouched && iconBgUntouched) {
+                    if (m.untouched_leads > 0) {
+                        untouchCard.classList.replace('border-slate-200/60', 'border-rose-400'); untouchCard.classList.replace('dark:border-slate-700/60', 'dark:border-rose-500');
+                        mUntouchedEl.classList.replace('text-slate-700', 'text-rose-600'); mUntouchedEl.classList.replace('dark:text-slate-300', 'dark:text-rose-400');
+                        lblUntouched.classList.replace('text-slate-500', 'text-rose-500');
+                        iconBgUntouched.classList.replace('bg-slate-50', 'bg-rose-50'); iconBgUntouched.classList.replace('dark:bg-slate-700', 'dark:bg-rose-900/30');
+                        iconBgUntouched.classList.replace('text-slate-500', 'text-rose-500'); iconBgUntouched.classList.add('animate-pulse');
+                    } else {
+                        untouchCard.classList.replace('border-rose-400', 'border-slate-200/60'); untouchCard.classList.replace('dark:border-rose-500', 'dark:border-slate-700/60');
+                        mUntouchedEl.classList.replace('text-rose-600', 'text-slate-700'); mUntouchedEl.classList.replace('dark:text-rose-400', 'dark:text-slate-300');
+                        lblUntouched.classList.replace('text-rose-500', 'text-slate-500');
+                        iconBgUntouched.classList.replace('bg-rose-50', 'bg-slate-50'); iconBgUntouched.classList.replace('dark:bg-rose-900/30', 'dark:bg-slate-700');
+                        iconBgUntouched.classList.replace('text-rose-500', 'text-slate-500'); iconBgUntouched.classList.remove('animate-pulse');
+                    }
+                }
+
+                const funnelContainer = document.getElementById('funnelContainer');
+                if (funnelContainer) {
+                    funnelContainer.innerHTML = `
+                        <div class="flex flex-col w-full relative justify-center gap-2 py-2">
+                            <div class="w-full bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 flex justify-between items-center border border-slate-100 dark:border-slate-700/50">
+                                <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">1. Leads</span><span class="text-2xl font-bold text-slate-800 dark:text-white tabular-nums">${(m.leads||0).toLocaleString()}</span>
+                            </div>
+                            <div class="w-[2px] h-3 bg-slate-200 dark:bg-slate-700 mx-auto"></div>
+                            <div class="w-full bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl p-4 flex justify-between items-center">
+                                <span class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">2. Engaged</span>
+                                <div class="flex items-baseline gap-3"><span class="text-sm font-bold text-blue-500 dark:text-blue-400/80 tabular-nums">${m.leads ? Math.round((m.funnel_engaged/m.leads)*100) : 0}%</span><span class="text-2xl font-bold text-blue-700 dark:text-blue-300 tabular-nums">${(m.funnel_engaged||0).toLocaleString()}</span></div>
+                            </div>
+                            <div class="w-[2px] h-3 bg-blue-200 dark:bg-blue-800/50 mx-auto"></div>
+                            <div class="w-full bg-emerald-50/50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 rounded-xl p-4 flex justify-between items-center">
+                                <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">3. Won</span>
+                                <div class="flex items-baseline gap-3"><span class="text-sm font-bold text-emerald-500 dark:text-emerald-400/80 tabular-nums">${m.leads ? Math.round((m.confirmed/m.leads)*100) : 0}%</span><span class="text-2xl font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">${(m.confirmed||0).toLocaleString()}</span></div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            window.allPipelineData = serverData.active_pipeline || [];
+            window.confirmedBookings = (serverData.raw_data || []).filter(r => { const status = String(r.Status || '').toUpperCase(); return status.includes('6-CONFIRMED') || status.includes('BOOKED') || status.includes('CLOSED'); }).sort(sortDescByDate);
+            window.allUntouchedData = (serverData.raw_data || []).filter(r => { const status = String(r.Status || '').toUpperCase(); const note = String(r.Noted || '').toLowerCase().trim(); const isUt = status.includes('NEW LEAD') || status.includes('NO ANSWER') || status.includes('1-NEW LEAD'); return isUt && ['', 'nan', 'none', 'not specified', '0', 'no reason'].includes(note); }).sort(sortDescByDate);
+            
+            window.allCustomersData = serverData.raw_data || [];
+            window.financialData = (serverData.financial_data && serverData.financial_data.length > 0) ? serverData.financial_data : window.confirmedBookings;
+
+            let finRevTotal = 0;
+            window.financialData.forEach(r => {
+                let revStr = getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0')));
+                let rev = parseFloat(String(revStr).replace(/[^\d.-]/g, '')) || 0;
+                finRevTotal += rev;
+            });
+            const revEl = document.getElementById('m-revenue');
+            if (revEl) revEl.innerText = '$' + Math.round(finRevTotal).toLocaleString();
+
+            // Use the new dynamic renderLeaderboard
+            if (serverData.reps && typeof window.renderLeaderboard === 'function') window.renderLeaderboard('repTableBody', 'repTableFoot', serverData.reps, 'Sale Rep', 'emerald', false, window.sortConfig.rep, 'rep');
+            if (serverData.zones && typeof window.renderLeaderboard === 'function') window.renderLeaderboard('zoneTableBody', 'zoneTableFoot', serverData.zones, 'Zone', 'indigo', true, window.sortConfig.zone, 'zone');
+            
+            if (serverData.destinations && typeof window.renderLeaderboard === 'function') {
+                // FIX: Ensure Confirmed > 0 to filter out zero-win destinations on initial load
+                let validDests = serverData.destinations.filter(d => d.Destination && String(d.Destination).toLowerCase() !== 'not specified' && String(d.Destination) !== '0' && d.Confirmed > 0);
+                window.renderLeaderboard('destTableBody', 'destTableFoot', validDests, 'Destination', 'blue', true, window.sortConfig.dest, 'dest');
+            }
+            
+            if (typeof renderAnalyticCharts === 'function') renderAnalyticCharts(); 
+            if (typeof renderTopDestChart === 'function') renderTopDestChart(); 
+            if (typeof updateTrend === 'function') updateTrend();
+
+        } catch (err) {
+            console.error("Dashboard Render Error:", err);
+            if (content) { 
+                content.classList.remove('hidden'); 
+                setTimeout(() => { content.classList.remove('opacity-0'); }, 10); 
+            }
+        } finally {
+            if (isFilterChange && content) {
+                content.classList.remove('opacity-50', 'pointer-events-none');
+            } else {
+                hideLoading();
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            isFetching = false;
+        }
+    }
+</script>

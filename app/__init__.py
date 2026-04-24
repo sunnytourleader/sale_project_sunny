@@ -2,6 +2,8 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 from flask import Flask
+from app.bp_analytics import bp_analytics
+
 
 def create_app():
     app = Flask(__name__)
@@ -48,5 +50,6 @@ def create_app():
         app.register_blueprint(dashboard_bp)
         app.register_blueprint(tools_bp)
         app.register_blueprint(admin_bp)
+        app.register_blueprint(bp_analytics)
 
     return app

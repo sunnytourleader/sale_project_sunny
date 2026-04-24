@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Analytics Dashboard</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for beautiful graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Top Management Analytics</h1>
+            <a href="/" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Back to Main System</a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Conversion Rate Card -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Lead Conversion Rate</h2>
+                <div class="relative h-64">
+                    <canvas id="conversionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Tour Performance Card -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Top 5 Tour Packages (Revenue)</h2>
+                <div class="relative h-64">
+                    <canvas id="tourChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity vs Revenue Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Activity (Meetings) vs. Revenue by Salesperson</h2>
+            <div class="relative h-80">
+                <canvas id="activityChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock data to use as a fallback when previewing without the backend
+        const mockData = {
+            status: 'success',
+            conversion: { closed_deals: 145, total_leads: 320 },
+            tour_performance: [
+                { package_name: 'Angkor Wat Explorer', total_revenue: 15400 },
+                { package_name: 'Phnom Penh City Tour', total_revenue: 8500 },
+                { package_name: 'Sihanoukville Escape', total_revenue: 6200 },
+                { package_name: 'Kampot Pepper Trail', total_revenue: 4000 },
+                { package_name: 'Siem Reap Adventure', total_revenue: 3500 }
+            ],
+            activity_vs_revenue: [
+                { Sale_Person: 'John Doe', total_meetings: 18, total_revenue: 8500 },
+                { Sale_Person: 'Jane Smith', total_meetings: 24, total_revenue: 12200 },
+                { Sale_Person: 'Michael Lee', total_meetings: 12, total_revenue: 4100 },
+                { Sale_Person: 'Sarah Connor', total_meetings: 29, total_revenue: 15500 }
+            ]
+        };
+
+        function renderCharts(data) {
+            if(data.status !== 'success') {
+                console.error("Failed to load data", data.message);
+                return;
+            }
+
+            // 1. Render Conversion Chart (Doughnut)
+            const convCtx = document.getElementById('conversionChart').getContext('2d');
+            const closedDeals = data.conversion.closed_deals || 0;
+            const totalLeads = data.conversion.total_leads || 1; // Prevent div by 0
+            const lostDeals = totalLeads - closedDeals;
+            
+            new Chart(convCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Closed (Won)', 'Open/Lost'],
+                    datasets: [{
+                        data: [closedDeals, lostDeals],
+                        backgroundColor: ['#10B981', '#EF4444'],
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // 2. Render Tour Performance Chart (Bar)
+            const tourCtx = document.getElementById('tourChart').getContext('2d');
+            const tourLabels = data.tour_performance.map(t => t.package_name || 'Unknown');
+            const tourRevs = data.tour_performance.map(t => t.total_revenue);
+            
+            new Chart(tourCtx, {
+                type: 'bar',
+                data: {
+                    labels: tourLabels,
+                    datasets: [{
+                        label: 'Revenue ($)',
+                        data: tourRevs,
+                        backgroundColor: '#3B82F6',
+                        borderRadius: 4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // 3. Render Activity vs Revenue (Mixed Chart)
+            const actCtx = document.getElementById('activityChart').getContext('2d');
+            const salesPersons = data.activity_vs_revenue.map(a => a.Sale_Person);
+            const meetings = data.activity_vs_revenue.map(a => a.total_meetings);
+            const revenues = data.activity_vs_revenue.map(a => a.total_revenue);
+
+            new Chart(actCtx, {
+                type: 'bar',
+                data: {
+                    labels: salesPersons,
+                    datasets: [
+                        {
+                            type: 'line',
+                            label: 'Revenue ($)',
+                            data: revenues,
+                            borderColor: '#10B981',
+                            backgroundColor: '#10B981',
+                            yAxisID: 'y1',
+                            tension: 0.3
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Meetings Held',
+                            data: meetings,
+                            backgroundColor: '#6366F1',
+                            yAxisID: 'y',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { type: 'linear', display: true, position: 'left', title: {display: true, text: 'Meetings'} },
+                        y1: { type: 'linear', display: true, position: 'right', grid: {drawOnChartArea: false}, title: {display: true, text: 'Revenue ($)'} }
+                    }
+                }
+            });
+        }
+
+        // Fetch data from our new API blueprint, with fallback to mockData
+        try {
+            fetch('/analytics/api/data')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => renderCharts(data))
+                .catch(error => {
+                    console.warn("Backend not running, falling back to mock data:", error);
+                    renderCharts(mockData);
+                });
+        } catch (error) {
+            // This catches the synchronous TypeError in the isolated Canvas preview
+            console.warn("Preview environment detected, using mock data:", error);
+            renderCharts(mockData);
+        }
+    </script>
+</body>
+</html>

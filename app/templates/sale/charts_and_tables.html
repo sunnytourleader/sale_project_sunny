@@ -1,4 +1,4 @@
-<!-- Premium Metric Cards Row (Updated to 7 Cards) -->
+<!-- Premium Metric Cards Row -->
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-5 mb-8 text-left relative z-10">
     <div onclick="openLeadsModal()" class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 cursor-pointer relative overflow-hidden group hover:-translate-y-1 hover:border-blue-300 dark:hover:border-blue-700">
         <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-transparent dark:from-blue-500/20 dark:to-transparent opacity-0 group-hover:opacity-100 blur-2xl transition-opacity duration-500 pointer-events-none"></div>
@@ -78,7 +78,7 @@
         </div>
     </div>
 
-    <div id="card-untouched" onclick="openUntouchedModal()" class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm hover:shadow-lg hover:shadow-rose-500/10 transition-all duration-300 cursor-pointer relative overflow-hidden group hover:-translate-y-1 hover:border-rose-300">
+    <div id="card-untouched" onclick="openUntouchedModal()" class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm hover:shadow-lg hover:shadow-rose-500/10 transition-all duration-300 cursor-pointer relative overflow-hidden group hover:-translate-y-1 hover:border-rose-300 dark:hover:border-rose-700">
         <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-gradient-to-br from-rose-100 to-transparent dark:from-rose-500/20 dark:to-transparent opacity-0 group-hover:opacity-100 blur-2xl transition-opacity duration-500 pointer-events-none"></div>
         <div class="flex justify-between items-start relative z-10">
             <div>
@@ -91,6 +91,7 @@
         </div>
     </div>
 </div>
+
 <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 mb-8 flex flex-col w-full">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
@@ -123,8 +124,9 @@
     <div class="flex-1 min-h-[350px] w-full relative"><canvas id="chartRevenueTrend"></canvas></div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-    <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 flex flex-col w-full">
+<!-- Destinations Performance (Chart & Scrollable Table) -->
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+    <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 flex flex-col w-full">
         <div class="mb-8">
             <h3 class="font-semibold text-lg text-slate-800 dark:text-white">Destination Performance (Top 10)</h3>
             <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">Leads vs Confirmed Bookings</p>
@@ -132,86 +134,83 @@
         <div class="flex-1 min-h-[350px] w-full relative"><canvas id="chartTopDestNew"></canvas></div>
     </div>
     
-    <div class="lg:col-span-1 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 flex flex-col overflow-hidden w-full">
-        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center">
-            <h3 class="font-semibold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4 text-indigo-500"></i> All Destinations Ranking</h3>
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 overflow-hidden flex flex-col w-full h-[475px]">
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 z-20">
+            <h3 class="font-semibold text-lg text-slate-800 dark:text-white flex items-center gap-2">
+                <i data-lucide="map-pin" class="w-5 h-5 text-blue-500"></i> All Destinations Ranking
+            </h3>
         </div>
-        <div class="flex-1 overflow-y-auto custom-scroll" style="max-height: 450px;">
-            <table class="w-full text-left">
-                <thead class="bg-white dark:bg-slate-800 sticky top-0 border-b border-slate-100 dark:border-slate-700/50 z-10 shadow-sm">
+        <div class="overflow-auto custom-scrollbar flex-1 relative">
+            <table class="w-full relative">
+                <thead class="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-700 sticky top-0 z-20 shadow-sm">
                     <tr>
-                        <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Destination</th>
-                        <th class="px-3 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Won/Lds</th>
-                        <th class="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Revenue</th>
+                        <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('dest', 'name')">Destination <span id="dest-icon-name" class="inline-block w-3 ml-1 text-slate-400"></span></th>
+                        <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('dest', 'leads')">Leads <span id="dest-icon-leads" class="inline-block w-3 ml-1 text-slate-400"></span></th>
+                        <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('dest', 'won')">Won <span id="dest-icon-won" class="inline-block w-3 ml-1 text-slate-400"></span></th>
+                        <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('dest', 'pax')">Pax <span id="dest-icon-pax" class="inline-block w-3 ml-1 text-slate-400"></span></th>
+                        <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-emerald-500 dark:text-emerald-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('dest', 'revenue')">Revenue <span id="dest-icon-revenue" class="inline-block w-3 ml-1 text-emerald-500"></span></th>
+                        <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('dest', 'rate')">Rate <span id="dest-icon-rate" class="inline-block w-3 ml-1 text-slate-400"></span></th>
                     </tr>
                 </thead>
-                <tbody id="destTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50">
-                    <!-- Populated dynamically by JS -->
-                </tbody>
+                <tbody id="destTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody>
+                <tfoot id="destTableFoot" class="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-600 sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]"></tfoot>
             </table>
         </div>
     </div>
 </div>
 
+<!-- Performance Tables with Clickable Sortable Headers & Sticky Scroll -->
 <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
-    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 overflow-hidden flex flex-col">
-        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 flex justify-between items-center">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 overflow-hidden flex flex-col h-[400px]">
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 z-20">
             <h3 class="font-semibold text-lg text-slate-800 dark:text-white flex items-center gap-2">
                 <i data-lucide="award" class="w-5 h-5 text-amber-500"></i> Sale Rep Performance KPIs
             </h3>
         </div>
-        <div class="overflow-x-auto flex-1">
-            <table class="w-full">
-                <thead class="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-200/60 dark:border-slate-700"><tr>
-                    <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Rep</th>
-                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Leads</th>
-                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Won</th>
-                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Pax</th>
-                    <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-emerald-500 dark:text-emerald-400">Revenue</th>
-                    <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Rate</th>
+        <div class="overflow-auto custom-scrollbar flex-1 relative">
+            <table class="w-full relative">
+                <thead class="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-700 sticky top-0 z-20 shadow-sm"><tr>
+                    <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('rep', 'name')">Rep <span id="rep-icon-name" class="inline-block w-3 ml-1 text-slate-400"></span></th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('rep', 'leads')">Leads <span id="rep-icon-leads" class="inline-block w-3 ml-1 text-slate-400"></span></th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('rep', 'won')">Won <span id="rep-icon-won" class="inline-block w-3 ml-1 text-slate-400"></span></th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('rep', 'pax')">Pax <span id="rep-icon-pax" class="inline-block w-3 ml-1 text-slate-400"></span></th>
+                    <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-emerald-500 dark:text-emerald-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('rep', 'revenue')">Revenue <span id="rep-icon-revenue" class="inline-block w-3 ml-1 text-emerald-500"></span></th>
+                    <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('rep', 'rate')">Rate <span id="rep-icon-rate" class="inline-block w-3 ml-1 text-slate-400"></span></th>
                 </tr></thead>
                 <tbody id="repTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody>
-                <tfoot id="repTableFoot" class="bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-600"></tfoot>
+                <tfoot id="repTableFoot" class="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-600 sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]"></tfoot>
             </table>
         </div>
     </div>
     
-    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 overflow-hidden flex flex-col">
-        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 flex justify-between items-center">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 overflow-hidden flex flex-col h-[400px]">
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 z-20">
             <h3 class="font-semibold text-lg text-slate-800 dark:text-white flex items-center gap-2">
                 <i data-lucide="map" class="w-5 h-5 text-indigo-500"></i> Zone Performance KPIs 
             </h3>
         </div>
-        <div class="overflow-x-auto flex-1">
-            <table class="w-full">
-                <thead class="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-200/60 dark:border-slate-700"><tr>
-                    <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Zone</th>
-                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Leads</th>
-                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Won</th>
-                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Pax</th>
-                    <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-emerald-500 dark:text-emerald-400">Revenue</th>
-                    <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Rate</th>
+        <div class="overflow-auto custom-scrollbar flex-1 relative">
+            <table class="w-full relative">
+                <thead class="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-700 sticky top-0 z-20 shadow-sm"><tr>
+                    <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('zone', 'name')">Zone <span id="zone-icon-name" class="inline-block w-3 ml-1 text-slate-400"></span></th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('zone', 'leads')">Leads <span id="zone-icon-leads" class="inline-block w-3 ml-1 text-slate-400"></span></th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('zone', 'won')">Won <span id="zone-icon-won" class="inline-block w-3 ml-1 text-slate-400"></span></th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('zone', 'pax')">Pax <span id="zone-icon-pax" class="inline-block w-3 ml-1 text-slate-400"></span></th>
+                    <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-emerald-500 dark:text-emerald-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('zone', 'revenue')">Revenue <span id="zone-icon-revenue" class="inline-block w-3 ml-1 text-emerald-500"></span></th>
+                    <th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 select-none transition-colors" onclick="sortLeaderboard('zone', 'rate')">Rate <span id="zone-icon-rate" class="inline-block w-3 ml-1 text-slate-400"></span></th>
                 </tr></thead>
                 <tbody id="zoneTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody>
-                <tfoot id="zoneTableFoot" class="bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-600"></tfoot>
+                <tfoot id="zoneTableFoot" class="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-600 sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]"></tfoot>
             </table>
         </div>
     </div>
 </div>
 
-<!-- NEW: Sub-Charts for Revenue by Rep and Zone -->
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
-    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 flex flex-col">
-        <h3 class="font-semibold text-lg text-slate-800 dark:text-white mb-0.5">Revenue by Sale Rep KPIs</h3>
-        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6">Gross confirmed sales generated per representative</p>
-        <div class="flex-1 min-h-[250px] relative"><canvas id="chartRevenueByRep"></canvas></div>
-    </div>
-    
-    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 flex flex-col">
-        <h3 class="font-semibold text-lg text-slate-800 dark:text-white mb-0.5">Revenue by Zone KPIs</h3>
-        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6">Gross confirmed sales generated per zone</p>
-        <div class="flex-1 min-h-[250px] relative"><canvas id="chartRevenueByZone"></canvas></div>
-    </div>
+<!-- FULL WIDTH Top 10 Tour Packages Chart replacing Revenue By Zone -->
+<div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 dark:border-slate-700 mb-8 flex flex-col w-full">
+    <h3 class="font-semibold text-lg text-slate-800 dark:text-white mb-0.5">Top 10 Tour Packages</h3>
+    <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6">Gross confirmed sales generated per tour package</p>
+    <div class="flex-1 min-h-[350px] relative w-full"><canvas id="chartTopTours"></canvas></div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

@@ -1,0 +1,918 @@
+<script>
+    // ==========================================
+    // MODAL OPERATIONS & DRILLDOWNS
+    // ==========================================
+    window.openLeadsModal = function() { 
+        if (!serverData) return; ldPage = 1; 
+        populateModalSelect('ldZoneFilter', window.allCustomersData, 'Zone', 'All Zones', () => { ldPage=1; renderLeadsTable(); });
+        populateModalSelect('ldRepFilter', window.allCustomersData, 'Sale Rep', 'All Reps', () => { ldPage=1; renderLeadsTable(); });
+        populateModalSelect('ldDestFilter', window.allCustomersData, 'Destination', 'All Dests', () => { ldPage=1; renderLeadsTable(); });
+        populateModalSelect('ldStatusFilter', window.allCustomersData, 'Status', 'All Statuses', () => { ldPage=1; renderLeadsTable(); });
+        renderLeadsTable(); 
+        const drillModal = document.getElementById('leadsModal'); 
+        if (drillModal) {
+            drillModal.classList.remove('hidden'); drillModal.classList.add('flex'); document.body.style.overflow = 'hidden'; 
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    };
+    
+    window.closeLeadsModal = function() { 
+        const drillModal = document.getElementById('leadsModal'); 
+        if(drillModal) { drillModal.classList.add('hidden'); drillModal.classList.remove('flex'); document.body.style.overflow = ''; } 
+    };
+
+    function renderLeadsTable() {
+        const zF = document.getElementById('ldZoneFilter') ? document.getElementById('ldZoneFilter').value : 'all'; 
+        const rF = document.getElementById('ldRepFilter') ? document.getElementById('ldRepFilter').value : 'all'; 
+        const dF = document.getElementById('ldDestFilter') ? document.getElementById('ldDestFilter').value : 'all'; 
+        const sF = document.getElementById('ldStatusFilter') ? document.getElementById('ldStatusFilter').value : 'all';
+        const searchQ = document.getElementById('ldSearch') ? document.getElementById('ldSearch').value.toLowerCase().trim() : '';
+
+        const filtered = window.allCustomersData.filter(r => {
+            let match = true;
+            if(zF !== 'all' && getObjStr(r, 'Zone', '').toLowerCase() !== zF.toLowerCase()) match = false;
+            if(rF !== 'all' && getObjStr(r, 'Sale Rep', '').toLowerCase() !== rF.toLowerCase()) match = false;
+            if(dF !== 'all' && getObjStr(r, 'Destination', '').toLowerCase() !== dF.toLowerCase()) match = false;
+            if(sF !== 'all' && getObjStr(r, 'Status', '').toLowerCase() !== sF.toLowerCase()) match = false;
+            if (match && searchQ) {
+                const cName = getObjStr(r, 'Customer Name', '').toLowerCase(); 
+                const cPhone = getObjStr(r, 'Contact Number', '').toLowerCase(); 
+                const n = getObjStr(r, 'Noted', '').toLowerCase(); 
+                const s = getObjStr(r, 'Source', '').toLowerCase();
+                if (!cName.includes(searchQ) && !cPhone.includes(searchQ) && !n.includes(searchQ) && !s.includes(searchQ)) match = false;
+            } 
+            return match;
+        });
+
+        filtered.sort(sortDescByDate);
+
+        let zoneStats = {};
+        filtered.forEach(r => {
+            const z = getObjStr(r, 'Zone', '---');
+            const isConf = String(r.Status||'').toUpperCase().includes('CONFIRM') || String(r.Status||'').toUpperCase().includes('BOOKED') || String(r.Status||'').toUpperCase().includes('CLOSED') || String(r.Status||'').toUpperCase().includes('SUCCESS');
+            if(!zoneStats[z]) zoneStats[z] = {leads:0, conf:0};
+            zoneStats[z].leads++; if(isConf) zoneStats[z].conf++;
+        });
+        let zoneHtml = Object.entries(zoneStats).sort((a,b)=>b[1].leads-a[1].leads).map(([z, s]) => `<span class="font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">${z}: <span class="text-blue-500">${s.leads}</span> <span class="text-emerald-500 font-bold">(${s.conf} won)</span></span>`).join('<span class="text-slate-300 dark:text-slate-600 mx-1.5">|</span>');
+        
+        const sumEl = document.getElementById('ldSummarySection');
+        if (sumEl) sumEl.innerHTML = `<div class="flex items-center gap-2"><span class="text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider text-[10px]">Zone Summary:</span> <div class="flex items-center overflow-x-auto custom-scroll pb-1">${zoneHtml || 'No data'}</div></div>`;
+
+        const total = filtered.length; ldMaxPages = Math.ceil(total / ldPageSize) || 1; if (ldPage > ldMaxPages) ldPage = ldMaxPages;
+        const slice = filtered.slice((ldPage - 1) * ldPageSize, ldPage * ldPageSize);
+        const tbody = document.getElementById('leadsTableBody');
+        
+        if (slice.length === 0) { 
+            if(tbody) tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-8 text-center text-slate-400 text-sm">No leads found.</td></tr>`; 
+        } else {
+            if(tbody) {
+                tbody.innerHTML = slice.map(r => `
+                    <tr class="hover:bg-slate-50 dark:bg-slate-700/30 transition-colors group">
+                        <td class="px-6 py-3 text-xs text-slate-500 whitespace-nowrap">${fmtDate(r.DateStr || r['Contacted Date'])}</td>
+                        <td class="px-6 py-3">
+                            <div class="text-sm font-semibold text-slate-800 dark:text-white">${getObjStr(r, 'Customer Name', 'Unknown')}</div>
+                            <div class="text-xs text-blue-500 font-medium mt-0.5">${getObjStr(r, 'Contact Number', 'No Phone')}</div>
+                        </td>
+                        <td class="px-6 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 truncate max-w-[150px]">${getObjStr(r, 'Destination', '---')}</td>
+                        <td class="px-6 py-3 text-xs text-slate-500">${getObjStr(r, 'Zone', '---')}</td>
+                        <td class="px-6 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300">${getObjStr(r, 'Sale Rep', '---')}</td>
+                        <td class="px-6 py-3"><span class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[10px] font-bold uppercase rounded-md shadow-sm">${getObjStr(r, 'Status', '---')}</span></td>
+                        <td class="px-6 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">${getObjStr(r, 'Source', '---')}</td>
+                        <td class="px-6 py-3 text-xs text-slate-500 italic max-w-[200px] truncate" title="${getObjStr(r, 'Noted', '---')}">${getObjStr(r, 'Noted', '---')}</td>
+                    </tr>`).join('');
+            }
+        }
+        const infoEl = document.getElementById('ldTableInfo');
+        if(infoEl) infoEl.innerText = `Showing ${total ? (ldPage-1)*ldPageSize+1 : 0} to ${Math.min(ldPage*ldPageSize, total)} of ${total}`;
+        
+        const prevBtn = document.getElementById('ldPrevBtn');
+        const nextBtn = document.getElementById('ldNextBtn');
+        if(prevBtn) prevBtn.disabled = ldPage === 1; 
+        if(nextBtn) nextBtn.disabled = ldPage >= ldMaxPages;
+    }
+
+    window.exportLeadsExcel = function() {
+        if(window.allCustomersData.length === 0) return alert("No data");
+        const ws = XLSX.utils.json_to_sheet(window.allCustomersData); const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Master_Leads"); XLSX.writeFile(wb, "Total_Leads_Export.xlsx");
+    };
+
+    window.openFinancialModal = function(filterType = null, filterValue = null, rawObj = null) { 
+        if (!serverData) return; finPage = 1; 
+        
+        window.currentFinFilterType = filterType;
+        window.currentFinFilterValue = filterValue;
+        window.currentFinRawObj = rawObj;
+
+        populateModalSelect('finZoneFilter', window.financialData, 'Zone', 'All Zones', () => { finPage=1; renderFinancialTable(); });
+        populateModalSelect('finRepFilter', window.financialData, 'Sale Rep', 'All Reps', () => { finPage=1; renderFinancialTable(); });
+        populateModalSelect('finDestFilter', window.financialData, 'Destination', 'All Dests', () => { finPage=1; renderFinancialTable(); });
+        
+        const titleEl = document.getElementById('finModalTitleText');
+        if (filterType === 'trend-revenue') {
+            let dateRangeStr = "";
+            if (lastScale === 'weekly' && String(filterValue).includes('-W')) {
+                let parts = String(filterValue).split('-W');
+                dateRangeStr = ` (${getWeekDateRange(parts[0], parts[1])})`;
+            }
+            if (titleEl) titleEl.innerHTML = `Financial Sales Ledger <span class="text-slate-400 text-sm ml-2 font-medium">| ${filterValue}${dateRangeStr}</span>`;
+        } else {
+            if (titleEl) titleEl.innerHTML = `Financial Sales Ledger (Confirmed Pax)`;
+        }
+
+        renderFinancialTable(); 
+        const drillModal = document.getElementById('financialModal'); 
+        if (drillModal) {
+            drillModal.classList.remove('hidden'); drillModal.classList.add('flex'); document.body.style.overflow = 'hidden'; 
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    };
+    
+    window.closeFinancialModal = function() { 
+        const drillModal = document.getElementById('financialModal'); 
+        if(drillModal){ drillModal.classList.add('hidden'); drillModal.classList.remove('flex'); document.body.style.overflow = ''; } 
+        window.currentFinFilterType = null; window.currentFinRawObj = null; 
+    };
+
+    function renderFinancialTable() {
+        const zF = document.getElementById('finZoneFilter') ? document.getElementById('finZoneFilter').value : 'all'; 
+        const rF = document.getElementById('finRepFilter') ? document.getElementById('finRepFilter').value : 'all'; 
+        const dF = document.getElementById('finDestFilter') ? document.getElementById('finDestFilter').value : 'all';
+        const searchQ = document.getElementById('finSearch') ? document.getElementById('finSearch').value.toLowerCase().trim() : '';
+
+        const filtered = window.financialData.filter(r => {
+            let match = true;
+            if(zF !== 'all' && getObjStr(r, 'Zone', '').toLowerCase() !== zF.toLowerCase()) match = false;
+            if(rF !== 'all' && getObjStr(r, 'Sale Rep', '').toLowerCase() !== rF.toLowerCase()) match = false;
+            if(dF !== 'all' && getObjStr(r, 'Destination', '').toLowerCase() !== dF.toLowerCase()) match = false;
+            if (match && searchQ) {
+                const cName = getObjStr(r, 'Customer Name', '').toLowerCase(); 
+                const so = getObjStr(r, 'S.O No', getObjStr(r, 'SO No', '')).toLowerCase();
+                if (!cName.includes(searchQ) && !so.includes(searchQ)) match = false;
+            } 
+            
+            if (match && window.currentFinFilterType === 'trend-revenue' && window.currentFinRawObj) {
+                if (lastScale === 'daily' && r.DateStr !== window.currentFinRawObj.DateStr) match = false;
+                if (lastScale === 'weekly' && r.Week !== window.currentFinRawObj.Week) match = false;
+                if (lastScale === 'monthly' && r.Month !== window.currentFinRawObj.Month) match = false;
+                if (lastScale === 'yearly') {
+                    let y = r.DateStr ? r.DateStr.substring(0, 4) : (r['Contacted Date'] ? r['Contacted Date'].substring(0, 4) : '');
+                    if (y !== window.currentFinRawObj.Year) match = false;
+                }
+            }
+            return match;
+        });
+
+        filtered.sort(sortDescByDate);
+
+        let zoneStats = {}; let totalRev = 0, totalPax = 0;
+        filtered.forEach(r => {
+            const z = getObjStr(r, 'Zone', '---'); 
+            const pax = parseInt(r.Pax) || parseInt(r.QTY) || parseInt(r.Adult) || parseInt(r.Quantity) || 0;
+            const revStr = getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0')));
+            const rev = parseFloat(String(revStr).replace(/[^\d.-]/g, '')) || 0;
+            if(!zoneStats[z]) zoneStats[z] = {pax: 0, rev: 0}; 
+            zoneStats[z].pax += pax; zoneStats[z].rev += rev;
+            totalPax += pax; totalRev += rev;
+        });
+        
+        let masterConfirmedCount = 0;
+        let masterZoneConfCounts = {};
+        if (window.allCustomersData) {
+            window.allCustomersData.forEach(r => {
+                let match = true;
+                if(zF !== 'all' && getObjStr(r, 'Zone', '').toLowerCase() !== zF.toLowerCase()) match = false;
+                if(rF !== 'all' && getObjStr(r, 'Sale Rep', '').toLowerCase() !== rF.toLowerCase()) match = false;
+                if(dF !== 'all' && getObjStr(r, 'Destination', '').toLowerCase() !== dF.toLowerCase()) match = false;
+                if (match && searchQ) {
+                    const cName = getObjStr(r, 'Customer Name', '').toLowerCase();
+                    if (!cName.includes(searchQ)) match = false;
+                }
+                
+                if (match && window.currentFinFilterType === 'trend-revenue' && window.currentFinRawObj) {
+                    if (lastScale === 'daily' && r.DateStr !== window.currentFinRawObj.DateStr) match = false;
+                    if (lastScale === 'weekly' && r.Week !== window.currentFinRawObj.Week) match = false;
+                    if (lastScale === 'monthly' && r.Month !== window.currentFinRawObj.Month) match = false;
+                    if (lastScale === 'yearly') {
+                        let y = r.DateStr ? r.DateStr.substring(0, 4) : (r['Contacted Date'] ? r['Contacted Date'].substring(0, 4) : '');
+                        if (y !== window.currentFinRawObj.Year) match = false;
+                    }
+                }
+
+                if (match) {
+                    const st = String(r.Status || '').toUpperCase();
+                    if (st.includes('6-CONFIRMED') || st.includes('BOOKED') || st.includes('CLOSED') || st.includes('SUCCESS') || st.includes('PAID')) {
+                        masterConfirmedCount++;
+                        const z = getObjStr(r, 'Zone', '---');
+                        masterZoneConfCounts[z] = (masterZoneConfCounts[z] || 0) + 1;
+                    }
+                }
+            });
+        }
+
+        let zHtml = Object.entries(zoneStats).sort((a,b)=>b[1].rev-a[1].rev).map(([z, s]) => `<span class="font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">${z}: <span class="text-emerald-500 font-bold">$${Math.round(s.rev).toLocaleString()}</span> <span class="text-slate-400 text-[10px] ml-0.5">(${s.pax} pax)</span></span>`).join('<span class="text-slate-300 dark:text-slate-600 mx-1.5">|</span>');
+        
+        let sumHTML = `<div class="flex items-center gap-2"><span class="text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider text-[10px]">Filtered Totals:</span> <span class="font-bold text-emerald-600 dark:text-emerald-400 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded shadow-sm" title="Confirmed count from Sales Master">${masterConfirmedCount} Master Bookings</span> <span class="font-bold text-emerald-600 dark:text-emerald-400 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded shadow-sm" title="Revenue from Financial Ledger">$${totalRev.toLocaleString()} <span class="text-slate-500 text-[10px] font-medium ml-1">(${totalPax} Pax)</span></span></div>`;
+        if(zHtml) sumHTML += `<div class="flex items-center gap-2 border-l border-slate-200 dark:border-slate-700 pl-4 overflow-hidden"><span class="text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider text-[10px]">Zone Revenue:</span> <div class="flex items-center overflow-x-auto custom-scroll pb-1 mask-edge">${zHtml}</div></div>`;
+        
+        const sumEl = document.getElementById('finSummarySection');
+        if (sumEl) sumEl.innerHTML = sumHTML || 'No financial records available.';
+
+        const total = filtered.length; finMaxPages = Math.ceil(total / finPageSize) || 1; if (finPage > finMaxPages) finPage = finMaxPages;
+        const slice = filtered.slice((finPage - 1) * finPageSize, finPage * finPageSize);
+        const tbody = document.getElementById('financialTableBody');
+
+        if (slice.length === 0) { 
+            if(tbody) tbody.innerHTML = `<tr><td colspan="10" class="px-6 py-8 text-center text-slate-400 text-sm">No financial records found.</td></tr>`; 
+        } else {
+            if(tbody) {
+                tbody.innerHTML = slice.map(r => {
+                    const soNo = getObjStr(r, 'S.O No', getObjStr(r, 'SO No', '---'));
+                    const cName = getObjStr(r, 'Customer Name', getObjStr(r, 'Name', 'Unknown'));
+                    const depDate = fmtDate(getObjStr(r, 'Dep. Date', getObjStr(r, 'Dep Date', getObjStr(r, 'Departure', '---'))));
+                    const arrDate = fmtDate(getObjStr(r, 'Arr. Date', getObjStr(r, 'Arr Date', getObjStr(r, 'Arrival', '---'))));
+                    
+                    let tourFareStr = getObjStr(r, 'Tour Fare', getObjStr(r, 'Tour_Fare', getObjStr(r, 'Amount', '0')));
+                    const tourFare = parseFloat(String(tourFareStr).replace(/[^\d.-]/g, '')) || 0;
+                    
+                    let revStr = getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0')));
+                    const revenue = parseFloat(String(revStr).replace(/[^\d.-]/g, '')) || 0;
+                    
+                    const pax = parseInt(r.Pax) || parseInt(r.QTY) || parseInt(r.Adult) || parseInt(r.Quantity) || 0;
+                    const contactDate = fmtDate(r.DateStr || r['Contacted Date'] || r['Date'] || r['Contact Date']);
+
+                    const cInfo = `<div class="text-sm font-semibold text-slate-800 dark:text-white truncate max-w-[150px]" title="${cName}">${cName}</div><div class="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">SO: <span class="text-emerald-500">${soNo}</span></div>`;
+                    const schedule = `<div class="text-[11px] text-slate-600 dark:text-slate-300 whitespace-nowrap"><span class="font-medium text-slate-400 w-8 inline-block">Dep:</span> ${depDate}</div><div class="text-[11px] text-slate-600 dark:text-slate-300 whitespace-nowrap mt-0.5"><span class="font-medium text-slate-400 w-8 inline-block">Arr:</span> ${arrDate}</div>`;
+
+                    return `
+                    <tr class="hover:bg-slate-50 dark:bg-slate-700/30 transition-colors border-b border-slate-100 dark:border-slate-700/50">
+                        <td class="px-6 py-3 text-xs text-slate-500 whitespace-nowrap">${contactDate}</td>
+                        <td class="px-6 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase"><span class="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">${soNo}</span></td>
+                        <td class="px-6 py-3">${cInfo}</td>
+                        <td class="px-6 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 truncate max-w-[120px]">${getObjStr(r, 'Destination', '---')}</td>
+                        <td class="px-6 py-3">${schedule}</td>
+                        <td class="px-6 py-3 text-center text-sm font-bold text-indigo-600">${pax}</td>
+                        <td class="px-6 py-3 text-right text-sm font-medium text-slate-600 dark:text-slate-400">$${tourFare.toLocaleString()}</td>
+                        <td class="px-6 py-3 text-right text-sm font-bold text-emerald-600">$${revenue.toLocaleString()}</td>
+                        <td class="px-6 py-3 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">${getObjStr(r, 'Sale Rep', getObjStr(r, 'Rep', '---'))}</td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+        
+        const infoEl = document.getElementById('finTableInfo');
+        if (infoEl) infoEl.innerText = `Showing ${total ? (finPage-1)*finPageSize+1 : 0} to ${Math.min(finPage*finPageSize, total)} of ${total}`;
+        
+        const prevBtn = document.getElementById('finPrevBtn');
+        const nextBtn = document.getElementById('finNextBtn');
+        if (prevBtn) prevBtn.disabled = finPage === 1; 
+        if (nextBtn) nextBtn.disabled = finPage >= finMaxPages;
+    }
+
+    window.exportFinancialExcel = function() {
+        const zF = document.getElementById('finZoneFilter') ? document.getElementById('finZoneFilter').value : 'all'; 
+        const rF = document.getElementById('finRepFilter') ? document.getElementById('finRepFilter').value : 'all'; 
+        const dF = document.getElementById('finDestFilter') ? document.getElementById('finDestFilter').value : 'all';
+        const searchQ = document.getElementById('finSearch') ? document.getElementById('finSearch').value.toLowerCase().trim() : '';
+
+        const filtered = window.financialData.filter(r => {
+            let match = true;
+            if(zF !== 'all' && getObjStr(r, 'Zone', '').toLowerCase() !== zF.toLowerCase()) match = false;
+            if(rF !== 'all' && getObjStr(r, 'Sale Rep', '').toLowerCase() !== rF.toLowerCase()) match = false;
+            if(dF !== 'all' && getObjStr(r, 'Destination', '').toLowerCase() !== dF.toLowerCase()) match = false;
+            if (match && searchQ) {
+                const cName = getObjStr(r, 'Customer Name', '').toLowerCase(); 
+                const so = getObjStr(r, 'S.O No', getObjStr(r, 'SO No', '')).toLowerCase();
+                if (!cName.includes(searchQ) && !so.includes(searchQ)) match = false;
+            } 
+            if (match && window.currentFinFilterType === 'trend-revenue' && window.currentFinRawObj) {
+                if (lastScale === 'daily' && r.DateStr !== window.currentFinRawObj.DateStr) match = false;
+                if (lastScale === 'weekly' && r.Week !== window.currentFinRawObj.Week) match = false;
+                if (lastScale === 'monthly' && r.Month !== window.currentFinRawObj.Month) match = false;
+                if (lastScale === 'yearly') {
+                    let y = r.DateStr ? r.DateStr.substring(0, 4) : (r['Contacted Date'] ? r['Contacted Date'].substring(0, 4) : '');
+                    if (y !== window.currentFinRawObj.Year) match = false;
+                }
+            }
+            return match;
+        });
+        
+        if(filtered.length === 0) return alert("No data to export");
+        const ws = XLSX.utils.json_to_sheet(filtered); 
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Financial_Ledger"); 
+        XLSX.writeFile(wb, "Financial_Sales_Export.xlsx");
+    };
+
+    window.openBookingsModal = function() { 
+        if (!serverData) return; bkPage = 1; 
+        populateModalSelect('bkZoneFilter', window.confirmedBookings, 'Zone', 'All Zones', () => { bkPage=1; renderBookingsTable(); }); 
+        populateModalSelect('bkRepFilter', window.confirmedBookings, 'Sale Rep', 'All Reps', () => { bkPage=1; renderBookingsTable(); }); 
+        populateModalSelect('bkDestFilter', window.confirmedBookings, 'Destination', 'All Dests', () => { bkPage=1; renderBookingsTable(); }); 
+        renderBookingsTable(); 
+        const drillModal = document.getElementById('bookingsModal'); 
+        if (drillModal) {
+            drillModal.classList.remove('hidden'); drillModal.classList.add('flex'); document.body.style.overflow = 'hidden'; 
+            if (typeof lucide !== 'undefined') lucide.createIcons(); 
+        }
+    };
+    
+    window.closeBookingsModal = function() { 
+        const drillModal = document.getElementById('bookingsModal'); 
+        if(drillModal) { drillModal.classList.add('hidden'); drillModal.classList.remove('flex'); document.body.style.overflow = ''; } 
+    };
+
+    function renderBookingsTable() {
+        const zF = document.getElementById('bkZoneFilter') ? document.getElementById('bkZoneFilter').value : 'all'; 
+        const rF = document.getElementById('bkRepFilter') ? document.getElementById('bkRepFilter').value : 'all'; 
+        const dF = document.getElementById('bkDestFilter') ? document.getElementById('bkDestFilter').value : 'all';
+        const filtered = window.confirmedBookings.filter(r => {
+            if(zF !== 'all' && getObjStr(r, 'Zone', '').toLowerCase() !== zF.toLowerCase()) return false;
+            if(rF !== 'all' && getObjStr(r, 'Sale Rep', '').toLowerCase() !== rF.toLowerCase()) return false;
+            if(dF !== 'all' && getObjStr(r, 'Destination', '').toLowerCase() !== dF.toLowerCase()) return false;
+            return true;
+        });
+
+        filtered.sort(sortDescByDate);
+
+        let totalBk = 0; let zoneStats = {};
+        filtered.forEach(r => {
+            totalBk++;
+            const z = getObjStr(r, 'Zone', '---');
+            if(!zoneStats[z]) zoneStats[z] = 0; zoneStats[z]++;
+        });
+
+        let zHtml = Object.entries(zoneStats).sort((a,b)=>b[1]-a[1]).map(([z, p]) => `<div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg shadow-sm"><span class="font-semibold text-slate-600 dark:text-slate-300 text-xs whitespace-nowrap">${z}:</span><span class="text-emerald-600 dark:text-emerald-400 font-bold text-xs whitespace-nowrap">${p} won</span></div>`).join('');
+        
+        let sumHTML = `<div class="flex flex-wrap items-center gap-3">`;
+        sumHTML += `<div class="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-800/50 px-3 py-1.5 rounded-lg shadow-sm"><span class="text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider text-[10px]">Total Bookings</span><span class="font-extrabold text-emerald-700 dark:text-emerald-300 text-sm">${totalBk.toLocaleString()}</span></div>`;
+        if(zHtml) sumHTML += `<div class="h-5 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div><div class="flex items-center gap-2 overflow-x-auto custom-scroll pb-1">${zHtml}</div>`;
+        sumHTML += `</div>`;
+        
+        const bkSumEl = document.getElementById('bkSummarySection');
+        if (bkSumEl) bkSumEl.innerHTML = sumHTML || 'No bookings data available.';
+
+        const total = filtered.length; bkMaxPages = Math.ceil(total / bkPageSize) || 1;
+        if (bkPage > bkMaxPages) bkPage = bkMaxPages;
+        const slice = filtered.slice((bkPage - 1) * bkPageSize, bkPage * bkPageSize);
+        const tbody = document.getElementById('bookingsTableBody');
+
+        if (slice.length === 0) { 
+            if(tbody) tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-slate-400 text-sm">No records found.</td></tr>`; 
+        } else {
+            if(tbody) {
+                tbody.innerHTML = slice.map(r => {
+                    const cName = getObjStr(r, 'Customer Name', 'Unknown Client'); 
+                    const cPhone = getObjStr(r, 'Contact Number', 'No Phone');
+                    const dest = getObjStr(r, 'Destination', '---'); 
+                    const zone = getObjStr(r, 'Zone', '---'); 
+                    const dt = fmtDate(r.DateStr || r['Contacted Date']); 
+                    const note = getObjStr(r, 'Noted', getObjStr(r, 'Remark', '')); 
+
+                    const cInfo = `<div class="text-sm font-semibold text-slate-800 dark:text-white truncate max-w-[150px]" title="${cName}">${cName}</div><div class="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider"><span class="text-blue-500">${cPhone}</span></div>`;
+                    const destZone = `<div class="text-sm font-medium text-slate-700 dark:text-slate-300 truncate max-w-[150px]">${dest}</div><div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">${zone}</div>`;
+
+                    return `
+                    <tr class="hover:bg-slate-50 dark:bg-slate-700/30 transition-colors border-b border-slate-100 dark:border-slate-700/50">
+                        <td class="px-6 py-3 text-xs text-slate-500 whitespace-nowrap">${dt}</td>
+                        <td class="px-6 py-3">${cInfo}</td>
+                        <td class="px-6 py-3">${destZone}</td>
+                        <td class="px-6 py-3 text-center text-sm font-semibold text-slate-700 dark:text-slate-300">${getObjStr(r, 'Sale Rep', '---')}</td>
+                        <td class="px-6 py-3 text-center text-sm font-bold text-emerald-600">${r.Pax || 0}</td>
+                        <td class="px-6 py-3 text-xs text-slate-500 italic max-w-[200px] truncate" title="${note}">${note}</td>
+                    </tr>
+                `;
+                }).join('');
+            }
+        }
+        
+        const bkTableInfo = document.getElementById('bkTableInfo');
+        if (bkTableInfo) bkTableInfo.innerText = `Showing ${total ? (bkPage-1)*bkPageSize+1 : 0} to ${Math.min(bkPage*bkPageSize, total)} of ${total}`;
+        
+        const bkPrevBtn = document.getElementById('bkPrevBtn');
+        const bkNextBtn = document.getElementById('bkNextBtn');
+        if (bkPrevBtn) bkPrevBtn.disabled = bkPage === 1; 
+        if (bkNextBtn) bkNextBtn.disabled = bkPage >= bkMaxPages;
+    }
+
+    window.openUntouchedModal = function() { 
+        if (!serverData) return; utPage = 1; 
+        populateModalSelect('utZoneFilter', window.allUntouchedData, 'Zone', 'All Zones', () => { utPage=1; renderUntouchedTable(); }); 
+        populateModalSelect('utRepFilter', window.allUntouchedData, 'Sale Rep', 'All Reps', () => { utPage=1; renderUntouchedTable(); }); 
+        populateModalSelect('utDestFilter', window.allUntouchedData, 'Destination', 'All Dests', () => { utPage=1; renderUntouchedTable(); }); 
+        renderUntouchedTable(); 
+        const drillModal = document.getElementById('untouchedModal'); 
+        if(drillModal) {
+            drillModal.classList.remove('hidden'); drillModal.classList.add('flex'); document.body.style.overflow = 'hidden'; 
+            if (typeof lucide !== 'undefined') lucide.createIcons(); 
+        }
+    };
+    
+    window.closeUntouchedModal = function() { 
+        const drillModal = document.getElementById('untouchedModal'); 
+        if(drillModal) { drillModal.classList.add('hidden'); drillModal.classList.remove('flex'); document.body.style.overflow = ''; } 
+    };
+
+    function renderUntouchedTable() {
+        const zF = document.getElementById('utZoneFilter') ? document.getElementById('utZoneFilter').value : 'all'; 
+        const rF = document.getElementById('utRepFilter') ? document.getElementById('utRepFilter').value : 'all'; 
+        const dF = document.getElementById('utDestFilter') ? document.getElementById('utDestFilter').value : 'all';
+        const filtered = window.allUntouchedData.filter(r => {
+            if(zF !== 'all' && getObjStr(r, 'Zone', '').toLowerCase() !== zF.toLowerCase()) return false;
+            if(rF !== 'all' && getObjStr(r, 'Sale Rep', '').toLowerCase() !== rF.toLowerCase()) return false;
+            if(dF !== 'all' && getObjStr(r, 'Destination', '').toLowerCase() !== dF.toLowerCase()) return false;
+            return true;
+        });
+
+        filtered.sort(sortDescByDate);
+
+        let totalUt = 0; let repStats = {};
+        filtered.forEach(r => {
+            totalUt++;
+            const rep = getObjStr(r, 'Sale Rep', '---');
+            if(!repStats[rep]) repStats[rep] = 0; repStats[rep]++;
+        });
+        let rHtml = Object.entries(repStats).sort((a,b)=>b[1]-a[1]).map(([rep, p]) => `<div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg shadow-sm"><span class="font-semibold text-slate-600 dark:text-slate-300 text-xs whitespace-nowrap">${rep}:</span><span class="text-rose-600 dark:text-rose-400 font-bold text-xs whitespace-nowrap">${p} leads</span></div>`).join('');
+        
+        let sumHTML = `<div class="flex flex-wrap items-center gap-3">`;
+        sumHTML += `<div class="flex items-center gap-2 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-800/50 px-3 py-1.5 rounded-lg shadow-sm"><span class="text-rose-600 dark:text-rose-400 font-bold uppercase tracking-wider text-[10px]">Total Untouched</span><span class="font-extrabold text-rose-700 dark:text-rose-300 text-sm">${totalUt.toLocaleString()}</span></div>`;
+        if(rHtml) sumHTML += `<div class="h-5 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div><div class="flex items-center gap-2 overflow-x-auto custom-scroll pb-1">${rHtml}</div>`;
+        sumHTML += `</div>`;
+        const utSumEl = document.getElementById('utSummarySection');
+        if (utSumEl) { utSumEl.innerHTML = sumHTML || 'No untouched leads!'; utSumEl.classList.remove('hidden'); }
+
+        const total = filtered.length; utMaxPages = Math.ceil(total / utPageSize) || 1;
+        if (utPage > utMaxPages) utPage = utMaxPages;
+        const slice = filtered.slice((utPage - 1) * utPageSize, utPage * utPageSize);
+        const tbody = document.getElementById('untouchedTableBody');
+
+        if (slice.length === 0) { 
+            if(tbody) tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 text-sm">No untouched leads!</td></tr>`; 
+        } else {
+            if(tbody) {
+                tbody.innerHTML = slice.map(r => {
+                    const cName = getObjStr(r, 'Customer Name', 'Unknown Client'); 
+                    const cPhone = getObjStr(r, 'Contact Number', 'No Phone');
+                    const dt = fmtDate(r.DateStr || r['Contacted Date']); 
+                    const st = getObjStr(r, 'Status', '---');
+
+                    const cInfo = `<div class="text-sm font-semibold text-slate-800 dark:text-white truncate max-w-[150px]" title="${cName}">${cName}</div><div class="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider"><span class="text-blue-500">${cPhone}</span></div>`;
+                    const badge = `<span class="px-2.5 py-1 bg-rose-50 text-rose-600 border border-rose-200 text-[10px] font-bold uppercase rounded-md shadow-sm tracking-wider">${st}</span>`;
+
+                    return `
+                    <tr class="hover:bg-slate-50 dark:bg-slate-700/30 transition-colors border-b border-slate-100 dark:border-slate-700/50">
+                        <td class="px-6 py-3 text-xs text-slate-50 whitespace-nowrap">${dt}</td>
+                        <td class="px-6 py-3">${cInfo}</td>
+                        <td class="px-6 py-3 text-sm font-medium text-slate-700 dark:text-slate-300">${getObjStr(r, 'Destination', '---')}</td>
+                        <td class="px-6 py-3 text-sm text-slate-600 dark:text-slate-400">${getObjStr(r, 'Sale Rep', '---')}</td>
+                        <td class="px-6 py-3">${badge}</td>
+                    </tr>
+                `;
+                }).join('');
+            }
+        }
+        
+        const utTableInfo = document.getElementById('utTableInfo');
+        if(utTableInfo) utTableInfo.innerText = `Showing ${total ? (utPage-1)*utPageSize+1 : 0} to ${Math.min(utPage*utPageSize, total)} of ${total}`;
+        
+        const utPrevBtn = document.getElementById('utPrevBtn');
+        const utNextBtn = document.getElementById('utNextBtn');
+        if (utPrevBtn) utPrevBtn.disabled = utPage === 1; 
+        if (utNextBtn) utNextBtn.disabled = utPage >= utMaxPages;
+    }
+
+    window.openDrilldownModal = function(type, filterValue, rawObj = null) {
+        ddType = type; ddFilterValue = filterValue; ddRawObj = rawObj;
+        const modal = document.getElementById('drilldownModal');
+        const titleEl = document.getElementById('ddModalTitle');
+        const theadEl = document.getElementById('ddModalHead');
+        
+        const fvClean = String(filterValue).toLowerCase().trim();
+
+        let htmlHead = '';
+
+        if (type === 'rep' || type === 'rep-perf') {
+            const titleStr = type === 'rep' ? "Workload: " : "Agent Performance: ";
+            const iconStr = type === 'rep' ? "user" : "award";
+            if(titleEl) titleEl.innerHTML = `<i data-lucide="${iconStr}" class="w-5 h-5 text-blue-500"></i> ${titleStr} ${filterValue}`;
+            ddData = (type === 'rep' ? window.allPipelineData : window.allCustomersData).filter(r => getObjStr(r, 'Sale Rep', '').toLowerCase().trim() === fvClean);
+            if(type === 'rep') {
+                htmlHead = `<tr><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Date Contact</th><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Customer Info</th><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Destination & Zone</th><th class="px-6 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Sale Rep</th><th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Status</th><th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Note</th></tr>`;
+            } else {
+                htmlHead = `<tr><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Date Contact</th><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Customer Info</th><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Destination & Zone</th><th class="px-6 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Sale Rep</th><th class="px-6 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Pax</th><th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Note</th></tr>`;
+            }
+        } else if (type === 'dest' || type === 'zone-perf') {
+            const titleStr = type === 'dest' ? "Demand: " : "Zone Performance: ";
+            const iconStr = type === 'dest' ? "map-pin" : "map";
+            if(titleEl) titleEl.innerHTML = `<i data-lucide="${iconStr}" class="w-5 h-5 text-blue-500"></i> ${titleStr} ${filterValue}`;
+            const searchKey = type === 'dest' ? 'Destination' : 'Zone';
+            ddData = (type === 'dest' ? window.allPipelineData : window.allCustomersData).filter(r => getObjStr(r, searchKey, '').toLowerCase().trim() === fvClean);
+            if (type === 'dest') {
+                htmlHead = `<tr><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Date Contact</th><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Customer Info</th><th class="px-6 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Sale Rep</th><th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Status</th><th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Note</th></tr>`;
+            } else {
+                htmlHead = `<tr><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Date Contact</th><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Customer Info</th><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Destination & Zone</th><th class="px-6 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Sale Rep</th><th class="px-6 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Pax</th><th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Note</th></tr>`;
+            }
+        } else if (type === 'trend-bookings') {
+            let dateRangeStr = "";
+            if (lastScale === 'weekly' && filterValue.includes('W')) {
+                let parts = filterValue.split('W');
+                let year = parts[0].replace('-', '');
+                let week = parts[1];
+                dateRangeStr = ` (${getWeekDateRange(year, week)})`;
+            }
+            if(titleEl) titleEl.innerHTML = `<i data-lucide="calendar" class="w-5 h-5 text-blue-500"></i> Confirmed Bookings: ${filterValue}${dateRangeStr}`;
+            ddData = window.confirmedBookings.filter(r => {
+                if (!rawObj) return false;
+                if (lastScale === 'daily') return r.DateStr === rawObj.DateStr;
+                if (lastScale === 'weekly') return r.Week === rawObj.Week;
+                if (lastScale === 'monthly') return r.Month === rawObj.Month;
+                if (lastScale === 'yearly') {
+                    let y = r.DateStr ? r.DateStr.substring(0, 4) : (r['Contacted Date'] ? r['Contacted Date'].substring(0, 4) : '');
+                    return y === rawObj.Year;
+                }
+                return false;
+            });
+            htmlHead = `<tr><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Date Contact</th><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Customer Info</th><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Destination & Zone</th><th class="px-6 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Sale Rep</th><th class="px-6 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Pax</th><th class="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Note</th></tr>`;
+        } else if (type === 'trend-revenue') {
+            let dateRangeStr = "";
+            if (lastScale === 'weekly' && filterValue.includes('W')) {
+                let parts = filterValue.split('W');
+                let year = parts[0].replace('-', '');
+                let week = parts[1];
+                dateRangeStr = ` (${getWeekDateRange(year, week)})`;
+            }
+            if(titleEl) titleEl.innerHTML = `<i data-lucide="dollar-sign" class="w-5 h-5 text-emerald-500"></i> Ledger Revenue: ${filterValue}${dateRangeStr}`;
+            ddData = window.financialData.filter(r => {
+                if (!rawObj) return false;
+                if (lastScale === 'daily') return r.DateStr === rawObj.DateStr;
+                if (lastScale === 'weekly') return r.Week === rawObj.Week;
+                if (lastScale === 'monthly') return r.Month === rawObj.Month;
+                if (lastScale === 'yearly') {
+                    let y = r.DateStr ? r.DateStr.substring(0, 4) : (r['Contacted Date'] ? r['Contacted Date'].substring(0, 4) : '');
+                    return y === rawObj.Year;
+                }
+                return false;
+            });
+            htmlHead = `<tr><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Date Contact</th><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Customer Info</th><th class="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Destination & Zone</th><th class="px-6 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Sale Rep</th><th class="px-6 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Pax</th><th class="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Revenue</th></tr>`;
+        }
+
+        if(theadEl) {
+            theadEl.innerHTML = htmlHead;
+        }
+
+        const destSelect = document.getElementById('ddDestFilter');
+        const dynFilter = document.getElementById('ddDynamicFilter');
+        
+        if (destSelect && destSelect.tomselect) destSelect.tomselect.destroy();
+        if (dynFilter && dynFilter.tomselect) dynFilter.tomselect.destroy();
+
+        if (destSelect) {
+            if (type === 'dest') {
+                destSelect.innerHTML = `<option value="all">${filterValue}</option>`;
+                destSelect.disabled = true; destSelect.value = 'all';
+            } else {
+                const uniqueDests = [...new Set(ddData.map(r => getObjStr(r, 'Destination', '---')))].filter(v=>v!=='---').sort();
+                destSelect.innerHTML = `<option value="all">All Destinations</option>` + uniqueDests.map(d => `<option value="${d}">${d}</option>`).join('');
+                destSelect.disabled = false;
+            }
+            if (typeof TomSelect !== 'undefined') {
+                const destTs = new TomSelect(destSelect, { create: false, dropdownParent: 'body' });
+                destTs.on('change', () => { ddPage = 1; renderDrilldownTable(); });
+                if (destSelect.disabled) destTs.disable();
+            } else {
+                destSelect.onchange = () => { ddPage = 1; renderDrilldownTable(); };
+            }
+        }
+        
+        if (dynFilter) {
+            if (type === 'dest' || type === 'zone-perf') {
+                const uniqueReps = [...new Set(ddData.map(r => getObjStr(r, 'Sale Rep', '---')))].filter(v=>v!=='---').sort();
+                dynFilter.innerHTML = `<option value="all">All Reps</option>` + uniqueReps.map(d => `<option value="${d}">${d}</option>`).join('');
+                dynFilter.disabled = false;
+            } else if (type === 'rep' || type === 'rep-perf' || type === 'trend-bookings' || type === 'trend-revenue') {
+                const uniqueZones = [...new Set(ddData.map(r => getObjStr(r, 'Zone', '---')))].filter(v=>v!=='---').sort();
+                dynFilter.innerHTML = `<option value="all">All Zones</option>` + uniqueZones.map(d => `<option value="${d}">${d}</option>`).join('');
+                dynFilter.disabled = false;
+            }
+            if (typeof TomSelect !== 'undefined') {
+                const dynTs = new TomSelect(dynFilter, { create: false, dropdownParent: 'body' });
+                dynTs.on('change', () => { ddPage = 1; renderDrilldownTable(); });
+                if (dynFilter.disabled) dynTs.disable();
+            } else {
+                dynFilter.onchange = () => { ddPage = 1; renderDrilldownTable(); };
+            }
+        }
+
+        const ddSearch = document.getElementById('ddSearch');
+        if(ddSearch) { ddSearch.value = ''; ddPage = 1; }
+        
+        renderDrilldownTable();
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons(); 
+        }
+        
+        const drillModalEl = document.getElementById('drilldownModal');
+        if (drillModalEl) {
+            drillModalEl.classList.remove('hidden'); 
+            drillModalEl.classList.add('flex'); 
+            document.body.style.overflow = 'hidden';
+        }
+    };
+
+    function renderDrilldownTable() {
+        const tbodyEl = document.getElementById('ddModalBody');
+        if (!tbodyEl) return;
+
+        const ddSearch = document.getElementById('ddSearch');
+        const ddDestFilter = document.getElementById('ddDestFilter');
+        const ddDynamicFilter = document.getElementById('ddDynamicFilter');
+
+        const searchQuery = ddSearch ? ddSearch.value.toLowerCase().trim() : '';
+        const destFilter = ddDestFilter ? ddDestFilter.value : 'all';
+        const dynFilterVal = ddDynamicFilter ? ddDynamicFilter.value : 'all';
+
+        const filtered = ddData.filter(r => {
+            const cName = getObjStr(r, 'Customer Name', 'Unknown Client').toLowerCase();
+            const rDest = getObjStr(r, 'Destination', '---').toLowerCase();
+
+            if (searchQuery && !cName.includes(searchQuery)) return false;
+            if (destFilter !== 'all' && rDest !== destFilter.toLowerCase()) return false;
+            if (dynFilterVal !== 'all') {
+                if (ddType === 'dest' || ddType === 'zone-perf') { 
+                    if (getObjStr(r, 'Sale Rep', '---').toLowerCase() !== dynFilterVal.toLowerCase()) return false; 
+                } 
+                else if (ddType === 'rep' || ddType === 'rep-perf' || ddType === 'trend-bookings' || ddType === 'trend-revenue') { 
+                    if (getObjStr(r, 'Zone', '---').toLowerCase() !== dynFilterVal.toLowerCase()) return false; 
+                }
+            } 
+            return true;
+        });
+
+        let finFiltered = window.financialData.filter(r => {
+            const cName = getObjStr(r, 'Customer Name', 'Unknown Client').toLowerCase();
+            const rDest = getObjStr(r, 'Destination', '---').toLowerCase();
+            const rRep = getObjStr(r, 'Sale Rep', getObjStr(r, 'Rep', '---')).toLowerCase();
+            const rZone = getObjStr(r, 'Zone', '---').toLowerCase();
+
+            if (ddType === 'rep' || ddType === 'rep-perf') {
+                if (rRep !== ddFilterValue.toLowerCase()) return false;
+            } else if (ddType === 'dest') {
+                if (rDest !== ddFilterValue.toLowerCase()) return false;
+            } else if (ddType === 'zone-perf') {
+                if (rZone !== ddFilterValue.toLowerCase()) return false;
+            } else if (ddType === 'trend-bookings' || ddType === 'trend-revenue') {
+                if (ddRawObj) {
+                    if (lastScale === 'daily' && r.DateStr !== ddRawObj.DateStr) return false;
+                    if (lastScale === 'weekly' && r.Week !== ddRawObj.Week) return false;
+                    if (lastScale === 'monthly' && r.Month !== ddRawObj.Month) return false;
+                    if (lastScale === 'yearly') {
+                        let y = r.DateStr ? r.DateStr.substring(0, 4) : (r['Contacted Date'] ? r['Contacted Date'].substring(0, 4) : '');
+                        if (y !== ddRawObj.Year) return false;
+                    }
+                }
+            }
+
+            if (searchQuery && !cName.includes(searchQuery)) return false;
+            if (destFilter !== 'all' && rDest !== destFilter.toLowerCase()) return false;
+            if (dynFilterVal !== 'all') {
+                if (ddType === 'dest' || ddType === 'zone-perf') { 
+                    if (rRep !== dynFilterVal.toLowerCase()) return false; 
+                } 
+                else if (ddType === 'rep' || ddType === 'rep-perf' || ddType === 'trend-bookings' || ddType === 'trend-revenue') { 
+                    if (rZone !== dynFilterVal.toLowerCase()) return false; 
+                }
+            }
+            return true;
+        });
+
+        let totalFinPax = finFiltered.reduce((sum, r) => sum + (parseInt(r.Pax) || parseInt(r.QTY) || parseInt(r.Adult) || parseInt(r.Quantity) || 0), 0);
+        let totalFinRev = finFiltered.reduce((sum, r) => sum + (parseFloat(String(getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0')))).replace(/[^\d.-]/g, '')) || 0), 0);
+
+        let displayData = []; 
+        let sumHtml = `<div class="flex flex-wrap items-center gap-3">`;
+
+        if (ddType === 'rep' || ddType === 'dest' || ddType === 'trend-bookings') {
+            displayData = filtered;
+            let zoneStats = {};
+            let destStats = {};
+            let repStats = {};
+
+            filtered.forEach(r => {
+                const z = getObjStr(r, 'Zone', '---'); 
+                const d = getObjStr(r, 'Destination', '---'); 
+                const rep = getObjStr(r, 'Sale Rep', '---');
+                const st = String(r.Status || '').toUpperCase();
+                const isConf = st.includes('6-CONFIRMED') || st.includes('BOOKED') || st.includes('CLOSED') || st.includes('SUCCESS') || st.includes('PAID');
+
+                if (!zoneStats[z]) zoneStats[z] = { leads: 0, conf: 0 }; 
+                zoneStats[z].leads += 1; 
+                if(isConf) zoneStats[z].conf += 1;
+                
+                if (!destStats[d]) destStats[d] = { leads: 0, conf: 0 }; 
+                destStats[d].leads += 1; 
+                if(isConf) destStats[d].conf += 1;
+                
+                if (!repStats[rep]) repStats[rep] = { leads: 0, conf: 0 }; 
+                repStats[rep].leads += 1; 
+                if(isConf) repStats[rep].conf += 1;
+            });
+
+            if (ddType === 'trend-bookings') {
+                sumHtml += `<div class="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-800/50 px-3 py-1.5 rounded-lg shadow-sm"><span class="text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider text-[10px]">Total Won</span><span class="font-extrabold text-emerald-700 dark:text-emerald-300 text-sm">${filtered.length}</span></div>`;
+                sumHtml += `<div class="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-800/50 px-3 py-1.5 rounded-lg shadow-sm"><span class="text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider text-[10px]">Fin. Pax</span><span class="font-extrabold text-indigo-700 dark:text-indigo-300 text-sm">${totalFinPax}</span></div>`;
+                
+                let zHtml = Object.entries(zoneStats).sort((a,b)=>b[1].leads-a[1].leads).map(([z, s]) => `<div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg shadow-sm"><span class="font-semibold text-slate-600 dark:text-slate-300 text-xs whitespace-nowrap">${z}:</span><span class="text-emerald-600 dark:text-emerald-400 font-bold text-xs whitespace-nowrap">${s.leads} won</span></div>`).join('');
+                if(zHtml) sumHtml += `<div class="h-5 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div><div class="flex items-center gap-2 overflow-x-auto custom-scroll pb-1">${zHtml}</div>`;
+            } else if (ddType === 'dest') {
+                sumHtml += `<div class="flex items-center gap-2 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-800/50 px-3 py-1.5 rounded-lg shadow-sm"><span class="text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider text-[10px]">Active Leads</span><span class="font-extrabold text-blue-700 dark:text-blue-300 text-sm">${filtered.length}</span></div>`;
+                let zoneHtml = Object.entries(zoneStats).sort((a,b)=>b[1].leads-a[1].leads).map(([z, s]) => `<div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg shadow-sm"><span class="font-semibold text-slate-600 dark:text-slate-300 text-xs whitespace-nowrap">${z}:</span><span class="text-blue-600 dark:text-blue-400 font-bold text-xs whitespace-nowrap">${s.leads} leads</span><span class="text-emerald-500 font-bold text-xs whitespace-nowrap ml-1">(${s.conf} won)</span></div>`).join('');
+                if (zoneHtml) sumHtml += `<div class="h-5 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div><div class="flex items-center gap-2 overflow-x-auto custom-scroll pb-1">${zoneHtml}</div>`;
+            } else {
+                sumHtml += `<div class="flex items-center gap-2 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-800/50 px-3 py-1.5 rounded-lg shadow-sm"><span class="text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider text-[10px]">Active Leads</span><span class="font-extrabold text-blue-700 dark:text-blue-300 text-sm">${filtered.length}</span></div>`;
+                let zoneHtml = Object.entries(zoneStats).sort((a,b)=>b[1].leads-a[1].leads).map(([z, s]) => `<div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg shadow-sm"><span class="font-semibold text-slate-600 dark:text-slate-300 text-xs whitespace-nowrap">${z}:</span><span class="text-blue-600 dark:text-blue-400 font-bold text-xs whitespace-nowrap">${s.leads} leads</span><span class="text-emerald-500 font-bold text-xs whitespace-nowrap ml-1">(${s.conf} won)</span></div>`).join('');
+                if (zoneHtml) sumHtml += `<div class="h-5 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div><div class="flex items-center gap-2 overflow-x-auto custom-scroll pb-1">${zoneHtml}</div>`;
+            }
+        } 
+        else if (ddType === 'trend-revenue') {
+            displayData = filtered;
+            sumHtml += `<div class="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-800/50 px-3 py-1.5 rounded-lg shadow-sm"><span class="text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider text-[10px]">Total Rev</span><span class="font-extrabold text-emerald-700 dark:text-emerald-300 text-sm">$${totalFinRev.toLocaleString()}</span></div>`;
+            sumHtml += `<div class="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-800/50 px-3 py-1.5 rounded-lg shadow-sm"><span class="text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider text-[10px]">Total Pax</span><span class="font-extrabold text-indigo-700 dark:text-indigo-300 text-sm">${totalFinPax}</span></div>`;
+            
+            let zoneStats = {};
+            filtered.forEach(r => {
+                const z = getObjStr(r, 'Zone', '---'); 
+                const rev = parseFloat(String(getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0')))).replace(/[^\d.-]/g, '')) || 0;
+                zoneStats[z] = (zoneStats[z] || 0) + rev;
+            });
+            let zHtml = Object.entries(zoneStats).sort((a,b)=>b[1]-a[1]).map(([z, rev]) => `<div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg shadow-sm"><span class="font-semibold text-slate-600 dark:text-slate-300 text-xs whitespace-nowrap">${z}:</span><span class="text-emerald-600 dark:text-emerald-400 font-bold text-xs whitespace-nowrap">$${Math.round(rev).toLocaleString()}</span></div>`).join('');
+            if(zHtml) sumHtml += `<div class="h-5 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div><div class="flex items-center gap-2 overflow-x-auto custom-scroll pb-1">${zHtml}</div>`;
+        }
+        else if (ddType === 'rep-perf' || ddType === 'zone-perf') {
+            const confirmedFiltered = filtered.filter(r => { 
+                const st = String(r.Status || '').toUpperCase(); 
+                return st.includes('6-CONFIRMED') || st.includes('BOOKED') || st.includes('CLOSED'); 
+            });
+            displayData = confirmedFiltered;
+
+            sumHtml += `<div class="flex items-center gap-2 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-800/50 px-3 py-1.5 rounded-lg shadow-sm"><span class="text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider text-[10px]">Total Leads</span><span class="font-extrabold text-blue-700 dark:text-blue-300 text-sm">${filtered.length}</span></div>`;
+            sumHtml += `<div class="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-800/50 px-3 py-1.5 rounded-lg shadow-sm"><span class="text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider text-[10px]">Confirm Leads</span><span class="font-extrabold text-emerald-700 dark:text-emerald-300 text-sm">${confirmedFiltered.length}</span></div>`;
+            sumHtml += `<div class="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-800/50 px-3 py-1.5 rounded-lg shadow-sm"><span class="text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider text-[10px]">Fin. Pax</span><span class="font-extrabold text-indigo-700 dark:text-indigo-300 text-sm">${totalFinPax}</span></div>`;
+
+            if (ddType === 'rep-perf') {
+                let zoneFinStats = {}; 
+                finFiltered.forEach(r => { 
+                    const z = getObjStr(r, 'Zone', '---'); 
+                    const pax = parseInt(r.Pax) || parseInt(r.QTY) || parseInt(r.Adult) || parseInt(r.Quantity) || 0;
+                    if (z !== '---') zoneFinStats[z] = (zoneFinStats[z] || 0) + pax; 
+                });
+                let zHtml = Object.entries(zoneFinStats).sort((a,b)=>b[1]-a[1]).map(([z, pax]) => `<div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg shadow-sm"><span class="font-semibold text-slate-600 dark:text-slate-300 text-xs whitespace-nowrap">${z}:</span><span class="text-indigo-600 dark:text-indigo-400 font-bold text-xs whitespace-nowrap">${pax} fin. pax</span></div>`).join('');
+                if(zHtml) sumHtml += `<div class="h-5 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div><div class="flex items-center gap-2 overflow-x-auto custom-scroll pb-1">${zHtml}</div>`;
+            }
+        }
+        sumHtml += `</div>`;
+
+        const summaryEl = document.getElementById('ddSummarySection');
+        if (summaryEl) { 
+            summaryEl.innerHTML = sumHtml; 
+            summaryEl.classList.remove('hidden'); 
+        }
+
+        displayData.sort(sortDescByDate);
+
+        const total = displayData.length; 
+        ddMaxPages = Math.ceil(total / ddPageSize) || 1; 
+        if (ddPage > ddMaxPages) ddPage = ddMaxPages;
+        
+        const slice = displayData.slice((ddPage - 1) * ddPageSize, ddPage * ddPageSize);
+
+        if (slice.length === 0) { 
+            if (tbodyEl) {
+                tbodyEl.innerHTML = `<tr><td colspan="8" class="px-6 py-8 text-center text-slate-400 text-sm">No records found.</td></tr>`; 
+            }
+        } else {
+            if (tbodyEl) {
+                tbodyEl.innerHTML = slice.map((r, i) => {
+                    const rowNum = (ddPage - 1) * ddPageSize + i + 1; 
+                    const cName = getObjStr(r, 'Customer Name', 'Unknown Client'); 
+                    const cPhone = getObjStr(r, 'Contact Number', 'No Phone'); 
+                    const dest = getObjStr(r, 'Destination', '---'); 
+                    const rep = getObjStr(r, 'Sale Rep', '---'); 
+                    const zone = getObjStr(r, 'Zone', '---'); 
+                    const pax = r.Pax || 0; 
+                    const dt = fmtDate(r.DateStr || r['Contacted Date']); 
+                    const note = getObjStr(r, 'Noted', getObjStr(r, 'Remark', '')); 
+                    const st = getObjStr(r, 'Status', '---');
+
+                    const cInfo = `<div class="text-sm font-semibold text-slate-800 dark:text-white truncate max-w-[150px]" title="${cName}">${cName}</div><div class="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider"><span class="text-blue-500">${cPhone}</span></div>`;
+                    const destZone = `<div class="text-sm font-medium text-slate-700 dark:text-slate-300 truncate max-w-[150px]">${dest}</div><div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">${zone}</div>`;
+                    const badge = `<span class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[10px] font-bold uppercase rounded-md shadow-sm tracking-wider">${st}</span>`;
+
+                    if (ddType === 'rep') {
+                        return `<tr class="hover:bg-slate-50 dark:bg-slate-700/30 transition-colors border-b border-slate-100 dark:border-slate-700/50"><td class="px-6 py-3 text-xs text-slate-500 whitespace-nowrap">${dt}</td><td class="px-6 py-3">${cInfo}</td><td class="px-6 py-3">${destZone}</td><td class="px-6 py-3 text-center text-sm font-semibold text-slate-700 dark:text-slate-300">${rep}</td><td class="px-6 py-3 text-center">${badge}</td><td class="px-6 py-3 text-xs text-slate-500 italic max-w-[200px] truncate" title="${note}">${note}</td></tr>`;
+                    } else if (ddType === 'dest') {
+                        return `<tr class="hover:bg-slate-50 dark:bg-slate-700/30 transition-colors border-b border-slate-100 dark:border-slate-700/50"><td class="px-6 py-3 text-xs text-slate-500 whitespace-nowrap">${dt}</td><td class="px-6 py-3">${cInfo}</td><td class="px-6 py-3 text-center text-sm font-semibold text-slate-700 dark:text-slate-300">${rep}</td><td class="px-6 py-3 text-center">${badge}</td><td class="px-6 py-3 text-xs text-slate-500 italic max-w-[200px] truncate" title="${note}">${note}</td></tr>`;
+                    } else if (ddType === 'trend-revenue') {
+                        const rev = parseFloat(String(getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0')))).replace(/[^\d.-]/g, '')) || 0;
+                        return `<tr class="hover:bg-slate-50 dark:bg-slate-700/30 transition-colors border-b border-slate-100 dark:border-slate-700/50"><td class="px-6 py-3 text-xs text-slate-500 whitespace-nowrap">${dt}</td><td class="px-6 py-3">${cInfo}</td><td class="px-6 py-3">${destZone}</td><td class="px-6 py-3 text-center text-sm font-semibold text-slate-700 dark:text-slate-300">${rep}</td><td class="px-6 py-3 text-center text-sm font-bold text-indigo-600">${pax}</td><td class="px-6 py-3 text-right text-sm font-bold text-emerald-600">$${rev.toLocaleString()}</td></tr>`;
+                    } else {
+                        return `<tr class="hover:bg-slate-50 dark:bg-slate-700/30 transition-colors border-b border-slate-100 dark:border-slate-700/50"><td class="px-6 py-3 text-xs text-slate-500 whitespace-nowrap">${dt}</td><td class="px-6 py-3">${cInfo}</td><td class="px-6 py-3">${destZone}</td><td class="px-6 py-3 text-center text-sm font-semibold text-slate-700 dark:text-slate-300">${rep}</td><td class="px-6 py-3 text-center text-sm font-bold text-indigo-600">${pax}</td><td class="px-6 py-3 text-xs text-slate-500 italic max-w-[200px] truncate" title="${note}">${note}</td></tr>`;
+                    }
+                }).join('');
+            }
+            document.getElementById('ddTableInfo').innerText = `Showing ${total ? (ddPage-1)*ddPageSize+1 : 0} to ${Math.min(ddPage*ddPageSize, total)} of ${total}`;
+            document.getElementById('ddPrevBtn').disabled = ddPage === 1; document.getElementById('ddNextBtn').disabled = ddPage >= ddMaxPages;
+        }
+    }
+
+    window.exportDrilldownExcel = function() {
+        const ddSearch = document.getElementById('ddSearch');
+        const ddDestFilter = document.getElementById('ddDestFilter');
+        const ddDynamicFilter = document.getElementById('ddDynamicFilter');
+
+        const searchQuery = ddSearch ? ddSearch.value.toLowerCase().trim() : '';
+        const destFilter = ddDestFilter ? ddDestFilter.value : 'all';
+        const dynFilterVal = ddDynamicFilter ? ddDynamicFilter.value : 'all';
+
+        const filtered = ddData.filter(r => {
+            const cName = getObjStr(r, 'Customer Name', 'Unknown Client').toLowerCase();
+            const rDest = getObjStr(r, 'Destination', '---').toLowerCase();
+            if (searchQuery && !cName.includes(searchQuery)) return false;
+            if (destFilter !== 'all' && rDest !== destFilter.toLowerCase()) return false;
+            if (dynFilterVal !== 'all') {
+                if (ddType === 'dest' || ddType === 'zone-perf') { 
+                    if (getObjStr(r, 'Sale Rep', '---').toLowerCase() !== dynFilterVal.toLowerCase()) return false; 
+                } 
+                else if (ddType === 'rep' || ddType === 'rep-perf' || ddType === 'trend-bookings' || ddType === 'trend-revenue') { 
+                    if (getObjStr(r, 'Zone', '---').toLowerCase() !== dynFilterVal.toLowerCase()) return false; 
+                }
+            } 
+            return true;
+        });
+
+        let displayData = [];
+        if (ddType === 'rep' || ddType === 'dest' || ddType === 'trend-bookings' || ddType === 'trend-revenue') {
+            displayData = filtered;
+        } else {
+            displayData = filtered.filter(r => { 
+                const st = String(r.Status || '').toUpperCase(); 
+                return st.includes('6-CONFIRMED') || st.includes('BOOKED') || st.includes('CLOSED'); 
+            });
+        }
+
+        if(displayData.length === 0) return alert("No data to export");
+        
+        let exportData = [];
+        if (ddType === 'trend-revenue') {
+            exportData = displayData.map((r, i) => ({ 
+                'No.': i + 1, 
+                'Sale Rep': getObjStr(r, 'Sale Rep', '---'), 
+                'Customer Name': getObjStr(r, 'Customer Name', 'Unknown'), 
+                'Contact Number': getObjStr(r, 'Contact Number', 'No Phone'), 
+                'Destination': getObjStr(r, 'Destination', '---'), 
+                'Zone': getObjStr(r, 'Zone', '---'), 
+                'Pax': r.Pax || 0, 
+                'Date Contact': fmtDate(r.DateStr || r['Contacted Date']), 
+                'Revenue': parseFloat(String(getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0')))).replace(/[^\d.-]/g, '')) || 0
+            }));
+        } else {
+            exportData = displayData.map((r, i) => ({ 
+                'No.': i + 1, 
+                'Sale Rep': getObjStr(r, 'Sale Rep', '---'), 
+                'Customer Name': getObjStr(r, 'Customer Name', 'Unknown'), 
+                'Contact Number': getObjStr(r, 'Contact Number', 'No Phone'), 
+                'Destination': getObjStr(r, 'Destination', '---'), 
+                'Zone': getObjStr(r, 'Zone', '---'), 
+                'Pax': r.Pax || 0, 
+                'Date Contact': fmtDate(r.DateStr || r['Contacted Date']), 
+                'Note': getObjStr(r, 'Noted', getObjStr(r, 'Remark', '')), 
+                'Status': getObjStr(r, 'Status', '---') 
+            }));
+        }
+
+        const ws = XLSX.utils.json_to_sheet(exportData); 
+        const wb = XLSX.utils.book_new(); 
+        XLSX.utils.book_append_sheet(wb, ws, "Filtered_Export");
+        
+        let filename = "Drilldown_Export.xlsx"; 
+        const titleEl = document.getElementById('ddModalTitle');
+        const titleText = titleEl ? titleEl.innerText : 'Export';
+        
+        if (titleText.includes('Workload')) filename = `Workload_${titleText.replace('Workload:', '').trim()}.xlsx`;
+        if (titleText.includes('Demand')) filename = `Demand_${titleText.replace('Demand:', '').trim()}.xlsx`;
+        if (titleText.includes('Agent Performance')) filename = `Agent_Confirmed_${titleText.replace('Agent Performance:', '').trim()}.xlsx`;
+        if (titleText.includes('Zone Performance')) filename = `Zone_Confirmed_${titleText.replace('Zone Performance:', '').trim()}.xlsx`;
+        if (titleText.includes('Confirmed Bookings')) filename = `Trend_Bookings_${titleText.replace('Confirmed Bookings:', '').trim()}.xlsx`;
+        if (titleText.includes('Ledger Revenue')) filename = `Trend_Revenue_${titleText.replace('Ledger Revenue:', '').trim()}.xlsx`;
+        
+        XLSX.writeFile(wb, filename);
+    };
+    
+    window.closeDrilldownModal = function() { 
+        const modal = document.getElementById('drilldownModal'); 
+        if (modal) {
+            modal.classList.add('hidden'); 
+            modal.classList.remove('flex'); 
+            document.body.style.overflow = ''; 
+        }
+    };
+</script>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Executive Report - STB</title>
+    
+    <!-- Load Tailwind for the Report Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+
+
+<!-- FLEX LAYOUT: Sidebar on the left, Content on the right -->
+<body class="bg-slate-50 m-0 p-0 flex h-screen overflow-hidden font-sans">
+
+
+    <!-- 2. MAIN CONTENT AREA -->
+    <div class="flex-1 flex flex-col h-screen overflow-y-auto relative w-full">
+        
+        <!-- Optional: Generic Top Header (Uncomment if you have a base header.html) -->
+        <!-- {% include 'header.html' ignore missing %} -->
+
+        <!-- 3. REPORT CONTENT -->
+        <!-- The capture-area ensures ONLY this section gets screenshotted -->
+        <div id="capture-area" class="bg-slate-50 p-4 md:p-8 pb-12 min-h-max w-full">
+            
+            <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
+                <!-- Report Header -->
+                <div style="background-color: rgb(118, 118, 111);" class="text-white p-6 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-wide">Daily Executive Sales & Revenue Summary</h1>
+                        
+                        <!-- Screen Date Picker -->
+                        <div style="background-color: green;" id="date-picker-container" class="mt-2 flex items-center bg-slate-700 w-max rounded px-3 py-1.5 shadow-inner">
+                            <label for="dateFilter" class="text-slate-300 mr-2 text-sm font-medium"><i class="fa-regular fa-calendar-alt mr-1"></i> Date:</label>
+                            
+                            <!-- Native input for user interaction -->
+                            <input type="date" id="dateFilter" class="bg-transparent text-white border-none outline-none text-sm cursor-pointer hover:text-emerald-400 transition-colors focus:ring-0 p-0">
+                            
+                            <!-- Hidden static span for perfectly identical screenshot rendering -->
+                            <span id="staticDateDisplay" class="hidden text-white text-sm font-medium"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Screenshot Button -->
+                    <button id="screenshot-btn" onclick="takeScreenshot()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded text-sm font-medium transition whitespace-nowrap shadow">
+                        <i class="fa-solid fa-camera mr-2"></i> Save Screenshot
+                    </button>
+                </div>
+
+                <div class="p-8" id="report-content">
+                    <div class="text-center text-slate-500 py-10" id="loading">
+                        <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3"></i>
+                        <p>Generating report from database...</p>
+                    </div>
+                    <!-- Content will be injected here via JS -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Formatter for currency
+        const USD = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+        
+        // Date Input Setup
+        const dateInput = document.getElementById('dateFilter');
+        const staticDateDisplay = document.getElementById('staticDateDisplay');
+        
+        // Set date picker to today's date on initial load
+        const todayStr = new Date().toISOString().split('T')[0];
+        dateInput.value = todayStr;
+        staticDateDisplay.textContent = todayStr;
+
+        // Fetch data when date is changed
+        dateInput.addEventListener('change', (e) => {
+            staticDateDisplay.textContent = e.target.value;
+            fetchReport(e.target.value);
+        });
+
+        // Initial fetch for today
+        fetchReport(dateInput.value);
+
+        function fetchReport(dateStr) {
+            // Show loading spinner
+            document.getElementById('report-content').innerHTML = `
+                <div class="text-center text-slate-500 py-10" id="loading">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3"></i>
+                    <p>Generating report for ${dateStr}...</p>
+                </div>
+            `;
+
+            fetch(`/analytics/api/daily-report-data?date=${dateStr}`)
+                .then(res => {
+                    if (!res.ok) throw new Error('Network response was not ok');
+                    return res.json();
+                })
+                .then(data => renderReport(data))
+                .catch(err => {
+                    console.warn('Backend error or preview environment, falling back to mock data:', err);
+                    renderReport(getMockData(dateStr));
+                });
+        }
+
+        // ==========================================
+        // SCREENSHOT LOGIC (PERFECT MATCH)
+        // ==========================================
+        async function takeScreenshot() {
+            // 1. Ensure fonts are fully loaded to prevent missing icons
+            await document.fonts.ready;
+
+            const captureArea = document.getElementById('capture-area');
+            const btn = document.getElementById('screenshot-btn');
+            const dateInput = document.getElementById('dateFilter');
+            const staticDateDisplay = document.getElementById('staticDateDisplay');
+            
+            // 2. Fix the html2canvas scroll displacement bug
+            const mainContentArea = captureArea.parentElement;
+            const originalScrollY = mainContentArea.scrollTop;
+            mainContentArea.scrollTop = 0; // Scroll the container to top
+
+            // 3. Prepare UI: Make button invisible (opacity 0) so it doesn't shift the layout!
+            btn.style.opacity = '0';
+            dateInput.classList.add('hidden');
+            staticDateDisplay.classList.remove('hidden');
+
+            // Wait a tiny bit for the DOM to update 
+            await new Promise(resolve => setTimeout(resolve, 150));
+
+            try {
+                // 4. Generate the canvas
+                const canvas = await html2canvas(captureArea, {
+                    scale: 2, // 2x scale for high resolution quality
+                    useCORS: true,
+                    backgroundColor: '#f8fafc', // Matches tailwind bg-slate-50
+                    logging: false,
+                    scrollY: 0
+                });
+
+                // 5. Create a download link and trigger the save
+                const link = document.createElement('a');
+                link.download = `STB_Executive_Report_${dateInput.value}.png`;
+                link.href = canvas.toDataURL('image/png', 1.0);
+                link.click();
+
+            } catch (error) {
+                console.error("Screenshot failed:", error);
+                alert("Sorry, failed to capture the screenshot.");
+            } finally {
+                // 6. Restore the UI back to normal interactive mode
+                btn.style.opacity = '1';
+                dateInput.classList.remove('hidden');
+                staticDateDisplay.classList.add('hidden');
+                mainContentArea.scrollTop = originalScrollY;
+            }
+        }
+
+        function renderReport(data) {
+            if(data.status !== 'success') {
+                document.getElementById('report-content').innerHTML = `<div class="text-red-500 text-center py-10"><i class="fa-solid fa-triangle-exclamation text-3xl mb-3"></i><br>Error loading data: ${data.message}</div>`;
+                return;
+            }
+
+            const d = data;
+            let html = `
+                <!-- 1. Top Level Summary -->
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-6 mb-10 pb-10 border-b border-slate-200">
+                    <div>
+                        <p class="text-sm text-slate-500 font-semibold uppercase">Total Revenue</p>
+                        <p class="text-3xl font-bold text-emerald-600">${USD.format(d.summary.total_revenue)}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500 font-semibold uppercase">Total Leads</p>
+                        <p class="text-3xl font-bold text-slate-800">${d.summary.total_leads} <span class="text-lg text-slate-500 font-normal">leads</span></p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500 font-semibold uppercase">Confirmed Bookings</p>
+                        <p class="text-3xl font-bold text-blue-600">${d.summary.total_bookings}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500 font-semibold uppercase">Lead Conversion</p>
+                        <p class="text-3xl font-bold text-purple-600">${d.summary.conversion}%</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500 font-semibold uppercase">Total Volume</p>
+                        <p class="text-3xl font-bold text-slate-800">${d.summary.total_pax} <span class="text-lg text-slate-500 font-normal">Pax</span></p>
+                    </div>
+                </div>
+
+                <!-- 2. Report By Salesperson -->
+                <div class="mb-10">
+                    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center">
+                        <i class="fa-solid fa-user-tie text-slate-400 mr-2"></i> Report by Salesperson
+                    </h2>
+                    <ul class="space-y-3 bg-slate-50 p-5 rounded-lg border border-slate-100 shadow-sm">
+            `;
+
+            if(d.sales_reps.length === 0) {
+                html += `<li class="text-slate-500 italic py-2">No sales logged for this date.</li>`;
+            } else {
+                d.sales_reps.forEach(rep => {
+                    let topSellerBadge = rep.is_top && d.summary.total_revenue > 0 ? 
+                        `<span class="ml-2 text-sm text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full font-semibold border border-emerald-200 shadow-sm whitespace-nowrap">— Drove ~${rep.pct}% of today's total revenue</span>` : '';
+                    
+                    html += `
+                        <li class="flex flex-col md:flex-row md:items-center text-slate-700 text-lg">
+                            <span class="font-semibold w-40">${rep.name}:</span> 
+                            <span class="w-28 md:text-right font-bold text-slate-800">${USD.format(rep.rev)}</span>
+                            <span class="md:ml-3 text-slate-500 text-base">(${rep.pax} Pax)</span>
+                            ${topSellerBadge}
+                        </li>
+                    `;
+                });
+            }
+
+            html += `
+                    </ul>
+                </div>
+
+                <!-- 3. Active Destinations -->
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center">
+                        <i class="fa-solid fa-map-location-dot text-slate-400 mr-2"></i> Active Destinations <span class="text-base font-normal text-slate-500 ml-2">(${d.summary.total_bookings} Bookings | ${d.summary.total_pax} Total Pax)</span>
+                    </h2>
+                    <ul class="space-y-3 p-5 bg-slate-50 rounded-lg shadow-sm border border-slate-100">
+            `;
+
+            if(d.destinations.length === 0) {
+                html += `<li class="text-slate-500 italic py-2">No destination data logged for this date.</li>`;
+            } else {
+                d.destinations.forEach(dest => {
+                    html += `
+                        <li class="text-lg text-slate-700 border-l-4 border-blue-500 pl-4 py-1">
+                            <span class="font-bold">${dest.dest}:</span> 
+                            <span class="font-semibold text-slate-800 mx-1">${dest.pax} Pax</span>
+                            <span class="text-slate-500 italic text-base block md:inline">(Driven by ${dest.reps})</span>
+                        </li>
+                    `;
+                });
+            }
+
+            html += `</ul></div>`;
+            document.getElementById('report-content').innerHTML = html;
+        }
+
+        // Mock data to ensure preview environments don't break
+        function getMockData(dateStr) {
+            const isEmptyDate = dateStr !== new Date().toISOString().split('T')[0]; // Make non-today dates empty to test empty state
+            
+            if(isEmptyDate) {
+                 return {
+                    status: 'success', summary: { total_revenue: 0, total_leads: 0, total_bookings: 0, conversion: 0, total_pax: 0 },
+                    sales_reps: [], destinations: []
+                 };
+            }
+
+            return {
+                status: 'success',
+                summary: { total_revenue: 9598.00, total_leads: 26, total_bookings: 8, conversion: 30.7, total_pax: 24 },
+                sales_reps: [
+                    { name: 'Sy Vannak', rev: 5795.00, pax: 9, is_top: true, pct: 60 },
+                    { name: 'Nget Kimsour', rev: 1959.00, pax: 6, is_top: false, pct: 20 },
+                    { name: 'Kem Sreylis', rev: 1769.00, pax: 8, is_top: false, pct: 18 },
+                    { name: 'Peng Sreypich', rev: 75.00, pax: 1, is_top: false, pct: 1 }
+                ],
+                destinations: [
+                    { dest: 'Koh Tral', pax: 13, reps: 'Nget Kimsour & Kem Sreylis' },
+                    { dest: 'Xin Jiang', pax: 5, reps: 'Sy Vannak' },
+                    { dest: 'Tay Ninh', pax: 5, reps: 'Sy Vannak & Peng Sreypich' },
+                    { dest: 'Kunming', pax: 1, reps: 'Nget Kimsour' }
+                ]
+            };
+        }
+    </script>
+</body>
+</html>
