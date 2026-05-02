@@ -6,7 +6,7 @@ from datetime import datetime
 # 1. CONFIGURATION
 # ==========================================
 # Replace with your actual token
-TELEGRAM_BOT_TOKEN = '8686320285:AAHK5f2vKhm_KE4zGKRozPuiLxLgrUgs8Ug' 
+TELEGRAM_BOT_TOKEN = '8686320285:AAHK5f2vKhm_KE4zGKRozPuiLxLgrUgs8Ug'
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
 DB_HOST = '127.0.0.1'
@@ -32,13 +32,13 @@ def fetch_report_data(target_date):
         leads_data = cursor.fetchone()
         total_leads = leads_data['total_leads'] if leads_data['total_leads'] else 0
         
-        # 2. Get Overall Sales Totals (Including Total Deposit)
+        # 2. Get Overall Sales Totals (Counting Confirmed Booking_No as 1 booking)
         cursor.execute("""
-            SELECT COUNT(*) as confirmed_bookings, 
+            SELECT COUNT(DISTINCT SO_No) as confirmed_bookings,
                    SUM(Total) as total_rev,
-                   SUM(Deposit) as total_dep, 
-                   SUM(Pax) as total_pax 
-            FROM financial_sales_ledger 
+                   SUM(Deposit) as total_dep,
+                   SUM(Pax) as total_pax
+            FROM financial_sales_ledger
             WHERE Contacted_Date = %s
         """, (target_date,))
         sales_totals = cursor.fetchone()
@@ -51,25 +51,52 @@ def fetch_report_data(target_date):
         # Calculate Conversion
         conversion_rate = (confirmed_bookings / total_leads * 100) if total_leads > 0 else 0.0
         
-        # 3. Get Salesperson Performance (Including Individual Deposits)
+        # 3. Get Salesperson Performance
         cursor.execute("""
             SELECT Sale_Rep, SUM(Total) as rev, SUM(Pax) as pax, SUM(Deposit) as Dep
-            FROM financial_sales_ledger 
-            WHERE Contacted_Date = %s 
-            GROUP BY Sale_Rep 
+            FROM financial_sales_ledger
+            WHERE Contacted_Date = %s
+            GROUP BY Sale_Rep
             ORDER BY rev DESC
         """, (target_date,))
         sales_reps = cursor.fetchall()
         
-        # 4. Get Destinations Breakdown
+        # 4. Get Zone Breakdown (Deposit and Pax only)
         cursor.execute("""
-            SELECT Destination, SUM(Pax) as pax, GROUP_CONCAT(DISTINCT Sale_Rep SEPARATOR ' & ') as sold_by
-            FROM financial_sales_ledger 
-            WHERE Contacted_Date = %s 
-            GROUP BY Destination 
-            ORDER BY pax DESC
+            SELECT Zone, SUM(Deposit) as dep, SUM(Pax) as pax
+            FROM financial_sales_ledger
+            WHERE Contacted_Date = %s
+            GROUP BY Zone
+            ORDER BY dep DESC
+        """, (target_date,))
+        zones = cursor.fetchall()
+
+        # 5. Get Destinations Breakdown Grouped by Zone
+        # We fetch raw Sale_Rep and pax pairs to format with numbers in Python
+        cursor.execute("""
+            SELECT 
+                Zone, 
+                Destination, 
+                SUM(sub_pax) as total_pax, 
+                GROUP_CONCAT(CONCAT(Sale_Rep, ':', CAST(sub_pax AS CHAR)) SEPARATOR '|') as sold_by_raw
+            FROM (
+                SELECT Zone, Destination, Sale_Rep, SUM(Pax) as sub_pax
+                FROM financial_sales_ledger
+                WHERE Contacted_Date = %s
+                GROUP BY Zone, Destination, Sale_Rep
+            ) as sub
+            GROUP BY Zone, Destination
+            ORDER BY Zone ASC, total_pax DESC
         """, (target_date,))
         destinations = cursor.fetchall()
+
+        # 6. Fetch Lead Analysis (Summarized Notes)
+        cursor.execute("""
+            SELECT Noted, Status 
+            FROM client_contacts_leads 
+            WHERE Contacted_Date = %s AND Noted IS NOT NULL AND Noted != ''
+        """, (target_date,))
+        lead_notes = cursor.fetchall()
         
         conn.close()
         
@@ -81,7 +108,9 @@ def fetch_report_data(target_date):
             "total_pax": int(total_pax),
             "conversion_rate": conversion_rate,
             "sales_reps": sales_reps,
-            "destinations": destinations
+            "zones": zones,
+            "destinations": destinations,
+            "lead_notes": lead_notes
         }
         
     except Exception as e:
@@ -99,17 +128,15 @@ def send_welcome(message):
 def handle_date_input(message):
     input_text = message.text.strip()
     
-    # Try to validate the date format
     try:
         date_obj = datetime.strptime(input_text, '%Y-%m-%d')
-        formatted_date_str = date_obj.strftime('%d-%B-%Y') 
+        formatted_date_str = date_obj.strftime('%d-%B-%Y')
     except ValueError:
         bot.reply_to(message, "⚠️ Invalid format. Please send the date exactly as YYYY-MM-DD (e.g., 2026-04-23).")
         return
 
     bot.reply_to(message, f"⏳ Fetching data for {formatted_date_str}...")
     
-    # Fetch Data
     data = fetch_report_data(input_text)
     
     if not data or (data['confirmed_bookings'] == 0 and data['total_leads'] == 0):
@@ -117,31 +144,59 @@ def handle_date_input(message):
         return
         
     # Build the report string
-    report = f"Dear Hea @SD31999 and Team,\n\n"
-    report += f"Please find today's sales and revenue report below ({formatted_date_str}), detailing our lead generation, confirmed bookings, passenger (Pax) metrics, total sale revenue and total deposited.\n\n"
+    report = f"Dear Hea,\n\n"
+    report += f"Please find today's sales report on <b>{formatted_date_str}</b>, detailing our lead generation, confirmed bookings, zone performance, and revenue summary.\n\n"
     
-    # Section 1: Summary (Added Deposit here)
+    # Section 1: Summary
     report += "<b><u>Daily Executive Sales & Revenue Summary</u></b>\n"
-    report += f"Total Sale Revenue: <b>${data['total_rev']:,.2f}</b>\n"
+    report += f"Total Sale: <b>${data['total_rev']:,.2f}</b>\n"
     report += f"Total Deposit: <b>${data['total_dep']:,.2f}</b>\n"
     report += f"Total Leads: <b>{data['total_leads']} leads </b>\n"
-    report += f"Total Confirmed Bookings: <b>{data['confirmed_bookings']} confirmed bookings </b>\n"
+    report += f"Total Confirmed Bookings: <b>{data['confirmed_bookings']} (Confirmed Booking) </b>\n"
     report += f"Lead Conversion: <b>{data['conversion_rate']:.1f}%</b>\n"
     report += f"Total Volume: <b>{data['total_pax']} Passengers (Pax) </b>\n\n"
     
-    # Section 2: Salesperson Performance (Added individual Deposits)
+    # Section 2: Report by Zone (Deposit and Pax Only)
+    report += "<b><u>Performance by Zone</u></b>\n"
+    if data['zones']:
+        for idx, zone in enumerate(data['zones'], start=1):
+            z_dep = zone['dep'] or 0.0
+            z_pax = int(zone['pax']) if zone['pax'] else 0
+            z_name = zone['Zone'] if zone['Zone'] else "Unknown"
+            report += f"{idx}—{z_name}: <b>${z_dep:,.2f}</b> ({z_pax} Pax)\n"
+    else:
+        report += "No zone data available.\n"
+    report += "\n"
+
+    # Section 3: Salesperson Performance
     report += "<b><u>Report by Salesperson</u></b>\n"
     for idx, rep in enumerate(data['sales_reps'], start=1):
-        rep_rev = rep['rev'] or 0.0
         rep_dep = rep['Dep'] or 0.0
         rep_pax = int(rep['pax']) if rep['pax'] else 0
-        report += f"{idx}—{rep['Sale_Rep']}: <b>${rep_rev:,.2f}</b> (Dep: ${rep_dep:,.2f} | {rep_pax} Pax)\n"
+        report += f"{idx}—{rep['Sale_Rep']}: <b>${rep_dep:,.2f}</b> ({int(rep_pax)} Pax)\n"
         
-    # Section 3: Destination Breakdown
-    report += f"\n<b><u>Active Destinations ({data['confirmed_bookings']} Bookings | {data['total_pax']} Total Pax)</u></b>\n"
-    for idx, dest in enumerate(data['destinations'], start=1):
-        dest_pax = int(dest['pax']) if dest['pax'] else 0
-        report += f"{idx}—{dest['Destination']}: <b>{dest_pax} Pax </b> (Sold by {dest['sold_by']})\n"
+    # Section 4: Destination Breakdown (Separated by Zone)
+    report += f"\n<b><u>Destinations ({data['confirmed_bookings']} Bookings | {data['total_pax']} Total Pax)</u></b>"
+    
+    current_zone = None
+    for dest in data['destinations']:
+        zone_name = dest['Zone'] if dest['Zone'] else "Other Zones"
+        if zone_name != current_zone:
+            current_zone = zone_name
+            report += f"\n📍<b>{current_zone}</b>\n"
+        
+        dest_pax = int(dest['total_pax']) if dest['total_pax'] else 0
+        report += f" • <u><i>{dest['Destination']}</i></u> : <b>{dest_pax} Pax</b>\n"
+        
+        # Split and number the sales reps
+        if dest['sold_by_raw']:
+            reps_list = dest['sold_by_raw'].split('|')
+            for i, rep_info in enumerate(reps_list, 1):
+                name, pax = rep_info.split(':')
+                report += f"      {i}. {name}: {int(float(pax))} Pax\n"
+    
+    # Conclusion
+    report += f"\nBest regards,\n<b>STB Sales Team</b>"
 
     # Send the final report
     bot.send_message(message.chat.id, report, parse_mode="HTML")
