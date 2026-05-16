@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="../static/js/tailwindcss.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -26,87 +27,41 @@
             document.documentElement.classList.remove('dark')
         }
     </script>
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="../static/css/tom-select.css" rel="stylesheet">
+    <script src="../static/js/tom-select.complete.min.js"></script>
 
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        #sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .sidebar-open { transform: translateX(0) !important; }
-        
-        #loadingOverlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999;
-            display: none; align-items: center; justify-content: center;
-            background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px);
-        }
-        .spinner {
-            width: 48px; height: 48px; border: 4px solid #e2e8f0; border-bottom-color: #4f46e5;
-            border-radius: 50%; animation: rotation 0.8s linear infinite; margin-bottom: 1rem;
-        }
-        .dark .spinner { border: 4px solid #334155; border-bottom-color: #6366f1; }
-        @keyframes rotation { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-        .upload-box {
-            border: 2px dashed #cbd5e1; border-radius: 1rem; padding: 3rem;
-            text-align: center; background-color: #f8fafc; transition: all 0.2s ease;
-            cursor: pointer; position: relative; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; margin: 2rem auto; max-width: 600px;
-        }
-        .upload-box:hover { border-color: #6366f1; background-color: #eef2ff; }
-        .dark .upload-box { border-color: #334155; background-color: #0f172a; }
-        .dark .upload-box:hover { border-color: #6366f1; background-color: #1e293b; }
-        
-        .custom-scroll::-webkit-scrollbar { height: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .dark .custom-scroll::-webkit-scrollbar-thumb { background: #334155; }
-        .dark .custom-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
-        
-        .ts-control { border-radius: 0.75rem !important; padding: 0.5rem 0.75rem !important; border: 1px solid #e2e8f0 !important; background-color: #ffffff !important; color: #0f172a !important; font-family: 'Inter', sans-serif !important; font-weight: 500 !important; font-size: 0.75rem !important; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; min-height: 42px; transition: all 0.2s ease; }
-        .ts-control.focus { border-color: #4f46e5 !important; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important; }
-        .dark .ts-control { background-color: #0f172a !important; border-color: #334155 !important; color: #f1f5f9 !important; }
-        .ts-wrapper.multi .ts-control > div { background: #6366f1 !important; color: white !important; border-radius: 6px !important; padding: 2px 8px !important; margin: 2px !important; font-size: 11px !important; }
-        .ts-wrapper.multi .ts-control > div .remove { border-left: 1px solid rgba(255,255,255,0.3) !important; margin-left: 5px !important; }
-        .dark .ts-dropdown { background-color: #1e293b !important; border-color: #334155 !important; color: #f1f5f9 !important; }
-        .dark .ts-dropdown .active { background-color: #334155 !important; color: #ffffff !important; }
-        .dark .ts-dropdown .option { color: #cbd5e1 !important; }
-
-        .card-active { border-color: #4f46e5 !important; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1), 0 2px 4px -1px rgba(79, 70, 229, 0.06) !important; }
-        .dark .card-active { border-color: #6366f1 !important; box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.1), 0 2px 4px -1px rgba(99, 102, 241, 0.06) !important; }
-        
-        .critical-pulse { animation: pulse-border 2s infinite; border-left-width: 4px; border-left-color: #ef4444; }
-        .dark .critical-pulse { animation: pulse-border-dark 2s infinite; }
-        
-        @keyframes pulse-border { 0% { background-color: rgba(239, 68, 68, 0.05); } 50% { background-color: rgba(239, 68, 68, 0.15); } 100% { background-color: rgba(239, 68, 68, 0.05); } }
-        @keyframes pulse-border-dark { 0% { background-color: rgba(239, 68, 68, 0.1); } 50% { background-color: rgba(239, 68, 68, 0.2); } 100% { background-color: rgba(239, 68, 68, 0.1); } }
-
-        .mask-edge { mask-image: linear-gradient(to right, black 85%, transparent 100%); -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%); }
-    </style>
+    <script src="../static/js/html-to-image.min.js"></script>
+    <script src="../static/js/xlsx.full.min.js"></script>
+    <script src="../static/js/lucide.min.js"></script>
+    <link href="../static/css/meeting-style.css" rel="stylesheet">
 </head>
-<body class="bg-[#f8fafc] dark:bg-[#0b1120] text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300">
-    
+
+<body
+    class="bg-[#f8fafc] dark:bg-[#0b1120] text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300">
+
     <!-- Admin Flag for Javascript Check -->
-    <input type="hidden" id="userIsAdmin" value="{{ '1' if current_user.is_authenticated and current_user.role == 'admin' else '0' }}">
-    
-    <div id="sidebarBackdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[65] hidden opacity-0 transition-opacity duration-300" onclick="toggleMenu()"></div>
+    <input type="hidden" id="userIsAdmin"
+        value="{{ '1' if current_user.is_authenticated and current_user.role == 'admin' else '0' }}">
+
+    <div id="sidebarBackdrop"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[65] hidden opacity-0 transition-opacity duration-300"
+        onclick="toggleMenu()"></div>
 
     <!-- Sync Loading Screen -->
     <div id="loadingOverlay">
-        <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center border border-slate-100 dark:border-slate-700">
+        <div
+            class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center border border-slate-100 dark:border-slate-700">
             <div class="spinner"></div>
             <p class="text-sm font-bold text-slate-900 dark:text-white tracking-widest uppercase">Processing</p>
         </div>
     </div>
 
     <!-- Top Navigation Bar -->
-    <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-[60] transition-colors duration-300">
+    <div
+        class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-[60] transition-colors duration-300">
         <div class="flex items-center gap-4">
-            <button id="menuToggle" onclick="toggleMenu()" class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-transparent dark:border-slate-700">
+            <button id="menuToggle" onclick="toggleMenu()"
+                class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-transparent dark:border-slate-700">
                 <i data-lucide="menu" class="w-5 h-5"></i>
             </button>
             <div class="flex flex-col">
@@ -117,31 +72,36 @@
                         </div>
                         Group Tours Managements
                     </h2>
-                    
-                    <form method="POST" action="/meeting-report" enctype="multipart/form-data" id="uploadForm" class="hidden">
+
+                    <form method="POST" action="/meeting-report" enctype="multipart/form-data" id="uploadForm"
+                        class="hidden">
                         <input type="file" name="file" id="fileInput" accept=".xlsx, .xls" onchange="submitUpload()">
                     </form>
-                    
+
                     {% if current_user.is_authenticated and current_user.role == 'admin' %}
-                    <button onclick="document.getElementById('fileInput').click()" class="text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-md font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors uppercase border border-indigo-100 dark:border-indigo-500/20 flex items-center gap-1">
+                    <button onclick="document.getElementById('fileInput').click()"
+                        class="text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-md font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors uppercase border border-indigo-100 dark:border-indigo-500/20 flex items-center gap-1">
                         <i data-lucide="database" class="w-3 h-3"></i> Sync New File
                     </button>
-                    
-                    <button onclick="openTourModal(false)" class="text-[10px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-md font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors uppercase border border-emerald-100 dark:border-emerald-500/20 flex items-center gap-1 ml-2">
+
+                    <button onclick="openTourModal(false)"
+                        class="text-[10px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-md font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors uppercase border border-emerald-100 dark:border-emerald-500/20 flex items-center gap-1 ml-2">
                         <i data-lucide="plus" class="w-3 h-3"></i> Add Tour
                     </button>
                     {% endif %}
                 </div>
             </div>
         </div>
-        
+
         <div class="flex items-center gap-4">
-            <button id="themeToggle" class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700">
+            <button id="themeToggle"
+                class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700">
                 <i data-lucide="moon" id="themeToggleDarkIcon" class="hidden w-5 h-5"></i>
                 <i data-lucide="sun" id="themeToggleLightIcon" class="hidden w-5 h-5"></i>
             </button>
             {% if data %}
-            <div class="text-xs font-semibold px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 hidden md:flex items-center gap-2">
+            <div
+                class="text-xs font-semibold px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 hidden md:flex items-center gap-2">
                 <i data-lucide="check-circle-2" class="w-4 h-4"></i> Database Synced
             </div>
             {% endif %}
@@ -152,186 +112,271 @@
 
     <main class="p-6 lg:p-10 max-w-[1600px] mx-auto">
         <header class="mb-8">
-            <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-1.5">Group Tours Managements</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Track tour capacities, deadlines, and pricing logistics.</p>
+            <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-1.5">Group Tours Managements
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Track tour capacities, deadlines, and
+                pricing logistics.</p>
         </header>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="mb-6 p-4 rounded-xl flex items-center gap-3 text-sm font-medium border bg-{{ 'emerald' if category == 'success' else 'rose' }}-50 border-{{ 'emerald' if category == 'success' else 'rose' }}-200 text-{{ 'emerald' if category == 'success' else 'rose' }}-700 dark:bg-{{ 'emerald' if category == 'success' else 'rose' }}-900/20 dark:border-{{ 'emerald' if category == 'success' else 'rose' }}-800 dark:text-{{ 'emerald' if category == 'success' else 'rose' }}-400">
-                <i data-lucide="{{ 'check-circle' if category == 'success' else 'alert-circle' }}" class="w-5 h-5"></i>
-                {{ message }}
-              </div>
-            {% endfor %}
-          {% endif %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div
+            class="mb-6 p-4 rounded-xl flex items-center gap-3 text-sm font-medium border bg-{{ 'emerald' if category == 'success' else 'rose' }}-50 border-{{ 'emerald' if category == 'success' else 'rose' }}-200 text-{{ 'emerald' if category == 'success' else 'rose' }}-700 dark:bg-{{ 'emerald' if category == 'success' else 'rose' }}-900/20 dark:border-{{ 'emerald' if category == 'success' else 'rose' }}-800 dark:text-{{ 'emerald' if category == 'success' else 'rose' }}-400">
+            <i data-lucide="{{ 'check-circle' if category == 'success' else 'alert-circle' }}" class="w-5 h-5"></i>
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
         {% endwith %}
 
         {% if not data %}
         <div class="upload-box" onclick="document.getElementById('fileInput').click()">
             <i data-lucide="database" class="w-12 h-12 text-indigo-400 mb-4 animate-bounce"></i>
             <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">No Database Synced</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 max-w-md">Upload your Master Data Excel file. The system will process it, create a new table, and sync it to the live database.</p>
-            <span class="mt-6 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center gap-2">
+            <p class="text-sm text-slate-500 dark:text-slate-400 max-w-md">Upload your Master Data Excel file. The
+                system will process it, create a new table, and sync it to the live database.</p>
+            <span
+                class="mt-6 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-sm transition-all flex items-center gap-2">
                 <i data-lucide="upload-cloud" class="w-5 h-5"></i> Select File
             </span>
         </div>
         {% else %}
 
         <!-- DYNAMIC TOP SUMMARY BAR -->
-        <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-y-4 sm:gap-y-0 sm:divide-x divide-slate-200 dark:divide-slate-700">
+        <div
+            class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-y-4 sm:gap-y-0 sm:divide-x divide-slate-200 dark:divide-slate-700">
             <div class="flex items-center gap-3 px-2 md:px-4">
-                <div class="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-lg shrink-0"><i data-lucide="map" class="w-4 h-4"></i></div>
+                <div class="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-lg shrink-0"><i
+                        data-lucide="map" class="w-4 h-4"></i></div>
                 <div class="flex-1 overflow-hidden min-w-0">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Top Zone Summary</p>
-                    <div id="topZoneSummary" class="flex items-center flex-nowrap overflow-x-auto custom-scroll pb-1.5 mask-edge gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Top Zone Summary
+                    </p>
+                    <div id="topZoneSummary"
+                        class="flex items-center flex-nowrap overflow-x-auto custom-scroll pb-1.5 mask-edge gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
                         <!-- Javascript will dynamically inject the Zone tags here based on Active Card & Filters -->
                     </div>
                 </div>
             </div>
 
             <div class="flex items-center gap-3 px-2 sm:pl-4 overflow-hidden">
-                <div class="p-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-lg shrink-0"><i data-lucide="ticket" class="w-4 h-4"></i></div>
+                <div class="p-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-lg shrink-0"><i
+                        data-lucide="ticket" class="w-4 h-4"></i></div>
                 <div class="flex-1 overflow-hidden min-w-0">
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Tickets Status</p>
-                    <div id="sum-tickets" class="flex items-center flex-nowrap overflow-x-auto custom-scroll pb-1.5 mask-edge gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    <div id="sum-tickets"
+                        class="flex items-center flex-nowrap overflow-x-auto custom-scroll pb-1.5 mask-edge gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
                         <!-- Javascript will dynamically inject the Ticket tags here -->
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <!-- SUMMARY METRICS CARDS -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-4 mb-8">
-            <div id="card-all" onclick="filterByCard('all')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md card-active flex flex-col justify-between">
+            <div id="card-all" onclick="filterByCard('all')"
+                class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md card-active flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">All Groups</p>
-                    <div class="p-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="layers" class="w-4 h-4"></i></div>
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">All
+                        Groups</p>
+                    <div
+                        class="p-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg group-hover:scale-110 transition-transform">
+                        <i data-lucide="layers" class="w-4 h-4"></i>
+                    </div>
                 </div>
                 <div class="mt-auto">
-                    <p class="text-2xl font-bold text-slate-800 dark:text-white tabular-nums leading-none" id="card-total-groups">0</p>
-                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-groups">0 Pax</p>
-                </div>
-            </div>
-            
-            <div id="card-closed" onclick="filterByCard('closed')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
-                <div class="flex justify-between items-start mb-2">
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Closed</p>
-                    <div class="p-1.5 bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="lock" class="w-4 h-4"></i></div>
-                </div>
-                <div class="mt-auto">
-                    <p class="text-2xl font-bold text-slate-700 dark:text-slate-300 tabular-nums leading-none" id="card-total-closed">0</p>
-                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-closed">0 Pax</p>
+                    <p class="text-2xl font-bold text-slate-800 dark:text-white tabular-nums leading-none"
+                        id="card-total-groups">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-groups">
+                        0 Pax</p>
                 </div>
             </div>
 
-            <div id="card-finished" onclick="filterByCard('finished')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+            <div id="card-closed" onclick="filterByCard('closed')"
+                class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Finished</p>
-                    <div class="p-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="flag" class="w-4 h-4"></i></div>
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Closed
+                    </p>
+                    <div
+                        class="p-1.5 bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 rounded-lg group-hover:scale-110 transition-transform">
+                        <i data-lucide="lock" class="w-4 h-4"></i>
+                    </div>
                 </div>
                 <div class="mt-auto">
-                    <p class="text-2xl font-bold text-indigo-700 dark:text-indigo-300 tabular-nums leading-none" id="card-total-finished">0</p>
-                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-finished">0 Pax</p>
+                    <p class="text-2xl font-bold text-slate-700 dark:text-slate-300 tabular-nums leading-none"
+                        id="card-total-closed">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-closed">
+                        0 Pax</p>
                 </div>
             </div>
 
-            <div id="card-cancel" onclick="filterByCard('cancel')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+            <div id="card-finished" onclick="filterByCard('finished')"
+                class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cancelled</p>
-                    <div class="p-1.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="x-circle" class="w-4 h-4"></i></div>
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Finished</p>
+                    <div
+                        class="p-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg group-hover:scale-110 transition-transform">
+                        <i data-lucide="flag" class="w-4 h-4"></i>
+                    </div>
                 </div>
                 <div class="mt-auto">
-                    <p class="text-2xl font-bold text-rose-600 dark:text-rose-400 tabular-nums leading-none" id="card-total-cancel">0</p>
-                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-cancel">0 Pax</p>
+                    <p class="text-2xl font-bold text-indigo-700 dark:text-indigo-300 tabular-nums leading-none"
+                        id="card-total-finished">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5"
+                        id="card-pax-finished">0 Pax</p>
                 </div>
             </div>
 
-            <div id="card-onsale" onclick="filterByCard('onsale')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+            <div id="card-cancel" onclick="filterByCard('cancel')"
+                class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">On Sale</p>
-                    <div class="p-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="megaphone" class="w-4 h-4"></i></div>
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Cancelled</p>
+                    <div
+                        class="p-1.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg group-hover:scale-110 transition-transform">
+                        <i data-lucide="x-circle" class="w-4 h-4"></i>
+                    </div>
                 </div>
                 <div class="mt-auto">
-                    <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums leading-none" id="card-total-onsale">0</p>
-                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-onsale">0 Remain</p>
-                </div>
-            </div>
-            
-            <div id="card-sold" onclick="filterByCard('sold')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
-                <div class="flex justify-between items-start mb-2">
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pax Sold</p>
-                    <div class="p-1.5 bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="users" class="w-4 h-4"></i></div>
-                </div>
-                <div class="mt-auto">
-                    <p class="text-2xl font-bold text-sky-600 dark:text-sky-400 tabular-nums leading-none" id="card-total-sold">0</p>
-                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-sold">0 Groups</p>
-                </div>
-            </div>
-            
-            <div id="card-remain" onclick="filterByCard('remain')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
-                <div class="flex justify-between items-start mb-2">
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Risk (≤60d)</p>
-                    <div class="p-1.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="clock" class="w-4 h-4"></i></div>
-                </div>
-                <div class="mt-auto">
-                    <p class="text-2xl font-bold text-orange-600 dark:text-orange-400 tabular-nums leading-none" id="card-total-remain">0</p>
-                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-remain">0 Remain</p>
+                    <p class="text-2xl font-bold text-rose-600 dark:text-rose-400 tabular-nums leading-none"
+                        id="card-total-cancel">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-cancel">
+                        0 Pax</p>
                 </div>
             </div>
 
-            <div id="card-risk30" onclick="filterByCard('risk30')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+            <div id="card-onsale" onclick="filterByCard('onsale')"
+                class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Risk (≤30d)</p>
-                    <div class="p-1.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg group-hover:scale-110 transition-transform"><i data-lucide="flame" class="w-4 h-4"></i></div>
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">On Sale
+                    </p>
+                    <div
+                        class="p-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg group-hover:scale-110 transition-transform">
+                        <i data-lucide="megaphone" class="w-4 h-4"></i>
+                    </div>
                 </div>
                 <div class="mt-auto">
-                    <p class="text-2xl font-bold text-rose-600 dark:text-rose-400 tabular-nums leading-none" id="card-total-risk30">0</p>
-                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-risk30">0 Remain</p>
+                    <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums leading-none"
+                        id="card-total-onsale">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-onsale">
+                        0 Remain</p>
                 </div>
             </div>
 
-            <div id="card-risk14" onclick="filterByCard('risk14')" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+            <div id="card-sold" onclick="filterByCard('sold')"
+                class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-2">
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Risk (≤14d)</p>
-                    <div class="p-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg group-hover:scale-110 transition-transform animate-pulse"><i data-lucide="siren" class="w-4 h-4"></i></div>
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pax
+                        Sold</p>
+                    <div
+                        class="p-1.5 bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 rounded-lg group-hover:scale-110 transition-transform">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                    </div>
                 </div>
                 <div class="mt-auto">
-                    <p class="text-2xl font-bold text-red-600 dark:text-red-400 tabular-nums leading-none" id="card-total-risk14">0</p>
-                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-risk14">0 Remain</p>
+                    <p class="text-2xl font-bold text-sky-600 dark:text-sky-400 tabular-nums leading-none"
+                        id="card-total-sold">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-sold">0
+                        Groups</p>
+                </div>
+            </div>
+
+            <div id="card-remain" onclick="filterByCard('remain')"
+                class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+                <div class="flex justify-between items-start mb-2">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Risk
+                        (≤60d)</p>
+                    <div
+                        class="p-1.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-lg group-hover:scale-110 transition-transform">
+                        <i data-lucide="clock" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-2xl font-bold text-orange-600 dark:text-orange-400 tabular-nums leading-none"
+                        id="card-total-remain">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-remain">
+                        0 Remain</p>
+                </div>
+            </div>
+
+            <div id="card-risk30" onclick="filterByCard('risk30')"
+                class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+                <div class="flex justify-between items-start mb-2">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Risk
+                        (≤30d)</p>
+                    <div
+                        class="p-1.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg group-hover:scale-110 transition-transform">
+                        <i data-lucide="flame" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-2xl font-bold text-rose-600 dark:text-rose-400 tabular-nums leading-none"
+                        id="card-total-risk30">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-risk30">
+                        0 Remain</p>
+                </div>
+            </div>
+
+            <div id="card-risk14" onclick="filterByCard('risk14')"
+                class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md flex flex-col justify-between">
+                <div class="flex justify-between items-start mb-2">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Risk
+                        (≤14d)</p>
+                    <div
+                        class="p-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg group-hover:scale-110 transition-transform animate-pulse">
+                        <i data-lucide="siren" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="mt-auto">
+                    <p class="text-2xl font-bold text-red-600 dark:text-red-400 tabular-nums leading-none"
+                        id="card-total-risk14">0</p>
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5" id="card-pax-risk14">
+                        0 Remain</p>
                 </div>
             </div>
         </div>
 
         <!-- LISTING TABLE -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 overflow-hidden flex flex-col mb-12" id="listingSection">
-            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700 overflow-hidden flex flex-col mb-12"
+            id="listingSection">
+            <div
+                class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h3 class="font-semibold text-lg text-slate-800 dark:text-white flex items-center gap-2">
                         <i data-lucide="list" class="w-5 h-5 text-indigo-500"></i> Group Tours Listing
                     </h3>
                 </div>
                 <div class="flex items-center gap-3" data-html2canvas-ignore="true">
-                    <button onclick="captureListingScreenshot()" class="flex items-center justify-center px-4 h-9 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 font-semibold text-xs gap-1.5 group">
-                        <i data-lucide="camera" class="w-4 h-4 group-hover:scale-110 transition-transform"></i> Screenshot
+                    <button onclick="captureListingScreenshot()"
+                        class="flex items-center justify-center px-4 h-9 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg transition-colors border border-slate-200 dark:border-slate-600 font-semibold text-xs gap-1.5 group">
+                        <i data-lucide="camera" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                        Screenshot
                     </button>
-                    <button onclick="exportListingExcel()" class="flex items-center justify-center px-4 h-9 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg transition-colors border border-emerald-200 dark:border-emerald-500/20 font-semibold text-xs gap-1.5 group">
-                        <i data-lucide="download" class="w-4 h-4 group-hover:-translate-y-0.5 transition-transform"></i> Export
+                    <button onclick="exportListingExcel()"
+                        class="flex items-center justify-center px-4 h-9 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg transition-colors border border-emerald-200 dark:border-emerald-500/20 font-semibold text-xs gap-1.5 group">
+                        <i data-lucide="download" class="w-4 h-4 group-hover:-translate-y-0.5 transition-transform"></i>
+                        Export
                     </button>
                 </div>
             </div>
 
             <!-- Filters -->
-            <div class="p-5 border-b border-slate-100 dark:border-slate-700/50 flex flex-wrap items-center gap-3 bg-slate-50/50 dark:bg-slate-900/30" data-html2canvas-ignore="true">
+            <div class="p-5 border-b border-slate-100 dark:border-slate-700/50 flex flex-wrap items-center gap-3 bg-slate-50/50 dark:bg-slate-900/30"
+                data-html2canvas-ignore="true">
                 <div class="flex-1 min-w-[200px]">
                     <div class="relative">
-                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input type="text" id="searchInput" placeholder="Search Tour Code, Dest, Zone or Remark..." class="w-full pl-9 pr-3 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-sm font-medium outline-none focus:border-indigo-500 dark:text-white transition-colors" oninput="applyFilters()">
+                        <i data-lucide="search"
+                            class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="searchInput" placeholder="Search Tour Code, Dest, Zone or Remark..."
+                            class="w-full pl-9 pr-3 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-sm font-medium outline-none focus:border-indigo-500 dark:text-white transition-colors"
+                            oninput="applyFilters()">
                     </div>
                 </div>
-                
+
                 <div class="w-48">
-                    <select id="monthFilter" class="ts-select w-full" multiple placeholder="Filter Months" onchange="applyFilters()">
+                    <select id="monthFilter" class="ts-select w-full" multiple placeholder="Filter Months"
+                        onchange="applyFilters()">
                         <option value="january">January</option>
                         <option value="february">February</option>
                         <option value="march">March</option>
@@ -346,49 +391,55 @@
                         <option value="december">December</option>
                     </select>
                 </div>
-                
+
                 <div class="w-48">
-                    <select id="destFilter" class="ts-select w-full" multiple placeholder="Filter Destinations" onchange="applyFilters()">
+                    <select id="destFilter" class="ts-select w-full" multiple placeholder="Filter Destinations"
+                        onchange="applyFilters()">
                         {% for dest in meta_data.destinations %}
-                            <option value="{{ dest|lower }}">{{ dest }}</option>
+                        <option value="{{ dest|lower }}">{{ dest }}</option>
                         {% endfor %}
                     </select>
                 </div>
 
                 <div class="w-40">
-                    <select id="zoneFilter" class="ts-select w-full" multiple placeholder="Filter Zones" onchange="applyFilters()">
+                    <select id="zoneFilter" class="ts-select w-full" multiple placeholder="Filter Zones"
+                        onchange="applyFilters()">
                         {% for z in meta_data.zones %}
-                            <option value="{{ z|lower }}">{{ z }}</option>
+                        <option value="{{ z|lower }}">{{ z }}</option>
                         {% endfor %}
                     </select>
                 </div>
 
                 <div class="w-40">
-                    <select id="statusFilter" class="ts-select w-full" multiple placeholder="Filter Statuses" onchange="applyFilters()">
+                    <select id="statusFilter" class="ts-select w-full" multiple placeholder="Filter Statuses"
+                        onchange="applyFilters()">
                         {% for st in meta_data.statuses %}
-                            <option value="{{ st|lower }}">{{ st }}</option>
+                        <option value="{{ st|lower }}">{{ st }}</option>
                         {% endfor %}
                     </select>
                 </div>
 
                 <div class="w-40">
-                    <select id="ticketFilter" class="ts-select w-full" multiple placeholder="Filter Tickets" onchange="applyFilters()">
+                    <select id="ticketFilter" class="ts-select w-full" multiple placeholder="Filter Tickets"
+                        onchange="applyFilters()">
                         {% set tickets = [] %}
                         {% for row in data %}
-                            {% set tk = row.get('Ticket', row.get('Ticket ', ''))|string|trim %}
-                            {% if tk and tk|lower != 'nan' and tk not in tickets %}
-                                {% set _ = tickets.append(tk) %}
-                            {% endif %}
+                        {% set tk = row.get('Ticket', row.get('Ticket ', ''))|string|trim %}
+                        {% if tk and tk|lower != 'nan' and tk not in tickets %}
+                        {% set _ = tickets.append(tk) %}
+                        {% endif %}
                         {% endfor %}
                         {% for tk in tickets|sort %}
-                            <option value="{{ tk|lower }}">{{ tk }}</option>
+                        <option value="{{ tk|lower }}">{{ tk }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                
+
                 <div class="flex items-center gap-2 ml-auto">
                     <label class="text-[10px] font-bold text-slate-400 uppercase">Rows</label>
-                    <select id="pageSize" class="px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 dark:text-white outline-none focus:border-indigo-500 cursor-pointer" onchange="pageSize=parseInt(this.value); currentPage=1; renderTable();">
+                    <select id="pageSize"
+                        class="px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 dark:text-white outline-none focus:border-indigo-500 cursor-pointer"
+                        onchange="pageSize=parseInt(this.value); currentPage=1; renderTable();">
                         <option value="10">10</option>
                         <option value="25">25</option>
                         <option value="50">50</option>
@@ -400,90 +451,116 @@
             <!-- Table JS Driven -->
             <div class="overflow-x-auto custom-scroll min-h-[400px]">
                 <table class="w-full text-left" id="reportTable">
-                    <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200/60 dark:border-slate-700 whitespace-nowrap">
+                    <thead
+                        class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200/60 dark:border-slate-700 whitespace-nowrap">
                         <tr>
-                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('tour')">
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none"
+                                onclick="sortTable('tour')">
                                 <div class="flex items-center gap-1">
-                                    Tour Code / Month
+                                    Dest. / Tour Code
                                     <span class="sort-icon-container" id="sort-container-tour">
-                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                        <i data-lucide="arrow-up-down"
+                                            class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
                                     </span>
                                 </div>
                             </th>
-                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('zone')">
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none"
+                                onclick="sortTable('zone')">
                                 <div class="flex items-center gap-1">
                                     Zone / Days
                                     <span class="sort-icon-container" id="sort-container-zone">
-                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                        <i data-lucide="arrow-up-down"
+                                            class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
                                     </span>
                                 </div>
                             </th>
-                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('dep')">
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none"
+                                onclick="sortTable('dep')">
                                 <div class="flex items-center gap-1">
                                     Schedule
                                     <span class="sort-icon-container" id="sort-container-dep">
-                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                        <i data-lucide="arrow-up-down"
+                                            class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
                                     </span>
                                 </div>
                             </th>
-                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('cap')">
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none"
+                                onclick="sortTable('cap')">
                                 <div class="flex items-center justify-center gap-1">
                                     Capacity
                                     <span class="sort-icon-container" id="sort-container-cap">
-                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                        <i data-lucide="arrow-up-down"
+                                            class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
                                     </span>
                                 </div>
                             </th>
-                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('sold')">
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none"
+                                onclick="sortTable('sold')">
                                 <div class="flex items-center justify-center gap-1">
                                     Sold
                                     <span class="sort-icon-container" id="sort-container-sold">
-                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                        <i data-lucide="arrow-up-down"
+                                            class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
                                     </span>
                                 </div>
                             </th>
-                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('remain')">
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none"
+                                onclick="sortTable('remain')">
                                 <div class="flex items-center justify-center gap-1">
                                     Remain
                                     <span class="sort-icon-container" id="sort-container-remain">
-                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                        <i data-lucide="arrow-up-down"
+                                            class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
                                     </span>
                                 </div>
                             </th>
-                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('status')">
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none"
+                                onclick="sortTable('status')">
                                 <div class="flex items-center justify-center gap-1">
                                     Status
                                     <span class="sort-icon-container" id="sort-container-status">
-                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                        <i data-lucide="arrow-up-down"
+                                            class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
                                     </span>
                                 </div>
                             </th>
-                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none" onclick="sortTable('price')">
+                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none"
+                                onclick="sortTable('price')">
                                 <div class="flex items-center justify-end gap-1">
                                     Pricing ($)
                                     <span class="sort-icon-container" id="sort-container-price">
-                                        <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
+                                        <i data-lucide="arrow-up-down"
+                                            class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity text-slate-400"></i>
                                     </span>
                                 </div>
                             </th>
-                            <th class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 max-w-[200px]">Remark</th>
+                            <th
+                                class="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 max-w-[200px]">
+                                Remark</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50" id="tableBody">
                         <!-- Populated by Javascript -->
                     </tbody>
-                    <tfoot id="tableFoot" class="bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-md sticky bottom-0 z-10 border-t border-slate-200/60 dark:border-slate-700 whitespace-nowrap">
+                    <tfoot id="tableFoot"
+                        class="bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-md sticky bottom-0 z-10 border-t border-slate-200/60 dark:border-slate-700 whitespace-nowrap">
                         <!-- Populated by Javascript -->
                     </tfoot>
                 </table>
             </div>
-            
+
             <!-- Main Pagination -->
-            <div class="px-6 py-4 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-700/50 flex flex-col md:flex-row items-center justify-between gap-4" data-html2canvas-ignore="true">
-                <p class="text-xs font-medium text-slate-500 dark:text-slate-400" id="visibleCountText">Showing 0 groups</p>
+            <div class="px-6 py-4 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-700/50 flex flex-col md:flex-row items-center justify-between gap-4"
+                data-html2canvas-ignore="true">
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400" id="visibleCountText">Showing 0 groups
+                </p>
                 <div class="flex gap-2">
-                    <button id="prevBtn" class="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onclick="if(currentPage > 1) { currentPage--; renderTable(); }">Prev</button>
-                    <button id="nextBtn" class="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onclick="if(currentPage < Math.ceil(window.filteredData.length / pageSize)) { currentPage++; renderTable(); }">Next</button>
+                    <button id="prevBtn"
+                        class="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        onclick="if(currentPage > 1) { currentPage--; renderTable(); }">Prev</button>
+                    <button id="nextBtn"
+                        class="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        onclick="if(currentPage < Math.ceil(window.filteredData.length / pageSize)) { currentPage++; renderTable(); }">Next</button>
                 </div>
             </div>
         </div>
@@ -496,92 +573,165 @@
     </script>
 
     <!-- Row Details Modal -->
-    <div id="rowDetailModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 transition-all duration-300">
+    <div id="rowDetailModal"
+        class="fixed inset-0 z-[100] hidden items-center justify-center p-4 transition-all duration-300">
         <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeRowModal()"></div>
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-2xl z-10 flex flex-col transform transition-all border border-slate-200 dark:border-slate-700">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-2xl z-10 flex flex-col transform transition-all border border-slate-200 dark:border-slate-700">
             <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                <h3 id="groupDetailsModalTitle" class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 id="groupDetailsModalTitle"
+                    class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                     <i data-lucide="info" class="w-5 h-5 text-indigo-500"></i> Group Details
                 </h3>
-                <button onclick="closeRowModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1">
+                <button onclick="closeRowModal()"
+                    class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
             <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6" id="modalContent">
                 <!-- Injected via JS -->
             </div>
-            <div class="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 flex items-center justify-end rounded-b-2xl" id="rowModalFooter">
+            <div class="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 flex items-center justify-end rounded-b-2xl"
+                id="rowModalFooter">
                 <!-- Injected via JS to conditionally show Edit Button -->
             </div>
         </div>
     </div>
 
     <!-- Add/Edit Tour Modal -->
-    <div id="tourFormModal" class="fixed inset-0 z-[110] hidden items-center justify-center p-4 transition-all duration-300">
+    <div id="tourFormModal"
+        class="fixed inset-0 z-[110] hidden items-center justify-center p-4 transition-all duration-300">
         <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeTourModal()"></div>
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-4xl z-10 flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-700">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-4xl z-10 flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-700">
             <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                <h3 id="tourModalTitle" class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 id="tourModalTitle"
+                    class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                     <i data-lucide="plus" class="w-5 h-5 text-emerald-500"></i> Add New Tour Group
                 </h3>
-                <button onclick="closeTourModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <button onclick="closeTourModal()"
+                    class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1"><i
+                        data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             <div class="p-6 overflow-y-auto custom-scroll flex-1">
                 <form id="tourForm" class="grid grid-cols-1 md:grid-cols-3 gap-5">
                     <input type="hidden" id="tour_is_edit" value="0">
                     <input type="hidden" id="tour_orig_tc">
                     <input type="hidden" id="tour_orig_dep">
-                    
+
                     <div class="col-span-1 md:col-span-3">
-                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 border-b border-slate-200 dark:border-slate-700 pb-2">Basic Info</h4>
+                        <h4
+                            class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 border-b border-slate-200 dark:border-slate-700 pb-2">
+                            Basic Info</h4>
                     </div>
-                    
+
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-between">
-                            <span>Tour Code / Destination <span class="text-rose-500">*</span></span>
+                        <label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-between">
+                            <span>Destination <span class="text-rose-500">*</span></span>
                         </label>
-                        <input type="text" id="t_tour_code" list="destList" required placeholder="Select or type..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                        <input type="text" id="t_destination" list="destList" required placeholder="Select or type..."
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
                         <datalist id="destList">
                             {% for dest in meta_data.destinations %}
                             <option value="{{ dest }}">
-                            {% endfor %}
+                                {% endfor %}
                         </datalist>
                     </div>
 
-                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Month</label><input type="text" id="t_month" placeholder="Auto-fills from Date" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"></div>
-                    
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Zone</label>
-                        <input type="text" id="t_zone" list="zoneList" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                        <label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-between">
+                            <span>Tour Code <span class="text-rose-500">*</span></span>
+                        </label>
+                        <input type="text" id="t_tour_code" required placeholder="Type Tour Code..."
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                    </div>
+
+                    <div><label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Month</label><input
+                            type="text" id="t_month" placeholder="Auto-fills from Date"
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                    </div>
+
+                    <div>
+                        <label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Zone</label>
+                        <input type="text" id="t_zone" list="zoneList"
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
                         <datalist id="zoneList">
                             {% for z in meta_data.zones %}
                             <option value="{{ z }}">
-                            {% endfor %}
+                                {% endfor %}
                         </datalist>
                     </div>
-                    
+
                     <div class="col-span-1 md:col-span-3 mt-2">
-                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 border-b border-slate-200 dark:border-slate-700 pb-2">Schedule</h4>
+                        <h4
+                            class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 border-b border-slate-200 dark:border-slate-700 pb-2">
+                            Schedule</h4>
                     </div>
-                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-between"><span>Departure <span class="text-rose-500">*</span></span></label><input type="date" id="t_departure" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"></div>
-                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Arrival</label><input type="date" id="t_arrival" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"></div>
-                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Days</label><input type="number" id="t_days" placeholder="Auto-calculates" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm font-semibold text-blue-600 dark:text-blue-400"></div>
-                    
-                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 mt-2">Close Date</label><input type="date" id="t_close_date" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm" placeholder="Optional"></div>
-                    
+                    <div><label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-between"><span>Departure
+                                <span class="text-rose-500">*</span></span></label><input type="date" id="t_departure"
+                            required
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                    </div>
+                    <div><label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Arrival</label><input
+                            type="date" id="t_arrival"
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                    </div>
+                    <div><label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Days</label><input
+                            type="number" id="t_days" placeholder="Auto-calculates"
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm font-semibold text-blue-600 dark:text-blue-400">
+                    </div>
+
+                    <div><label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 mt-2">Close
+                            Date</label><input type="date" id="t_close_date"
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"
+                            placeholder="Optional"></div>
+
                     <div class="col-span-1 md:col-span-3 mt-4">
-                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 border-b border-slate-200 dark:border-slate-700 pb-2">Capacity & Details</h4>
+                        <h4
+                            class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 border-b border-slate-200 dark:border-slate-700 pb-2">
+                            Capacity & Details</h4>
                     </div>
-                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Capacity (Booked)</label><input type="number" id="t_capacity" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm" oninput="calcRemain()"></div>
-                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Sold</label><input type="number" id="t_sold" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm" oninput="calcRemain()"></div>
-                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Remain</label><input type="number" id="t_remain" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"></div>
-                    
-                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Price 10Apx</label><input type="number" step="0.01" id="t_price10apx" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"></div>
-                    <div><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Price 10Up</label><input type="number" step="0.01" id="t_price10up" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"></div>
-                    
+                    <div><label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Capacity
+                            (Booked)</label><input type="number" id="t_capacity"
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"
+                            oninput="calcRemain()"></div>
+                    <div><label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Sold</label><input
+                            type="number" id="t_sold"
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"
+                            oninput="calcRemain()"></div>
+                    <div><label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Remain</label><input
+                            type="number" id="t_remain"
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                    </div>
+
+                    <div><label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Price
+                            10Apx</label><input type="number" step="0.01" id="t_price10apx"
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                    </div>
+                    <div><label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Price
+                            10Up</label><input type="number" step="0.01" id="t_price10up"
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                    </div>
+
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Type (GIT/FIT)</label>
-                        <input type="text" id="t_git_fit" list="gitFitList" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                        <label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Type
+                            (GIT/FIT)</label>
+                        <input type="text" id="t_git_fit" list="gitFitList"
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
                         <datalist id="gitFitList">
                             <option value="GIT">
                             <option value="FIT">
@@ -589,28 +739,39 @@
                     </div>
 
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Status</label>
-                        <input type="text" id="t_status" list="statusList" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                        <label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Status</label>
+                        <input type="text" id="t_status" list="statusList"
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
                         <datalist id="statusList">
                             {% for st in meta_data.statuses %}
                             <option value="{{ st }}">
-                            {% endfor %}
+                                {% endfor %}
                         </datalist>
                     </div>
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Ticket</label>
-                        <select id="t_ticket" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                        <label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Ticket</label>
+                        <select id="t_ticket"
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
                             <option value="Yes">Yes</option>
                             <option value="No">No</option>
                             <option value="Pending">Pending</option>
                         </select>
                     </div>
-                    <div class="col-span-1 md:col-span-3"><label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Remark</label><input type="text" id="t_remark" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm"></div>
+                    <div class="col-span-1 md:col-span-3"><label
+                            class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Remark</label><input
+                            type="text" id="t_remark"
+                            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-emerald-500 dark:text-white text-sm">
+                    </div>
                 </form>
             </div>
-            <div class="px-6 py-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3 rounded-b-2xl">
-                <button type="button" onclick="closeTourModal()" class="px-5 py-2.5 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-sm transition-colors">Cancel</button>
-                <button type="button" onclick="saveTourGroup(event)" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors shadow-sm flex items-center gap-2">
+            <div
+                class="px-6 py-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3 rounded-b-2xl">
+                <button type="button" onclick="closeTourModal()"
+                    class="px-5 py-2.5 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-sm transition-colors">Cancel</button>
+                <button type="button" onclick="saveTourGroup(event)"
+                    class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors shadow-sm flex items-center gap-2">
                     <i data-lucide="save" class="w-4 h-4"></i> Save Tour
                 </button>
             </div>
@@ -618,56 +779,89 @@
     </div>
 
     <!-- Sold Details Modal -->
-    <div id="soldDetailsModal" class="fixed inset-0 z-[110] hidden items-center justify-center p-4 transition-all duration-300">
+    <div id="soldDetailsModal"
+        class="fixed inset-0 z-[110] hidden items-center justify-center p-4 transition-all duration-300">
         <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeSoldDetailsModal()"></div>
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-6xl z-10 flex flex-col max-h-[90vh] transform transition-all border border-slate-200 dark:border-slate-700 overflow-hidden">
-            
-            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-800 relative z-20">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-6xl z-10 flex flex-col max-h-[90vh] transform transition-all border border-slate-200 dark:border-slate-700 overflow-hidden">
+
+            <div
+                class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-800 relative z-20">
                 <div class="flex-1 min-w-0 pr-4">
-                    <h3 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center flex-wrap gap-2 leading-tight" id="soldDetailsTitle">
-                        <i data-lucide="users" class="w-5 h-5 text-emerald-500 flex-shrink-0"></i> 
+                    <h3 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center flex-wrap gap-2 leading-tight"
+                        id="soldDetailsTitle">
+                        <i data-lucide="users" class="w-5 h-5 text-emerald-500 flex-shrink-0"></i>
                         Sold Details
                     </h3>
                 </div>
-                
+
                 <div class="flex items-center gap-3 shrink-0">
-                    <select id="soldDetailsRepFilter" class="text-xs font-medium border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-900 dark:text-white outline-none focus:border-emerald-500 transition-colors shadow-sm" onchange="renderSoldDetailsTable()">
+                    <select id="soldDetailsRepFilter"
+                        class="text-xs font-medium border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-900 dark:text-white outline-none focus:border-emerald-500 transition-colors shadow-sm"
+                        onchange="renderSoldDetailsTable()">
                         <option value="all">All Reps</option>
                     </select>
-                    
-                    <button onclick="exportSoldDetailsExcel()" class="flex items-center justify-center px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg transition-colors border border-emerald-200 dark:border-emerald-500/20 font-semibold text-xs gap-1.5 shadow-sm">
+
+                    <button onclick="exportSoldDetailsExcel()"
+                        class="flex items-center justify-center px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg transition-colors border border-emerald-200 dark:border-emerald-500/20 font-semibold text-xs gap-1.5 shadow-sm">
                         <i data-lucide="download" class="w-4 h-4"></i> Export
                     </button>
-                    <button onclick="closeSoldDetailsModal()" class="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-300 rounded-lg transition-colors">
+                    <button onclick="closeSoldDetailsModal()"
+                        class="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-300 rounded-lg transition-colors">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
             </div>
-            
+
             <div class="overflow-auto custom-scroll p-0 flex-1 relative z-0 bg-white dark:bg-slate-800">
-                 <table class="w-full text-left">
-                    <thead class="bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-md sticky top-0 z-10 border-b border-slate-200/60 dark:border-slate-700 whitespace-nowrap">
+                <table class="w-full text-left">
+                    <thead
+                        class="bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-md sticky top-0 z-10 border-b border-slate-200/60 dark:border-slate-700 whitespace-nowrap">
                         <tr>
-                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">No.</th>
-                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Contacted Date</th>
-                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Customer</th>
-                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Destination</th>
-                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">S.O No</th>
-                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-right">Tour Fare</th>
-                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center">Pax</th>
-                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-right">Total</th>
-                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center">Source</th>
-                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center">Type</th>
-                            <th class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Sale Rep</th>
+                            <th
+                                class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                No.</th>
+                            <th
+                                class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                Contacted Date</th>
+                            <th
+                                class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                Customer</th>
+                            <th
+                                class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                Destination</th>
+                            <th
+                                class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                S.O No</th>
+                            <th
+                                class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-right">
+                                Tour Fare</th>
+                            <th
+                                class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center">
+                                Pax</th>
+                            <th
+                                class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-right">
+                                Total</th>
+                            <th
+                                class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center">
+                                Source</th>
+                            <th
+                                class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center">
+                                Type</th>
+                            <th
+                                class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                Sale Rep</th>
                         </tr>
                     </thead>
-                    <tbody id="soldDetailsBody" class="divide-y divide-slate-100 dark:divide-slate-700/50 bg-white dark:bg-slate-800">
-                         <!-- populated via JS -->
+                    <tbody id="soldDetailsBody"
+                        class="divide-y divide-slate-100 dark:divide-slate-700/50 bg-white dark:bg-slate-800">
+                        <!-- populated via JS -->
                     </tbody>
-                    <tfoot id="soldDetailsFoot" class="bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-md sticky bottom-0 z-10 border-t border-slate-200/60 dark:border-slate-700 whitespace-nowrap">
-                         <!-- populated via JS -->
+                    <tfoot id="soldDetailsFoot"
+                        class="bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-md sticky bottom-0 z-10 border-t border-slate-200/60 dark:border-slate-700 whitespace-nowrap">
+                        <!-- populated via JS -->
                     </tfoot>
-                 </table>
+                </table>
             </div>
         </div>
     </div>
@@ -675,12 +869,12 @@
     <script>
         // Move toggleMenu to global scope immediately to prevent ReferenceError
         function toggleMenu() {
-            const sidebar = document.getElementById('sidebar'); 
+            const sidebar = document.getElementById('sidebar');
             const backdrop = document.getElementById('sidebarBackdrop');
             if (sidebar) sidebar.classList.toggle('sidebar-open');
-            if (sidebar && sidebar.classList.contains('sidebar-open')) { 
+            if (sidebar && sidebar.classList.contains('sidebar-open')) {
                 if (backdrop) { backdrop.classList.remove('hidden'); setTimeout(() => backdrop.classList.remove('opacity-0'), 10); }
-            } else { 
+            } else {
                 if (backdrop) { backdrop.classList.add('opacity-0'); setTimeout(() => backdrop.classList.add('hidden'), 300); }
             }
         }
@@ -698,18 +892,18 @@
                     rawData = JSON.parse(text);
                 }
             }
-        } catch(e) { console.warn("JSON parsing failed, falling back to empty array", e); }
-        
+        } catch (e) { console.warn("JSON parsing failed, falling back to empty array", e); }
+
         window.masterData = Array.isArray(rawData) ? rawData : [];
         window.filteredData = [];
         let currentPage = 1;
         let pageSize = 10;
         let activeCardFilter = 'all';
         let currentSort = { col: null, asc: true };
-        
-        window.currentSoldData = []; 
-        let currentSoldDataExport = []; 
-        
+
+        window.currentSoldData = [];
+        let currentSoldDataExport = [];
+
         let currentEditTour = null;
 
         const getUrl = p => window.location.origin === 'null' ? p.substring(1) : window.location.origin + (p.startsWith('/') ? p : '/' + p);
@@ -728,7 +922,7 @@
                 if (searchKey === 'departure' && (kLow === 'dep_date' || kLow === 'departure_date' || kLow === 'dep' || kLow.includes('depart'))) return true;
                 if (searchKey === 'arrival' && (kLow === 'arr_date' || kLow === 'arrival_date' || kLow === 'arr' || kLow.includes('arriv'))) return true;
                 if (searchKey === 'close_date' && (kLow === 'close_date' || kLow === 'close date' || kLow === 'closedate' || kLow === 'close')) return true;
-                if (searchKey === 'tour_code' && (kLow === 'tourcode' || kLow === 'code' || kLow === 'tour' || kLow === 'destinations')) return true;
+                if (searchKey === 'tour_code' && (kLow === 'tourcode' || kLow === 'code' || kLow === 'tour')) return true;
                 if (searchKey === 'ticket' && kLow.includes('ticket')) return true;
                 if (searchKey === 'remark' && (kLow.includes('remark') || kLow.includes('note'))) return true;
                 if (searchKey === 'remain' && kLow.includes('remain')) return true;
@@ -747,39 +941,39 @@
             return fallback;
         };
 
-        const fmtDate = d => { 
-            if (!d) return '---'; 
+        const fmtDate = d => {
+            if (!d) return '---';
             let strD = String(d).trim();
-            if (['none', 'nan', 'nat', '', '---'].includes(strD.toLowerCase())) return '---'; 
+            if (['none', 'nan', 'nat', '', '---'].includes(strD.toLowerCase())) return '---';
             let numD = Number(strD);
             if (!isNaN(numD) && numD > 20000 && numD < 90000) {
                 const dateObj = new Date((Math.floor(numD) - 25569) * 86400 * 1000);
-                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                 return `${String(dateObj.getUTCDate()).padStart(2, '0')}-${months[dateObj.getUTCMonth()]}-${dateObj.getUTCFullYear()}`;
             }
             let cleanD = strD.split(' ')[0].split('T')[0];
-            let p = cleanD.split(/[-/]/); 
+            let p = cleanD.split(/[-/]/);
             if (p.length === 3) {
-                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                 let year, monthIdx, day;
-                if (p[0].length === 4) { year = p[0]; monthIdx = parseInt(p[1]) - 1; day = p[2]; } 
+                if (p[0].length === 4) { year = p[0]; monthIdx = parseInt(p[1]) - 1; day = p[2]; }
                 else if (p[2].length === 4 || p[2].length === 2) {
                     year = p[2].length === 4 ? p[2] : ('20' + p[2]);
-                    if (isNaN(parseInt(p[1]))) { monthIdx = months.findIndex(m => m.toLowerCase().includes(p[1].toLowerCase().substring(0,3))); day = p[0]; } 
+                    if (isNaN(parseInt(p[1]))) { monthIdx = months.findIndex(m => m.toLowerCase().includes(p[1].toLowerCase().substring(0, 3))); day = p[0]; }
                     else { let p0 = parseInt(p[0]); let p1 = parseInt(p[1]); if (p1 > 12) { monthIdx = p0 - 1; day = p[1]; } else { monthIdx = p1 - 1; day = p[0]; } }
                 }
                 if (monthIdx >= 0 && monthIdx <= 11) return `${String(day).padStart(2, '0')}-${months[monthIdx]}-${year}`;
             }
             let dt = new Date(strD);
             if (!isNaN(dt.getTime())) {
-                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                 return `${String(dt.getDate()).padStart(2, '0')}-${months[dt.getMonth()]}-${dt.getFullYear()}`;
             }
             return strD;
         };
 
         const fmtDateInput = (d) => {
-            if(!d || d === '---' || String(d).toLowerCase() === 'nan') return '';
+            if (!d || d === '---' || String(d).toLowerCase() === 'nan') return '';
             let strD = String(d).trim();
             let numD = Number(strD);
             if (!isNaN(numD) && numD > 20000 && numD < 90000) {
@@ -787,7 +981,7 @@
                 return dateObj.toISOString().split('T')[0];
             }
             let dt = new Date(strD);
-            if(!isNaN(dt.getTime())) {
+            if (!isNaN(dt.getTime())) {
                 const offset = dt.getTimezoneOffset() * 60000;
                 return new Date(dt.getTime() - offset).toISOString().split('T')[0];
             }
@@ -797,22 +991,22 @@
         const calculateDaysLeft = (dateStr) => {
             if (!dateStr || String(dateStr).toLowerCase() === 'nan' || String(dateStr).toLowerCase() === 'none' || dateStr === '---') return null;
             const fDate = fmtDate(dateStr);
-            if(fDate === '---') return null;
+            if (fDate === '---') return null;
             const p = fDate.split('-');
-            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             const mIdx = months.indexOf(p[1]);
-            if(mIdx === -1) return null;
+            if (mIdx === -1) return null;
             const depDate = new Date(p[2], mIdx, p[0]);
             const today = new Date();
-            today.setHours(0, 0, 0, 0); 
+            today.setHours(0, 0, 0, 0);
             const timeDiff = depDate.getTime() - today.getTime();
             return Math.ceil(timeDiff / (1000 * 3600 * 24));
         };
 
         function parseDateForSort(dateStr) {
-            if (!dateStr || dateStr === '---' || dateStr.toLowerCase() === 'nan') return 9999999999999; 
+            if (!dateStr || dateStr === '---' || dateStr.toLowerCase() === 'nan') return 9999999999999;
             let numD = Number(dateStr);
-            if (!isNaN(numD) && numD > 20000) return numD; 
+            if (!isNaN(numD) && numD > 20000) return numD;
             let dt = new Date(dateStr);
             return isNaN(dt.getTime()) ? 9999999999999 : dt.getTime();
         }
@@ -822,13 +1016,13 @@
             const arr = document.getElementById('t_arrival').value;
             if (dep) {
                 const d = new Date(dep);
-                const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
                 document.getElementById('t_month').value = months[d.getMonth()];
             }
             if (dep && arr) {
                 const d1 = new Date(dep); const d2 = new Date(arr);
                 const diffTime = Math.abs(d2 - d1);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
                 document.getElementById('t_days').value = diffDays;
             }
         }
@@ -863,7 +1057,7 @@
 
                 let isClosed = false, isFinished = false, isOnSale = false;
 
-                if(stUpper && stUpper !== 'NAN' && stUpper !== '---' && stUpper !== 'NONE') {
+                if (stUpper && stUpper !== 'NAN' && stUpper !== '---' && stUpper !== 'NONE') {
                     if (stUpper.includes('CLOSED')) { closedCount++; closedPax += sold; isClosed = true; }
                     else if (stUpper.includes('FINISHED')) { finishedCount++; finishedPax += sold; isFinished = true; }
 
@@ -888,7 +1082,7 @@
 
             const tGroupsEl = document.getElementById('card-total-groups'); if (tGroupsEl) tGroupsEl.innerText = activeAllCount;
             const tPaxEl = document.getElementById('card-pax-groups'); if (tPaxEl) tPaxEl.innerText = `${activeAllPax} Pax`;
-            
+
             const tClosedEl = document.getElementById('card-total-closed'); if (tClosedEl) tClosedEl.innerText = closedCount;
             const tPaxClosedEl = document.getElementById('card-pax-closed'); if (tPaxClosedEl) tPaxClosedEl.innerText = `${closedPax} Pax`;
 
@@ -903,7 +1097,7 @@
 
             const tSoldEl = document.getElementById('card-total-sold'); if (tSoldEl) tSoldEl.innerText = tSold;
             const tPaxSoldEl = document.getElementById('card-pax-sold'); if (tPaxSoldEl) tPaxSoldEl.innerText = `${dataToSummarize.filter(r => (parseInt(getObjStr(r, 'Sold', '0')) || 0) > 0 && !getObjStr(r, 'Status', '').toUpperCase().includes('CANCEL')).length} Groups`;
-            
+
             const tRemainEl = document.getElementById('card-total-remain'); if (tRemainEl) tRemainEl.innerText = tRiskGroups;
             const tPaxRemainEl = document.getElementById('card-pax-remain'); if (tPaxRemainEl) tPaxRemainEl.innerText = `${riskRemain} Remain`;
 
@@ -979,12 +1173,12 @@
             const selZones = getSelectValues('zoneFilter');
             const selStatuses = getSelectValues('statusFilter');
             const selTickets = getSelectValues('ticketFilter');
-            
+
             const baseFilteredData = window.masterData.filter(r => {
                 const text = Object.values(r).join(' ').toLowerCase();
                 const rStatus = getObjStr(r, 'Status', '').toLowerCase();
                 const rMonth = getObjStr(r, 'Month', '').toLowerCase();
-                const rDest = getObjStr(r, 'Tour_Code', getObjStr(r, 'Destinations', getObjStr(r, 'Destination', ''))).replace(/ /g, '').toLowerCase();
+                const rDest = getObjStr(r, 'Destinations', getObjStr(r, 'Destination', getObjStr(r, 'Tour_Code', ''))).replace(/ /g, '').toLowerCase();
                 const rTicket = getObjStr(r, 'Ticket', getObjStr(r, 'Ticket ', '')).trim().toLowerCase();
                 const rZone = getObjStr(r, 'Zone', '').trim().toLowerCase();
 
@@ -1025,8 +1219,8 @@
             activeCardFilter = filterType;
             ['all', 'closed', 'finished', 'cancel', 'onsale', 'sold', 'remain', 'risk30', 'risk14'].forEach(type => {
                 const card = document.getElementById(`card-${type}`);
-                if(card) {
-                    if(type === filterType) card.classList.add('card-active');
+                if (card) {
+                    if (type === filterType) card.classList.add('card-active');
                     else card.classList.remove('card-active');
                 }
             });
@@ -1048,7 +1242,7 @@
                 const booked = parseInt(getObjStr(r, 'Booked', '0')) || 0;
                 const sold = parseInt(getObjStr(r, 'Sold', '0')) || 0;
                 const remain = parseInt(getObjStr(r, 'Remain', '0')) || parseInt(getObjStr(r, 'REMAIN ', '0')) || parseInt(getObjStr(r, 'REMAIN', '0')) || 0;
-                
+
                 sumBooked += booked;
                 sumSold += sold;
                 sumRemain += remain;
@@ -1056,18 +1250,18 @@
                 // Dynamically build Zone Stats
                 const z = getObjStr(r, 'Zone', '---').trim();
                 let displayZone = z;
-                if(z.toUpperCase().includes('ZONE A') || z.toUpperCase() === 'A') displayZone = 'Zone A';
-                else if(z.toUpperCase().includes('ZONE B') || z.toUpperCase() === 'B') displayZone = 'Zone B';
-                else if(z.toUpperCase().includes('ZONE C') || z.toUpperCase() === 'C') displayZone = 'Zone C';
-                
-                if(!zoneStats[displayZone]) zoneStats[displayZone] = { tours: 0, pax: 0, remain: 0 };
+                if (z.toUpperCase().includes('ZONE A') || z.toUpperCase() === 'A') displayZone = 'Zone A';
+                else if (z.toUpperCase().includes('ZONE B') || z.toUpperCase() === 'B') displayZone = 'Zone B';
+                else if (z.toUpperCase().includes('ZONE C') || z.toUpperCase() === 'C') displayZone = 'Zone C';
+
+                if (!zoneStats[displayZone]) zoneStats[displayZone] = { tours: 0, pax: 0, remain: 0 };
                 zoneStats[displayZone].tours++;
                 zoneStats[displayZone].pax += sold;
                 zoneStats[displayZone].remain += remain;
 
                 // Dynamically build Ticket Stats
                 let tk = getObjStr(r, 'Ticket', getObjStr(r, 'Ticket ', '')).trim().toUpperCase();
-                if(tk && tk !== 'NAN' && tk !== '---' && tk !== 'NONE') {
+                if (tk && tk !== 'NAN' && tk !== '---' && tk !== 'NONE') {
                     ticketStats[tk] = (ticketStats[tk] || 0) + 1;
                 }
             });
@@ -1075,7 +1269,7 @@
             // Update Top Zone Summary (Dynamically linked to filteredData)
             const topZoneSummary = document.getElementById('topZoneSummary');
             if (topZoneSummary) {
-                let zHtml = Object.entries(zoneStats).sort((a,b)=>b[1].pax-a[1].pax).map(([z, s]) => `
+                let zHtml = Object.entries(zoneStats).sort((a, b) => b[1].pax - a[1].pax).map(([z, s]) => `
                     <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap shrink-0">
                         <span class="font-bold text-slate-800 dark:text-white text-xs mr-1">${z}:</span>
                         <span class="text-indigo-600 dark:text-indigo-400 font-bold text-xs">${s.tours} Groups</span>
@@ -1089,7 +1283,7 @@
             // Update Top Tickets Summary
             const sumTickets = document.getElementById('sum-tickets');
             if (sumTickets) {
-                let tkHtml = Object.entries(ticketStats).sort((a,b)=>b[1]-a[1]).map(([k, v]) => `
+                let tkHtml = Object.entries(ticketStats).sort((a, b) => b[1] - a[1]).map(([k, v]) => `
                     <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap shrink-0">
                         <span class="font-bold text-slate-700 dark:text-slate-300 text-[11px] mr-1.5">${k}:</span>
                         <span class="text-amber-600 dark:text-amber-400 font-bold text-xs bg-amber-50 dark:bg-amber-900/20 px-1.5 rounded">${v}</span>
@@ -1101,13 +1295,14 @@
             const slice = window.filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
             if (slice.length === 0) {
-                if(tbody) tbody.innerHTML = `<tr><td colspan="9" class="px-6 py-8 text-center text-slate-400 text-sm">No groups found.</td></tr>`;
+                if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="px-6 py-8 text-center text-slate-400 text-sm">No groups found.</td></tr>`;
                 if (tfoot) tfoot.innerHTML = '';
             } else {
-                if(tbody) {
+                if (tbody) {
                     tbody.innerHTML = slice.map((r, i) => {
                         const globalIndex = (currentPage - 1) * pageSize + i;
-                        const tourCode = getObjStr(r, 'Tour_Code', getObjStr(r, 'Destinations', getObjStr(r, 'Destination', '---')));
+                        const tourCode = getObjStr(r, 'Tour_Code', '---');
+                        const destination = getObjStr(r, 'Destinations', getObjStr(r, 'Destination', '---'));
                         const month = getObjStr(r, 'Month', '---');
                         const zone = getObjStr(r, 'Zone', '---');
                         const days = getObjStr(r, 'DAY', '0');
@@ -1115,7 +1310,7 @@
                         const arrRaw = getObjStr(r, 'Arrival', '');
                         const closeRaw = getObjStr(r, 'Close_Date', getObjStr(r, 'Close Date', ''));
                         const closeDateStr = (closeRaw && closeRaw !== '---' && closeRaw.toLowerCase() !== 'nan') ? fmtDate(closeRaw) : '---';
-                        
+
                         const booked = parseInt(getObjStr(r, 'Booked', '0')) || 0;
                         const sold = parseInt(getObjStr(r, 'Sold', '0')) || 0;
                         const remain = parseInt(getObjStr(r, 'Remain', '0')) || parseInt(getObjStr(r, 'REMAIN ', '0')) || 0;
@@ -1124,15 +1319,15 @@
                         let p10 = getObjStr(r, 'Price_10apx', getObjStr(r, 'Price 10apx', '0'));
                         let pUp = getObjStr(r, 'Price_10up', getObjStr(r, 'Price 10up', '0'));
                         const remark = getObjStr(r, 'Remark', '');
-                        
+
                         const stUpper = status.toUpperCase();
                         const isRiskStatus = stUpper.includes('SALE') || stUpper === '' || stUpper === 'NAN' || stUpper === 'NONE' || stUpper === '---';
-                        
+
                         let statusBadge = '';
-                        if(stUpper.includes('CLOSED')) statusBadge = `<span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[9px] font-bold uppercase rounded border border-slate-200 dark:border-slate-600">Closed</span>`;
-                        else if(stUpper.includes('FINISHED')) statusBadge = `<span class="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-[9px] font-bold uppercase rounded border border-indigo-200 dark:border-indigo-500/20">${status}</span>`;
-                        else if(stUpper.includes('CANCEL')) statusBadge = `<span class="px-2 py-0.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[9px] font-bold uppercase rounded border border-rose-200 dark:border-rose-500/20">Cancelled</span>`;
-                        else if(stUpper.includes('ON SALE') || stUpper.includes('SALE')) statusBadge = `<span class="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold uppercase rounded border border-emerald-200 dark:border-emerald-500/20">On Sale</span>`;
+                        if (stUpper.includes('CLOSED')) statusBadge = `<span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[9px] font-bold uppercase rounded border border-slate-200 dark:border-slate-600">Closed</span>`;
+                        else if (stUpper.includes('FINISHED')) statusBadge = `<span class="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-[9px] font-bold uppercase rounded border border-indigo-200 dark:border-indigo-500/20">${status}</span>`;
+                        else if (stUpper.includes('CANCEL')) statusBadge = `<span class="px-2 py-0.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[9px] font-bold uppercase rounded border border-rose-200 dark:border-rose-500/20">Cancelled</span>`;
+                        else if (stUpper.includes('ON SALE') || stUpper.includes('SALE')) statusBadge = `<span class="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold uppercase rounded border border-emerald-200 dark:border-emerald-500/20">On Sale</span>`;
                         else statusBadge = `<span class="px-2 py-0.5 bg-slate-50 dark:bg-slate-800 text-slate-500 text-[9px] font-semibold uppercase rounded border border-slate-200 dark:border-slate-700">${status}</span>`;
 
                         p10 = (p10 !== '0.0' && p10 !== '0' && p10.toLowerCase() !== 'nan') ? `$${p10}` : '---';
@@ -1146,8 +1341,9 @@
                         return `
                         <tr class="${trClass}" onclick="openRowModal(${globalIndex})">
                             <td class="px-5 py-3">
-                                <div class="text-sm font-bold text-slate-800 dark:text-white truncate max-w-[200px]">${tourCode}</div>
-                                <div class="text-[10px] font-medium text-slate-400 mt-0.5 uppercase tracking-wider">${month}</div>
+                                <div class="text-sm font-bold text-slate-800 dark:text-white truncate max-w-[200px]" title="${destination}">${destination}</div>
+                                <div class="text-[11px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5" title="${tourCode}">${tourCode}</div>
+                                <div class="text-[9px] font-medium text-slate-400 mt-0.5 uppercase tracking-wider">${month}</div>
                             </td>
                             <td class="px-5 py-3">
                                 <div class="text-xs font-semibold text-slate-600 dark:text-slate-300">${zone}</div>
@@ -1191,20 +1387,20 @@
             }
 
             const visibleCountEl = document.getElementById('visibleCountText');
-            if (visibleCountEl) visibleCountEl.innerText = `Showing ${(currentPage-1)*pageSize + (slice.length > 0 ? 1 : 0)} to ${Math.min(currentPage*pageSize, total)} of ${total} groups`;
-            
+            if (visibleCountEl) visibleCountEl.innerText = `Showing ${(currentPage - 1) * pageSize + (slice.length > 0 ? 1 : 0)} to ${Math.min(currentPage * pageSize, total)} of ${total} groups`;
+
             const prevBtn = document.getElementById('prevBtn');
             const nextBtn = document.getElementById('nextBtn');
             if (prevBtn) prevBtn.disabled = currentPage === 1;
             if (nextBtn) nextBtn.disabled = currentPage >= maxPages;
-            
+
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         function openRowModal(index) {
             const r = window.filteredData[index];
             if (!r) return;
-            
+
             const depRaw = getObjStr(r, 'Departure', '');
             const arrRaw = getObjStr(r, 'Arrival', '');
             const closeRaw = getObjStr(r, 'Close_Date', getObjStr(r, 'Close Date', ''));
@@ -1215,7 +1411,8 @@
             const isRisk = (daysLeft !== null && daysLeft >= 0 && daysLeft <= 60 && remain > 0 && isRiskStatus);
 
             const safeData = {
-                tourCode: getObjStr(r, 'Tour_Code', getObjStr(r, 'Destinations', getObjStr(r, 'Destination', '---'))),
+                tourCode: getObjStr(r, 'Tour_Code', '---'),
+                destination: getObjStr(r, 'Destinations', getObjStr(r, 'Destination', '---')),
                 zone: getObjStr(r, 'Zone', '---'),
                 days: getObjStr(r, 'DAY', '0'),
                 month: getObjStr(r, 'Month', '---'),
@@ -1239,7 +1436,7 @@
             };
 
             currentEditTour = safeData;
-            
+
             let riskBadge = '';
             if (safeData.isRisk) riskBadge = `<span class="px-2 py-1 bg-rose-100 text-rose-700 text-[10px] font-bold rounded-md shadow-sm flex items-center gap-1 w-max"><i data-lucide="alert-triangle" class="w-3 h-3"></i> ${safeData.daysLeft} DAYS LEFT</span>`;
 
@@ -1251,7 +1448,8 @@
                 <div class="space-y-4">
                     <div>
                         <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider mb-1">Tour Information</p>
-                        <p class="text-lg font-bold text-slate-800 dark:text-white truncate" title="${safeData.tourCode}">${safeData.tourCode}</p>
+                        <p class="text-lg font-bold text-slate-800 dark:text-white truncate" title="${safeData.destination}">${safeData.destination}</p>
+                        <p class="text-sm font-bold text-slate-700 dark:text-slate-300 truncate" title="${safeData.tourCode}">${safeData.tourCode}</p>
                         <p class="text-sm font-medium text-indigo-500">${safeData.zone} • ${safeData.days} Days • ${safeData.month} ${safeData.gitFit !== '---' ? `• ${safeData.gitFit}` : ''}</p>
                         <div class="mt-2">${riskBadge}</div>
                     </div>
@@ -1296,16 +1494,63 @@
                         <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider mb-1.5">Remarks</p>
                         <p class="text-sm font-medium text-slate-600 dark:text-slate-300 italic break-words bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">${safeData.remark && safeData.remark.toLowerCase() !== 'nan' ? safeData.remark : 'No remarks recorded.'}</p>
                     </div>
+                    <div class="pt-3 border-t border-slate-200 dark:border-slate-700">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">Financial Overview</p>
+                        </div>
+                        <div id="financialOverviewCard" class="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 flex justify-center items-center">
+                            <div class="animate-pulse flex items-center gap-2 text-slate-400 text-sm">
+                                <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Calculating P&L...
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
 
+            // Async fetch P&L
+            fetch(getUrl(`/api/tour_manifest/${encodeURIComponent(safeData.tourCode)}`))
+                .then(res => res.json())
+                .then(data => {
+                    const finCard = document.getElementById('financialOverviewCard');
+                    if (data.status === 'success') {
+                        const rev = data.total_revenue || 0;
+
+                        // Rough cost estimate based on pax and apx price (if available)
+                        const estCostPerPax = parseFloat(String(safeData.price10).replace(/[^0-9.-]+/g, "")) || 0;
+                        const estTotalCost = estCostPerPax * safeData.sold;
+                        const profit = rev - estTotalCost;
+
+                        let profitColor = profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
+                        let profitIcon = profit >= 0 ? '<i data-lucide="trending-up" class="w-4 h-4"></i>' : '<i data-lucide="trending-down" class="w-4 h-4"></i>';
+
+                        finCard.className = 'bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-3';
+                        finCard.innerHTML = `
+                            <div>
+                                <p class="text-[10px] text-slate-500 uppercase font-semibold mb-1">Total Revenue</p>
+                                <p class="text-lg font-bold text-blue-600 dark:text-blue-400 leading-none">$${rev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-slate-500 uppercase font-semibold mb-1">Estimated Profit</p>
+                                <p class="text-lg font-bold ${profitColor} leading-none flex items-center gap-1">${profitIcon} $${profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            </div>
+                        `;
+                        lucide.createIcons();
+                    } else {
+                        finCard.innerHTML = `<p class="text-xs text-slate-500">Sales ledger data unavailable for P&L.</p>`;
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('financialOverviewCard').innerHTML = `<p class="text-xs text-slate-500">Could not calculate P&L.</p>`;
+                });
+
             let footerHtml = '';
             const isAdmin = document.getElementById('userIsAdmin') && document.getElementById('userIsAdmin').value === '1';
-            
+
             if (isAdmin) {
+                footerHtml += `<button onclick="openTourModal(false, true)" class="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm flex items-center gap-2 mr-2"><i data-lucide="copy" class="w-4 h-4"></i> Duplicate Tour</button>`;
                 footerHtml += `<button onclick="openTourModal(true)" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm flex items-center gap-2 mr-auto"><i data-lucide="edit-3" class="w-4 h-4"></i> Edit Tour</button>`;
             }
-            
+
             footerHtml += `<button onclick="closeRowModal()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm">Close</button>`;
             document.getElementById('rowModalFooter').innerHTML = footerHtml;
 
@@ -1323,39 +1568,51 @@
             document.body.style.overflow = '';
         }
 
-        function openTourModal(isEdit=false) {
+        function openTourModal(isEdit = false, isDuplicate = false) {
             const modal = document.getElementById('tourFormModal');
             const form = document.getElementById('tourForm');
             form.reset();
 
-            if(isEdit && currentEditTour) {
-                document.getElementById('tourModalTitle').innerHTML = '<i data-lucide="edit" class="w-5 h-5 text-amber-500"></i> Edit Tour Group';
-                document.getElementById('tour_is_edit').value = '1';
-                document.getElementById('tour_orig_tc').value = currentEditTour.tourCode;
-                document.getElementById('tour_orig_dep').value = currentEditTour.depDateRaw || currentEditTour.depDate;
+            if ((isEdit || isDuplicate) && currentEditTour) {
+                if (isEdit) {
+                    document.getElementById('tourModalTitle').innerHTML = '<i data-lucide="edit" class="w-5 h-5 text-amber-500"></i> Edit Tour Group';
+                    document.getElementById('tour_is_edit').value = '1';
+                    document.getElementById('tour_orig_tc').value = currentEditTour.tourCode;
+                    document.getElementById('tour_orig_dep').value = currentEditTour.depDateRaw || currentEditTour.depDate;
+                    document.getElementById('t_destination').value = currentEditTour.destination !== '---' ? currentEditTour.destination : '';
+                    document.getElementById('t_tour_code').value = currentEditTour.tourCode !== '---' ? currentEditTour.tourCode : '';
+                    document.getElementById('t_departure').value = fmtDateInput(currentEditTour.depDateRaw);
+                } else {
+                    document.getElementById('tourModalTitle').innerHTML = '<i data-lucide="copy" class="w-5 h-5 text-blue-500"></i> Duplicate Tour Group';
+                    document.getElementById('tour_is_edit').value = '0';
+                    document.getElementById('tour_orig_tc').value = '';
+                    document.getElementById('tour_orig_dep').value = '';
+                    document.getElementById('t_destination').value = currentEditTour.destination !== '---' ? currentEditTour.destination : '';
+                    document.getElementById('t_tour_code').value = currentEditTour.tourCode !== '---' ? currentEditTour.tourCode + ' (Copy)' : '';
+                    document.getElementById('t_departure').value = new Date().toISOString().split('T')[0];
+                }
 
-                document.getElementById('t_tour_code').value = currentEditTour.tourCode !== '---' ? currentEditTour.tourCode : '';
                 document.getElementById('t_month').value = currentEditTour.month !== '---' ? currentEditTour.month : '';
                 document.getElementById('t_zone').value = currentEditTour.zone !== '---' ? currentEditTour.zone : '';
                 document.getElementById('t_days').value = currentEditTour.days !== '0' ? currentEditTour.days : '';
-                
-                document.getElementById('t_departure').value = fmtDateInput(currentEditTour.depDateRaw);
+
                 document.getElementById('t_arrival').value = fmtDateInput(currentEditTour.arrDateRaw);
                 document.getElementById('t_close_date').value = fmtDateInput(currentEditTour.closeDateRaw);
-                
+
                 document.getElementById('t_capacity').value = currentEditTour.booked;
-                document.getElementById('t_sold').value = currentEditTour.sold;
-                document.getElementById('t_remain').value = currentEditTour.remain;
-                
+                document.getElementById('t_sold').value = isDuplicate ? 0 : currentEditTour.sold;
+                document.getElementById('t_remain').value = isDuplicate ? currentEditTour.booked : currentEditTour.remain;
+
                 document.getElementById('t_price10apx').value = currentEditTour.price10.replace('$', '').replace('---', '');
                 document.getElementById('t_price10up').value = currentEditTour.priceup.replace('$', '').replace('---', '');
-                
+
                 document.getElementById('t_git_fit').value = currentEditTour.gitFit !== '---' ? currentEditTour.gitFit : '';
-                document.getElementById('t_status').value = currentEditTour.status !== '---' ? currentEditTour.status : 'On Sale';
+                document.getElementById('t_status').value = isDuplicate ? 'On Sale' : (currentEditTour.status !== '---' ? currentEditTour.status : 'On Sale');
                 document.getElementById('t_ticket').value = currentEditTour.ticket !== '---' ? currentEditTour.ticket : 'Pending';
                 document.getElementById('t_remark').value = currentEditTour.remark !== '---' ? currentEditTour.remark : '';
-                
-                closeRowModal(); 
+
+                if (isDuplicate) calcScheduleFields();
+                closeRowModal();
             } else {
                 document.getElementById('tourModalTitle').innerHTML = '<i data-lucide="plus" class="w-5 h-5 text-emerald-500"></i> Add New Tour Group';
                 document.getElementById('tour_is_edit').value = '0';
@@ -1388,7 +1645,7 @@
                 orig_tour_code: document.getElementById('tour_orig_tc').value,
                 orig_dep: document.getElementById('tour_orig_dep').value,
                 tour_code: document.getElementById('t_tour_code').value,
-                destination: document.getElementById('t_tour_code').value,
+                destination: document.getElementById('t_destination').value,
                 month: document.getElementById('t_month').value,
                 zone: document.getElementById('t_zone').value,
                 days: document.getElementById('t_days').value,
@@ -1406,8 +1663,8 @@
                 remark: document.getElementById('t_remark').value
             };
 
-            if(!payload.tour_code) return alert("Tour Code / Destination field is required!");
-            if(!payload.departure) return alert("Departure Date is required!");
+            if (!payload.tour_code || !payload.destination) return alert("Tour Code and Destination fields are required!");
+            if (!payload.departure) return alert("Departure Date is required!");
 
             const btn = event.currentTarget;
             const origHtml = btn.innerHTML;
@@ -1420,22 +1677,22 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                
+
                 const textResponse = await res.text();
                 let data;
                 try {
                     data = JSON.parse(textResponse);
-                } catch(err) {
+                } catch (err) {
                     console.error("Server HTML Response: ", textResponse);
                     throw new Error("Server crashed (500 Error). Check Python terminal logs.");
                 }
 
                 if (data.error) throw new Error(data.error);
-                
+
                 btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> Saved Successfully!`;
                 btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
                 btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                
+
                 setTimeout(() => { location.reload(); }, 1000);
             } catch (err) {
                 alert("Error saving tour: " + err.message);
@@ -1451,20 +1708,20 @@
             const title = document.getElementById('soldDetailsTitle');
             const repFilter = document.getElementById('soldDetailsRepFilter');
             const tfoot = document.getElementById('soldDetailsFoot');
-            
+
             window.currentSoldData = [];
-            currentSoldDataExport = []; 
+            window.currentSoldDataExport = [];
             repFilter.innerHTML = '<option value="all">All Reps</option>';
             tfoot.innerHTML = '';
-            
+
             title.innerHTML = `
                 <i data-lucide="users" class="w-5 h-5 text-emerald-500 flex-shrink-0"></i> 
                 Sold Details: <span class="font-bold text-slate-800 dark:text-white mx-1">${tourCode}</span> 
                 <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/50 px-2 py-1 rounded ml-1 border border-slate-200 dark:border-slate-700">(${depDate} to ${arrDate})</span>
             `;
-            
+
             tbody.innerHTML = `<tr><td colspan="11" class="px-6 py-16 text-center text-slate-400"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-3 text-emerald-500"></i><p class="font-medium text-sm">Querying financial ledger...</p></td></tr>`;
-            
+
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -1477,7 +1734,7 @@
 
                 const dataFin = await resFin.json();
                 let rawFin = dataFin.raw_data || [];
-                
+
                 let filtered = rawFin.filter(r => {
                     const dest = String(r['Destination'] || r['Tour Code'] || r['Tour_Code'] || '').toLowerCase().trim();
                     const tcLower = String(tourCode).toLowerCase().trim();
@@ -1507,18 +1764,18 @@
                 tbody.innerHTML = `<tr><td colspan="11" class="px-6 py-12 text-center text-rose-500 font-medium">Failed to load data.</td></tr>`;
             }
         }
-        
+
         function renderSoldDetailsTable() {
             const tbody = document.getElementById('soldDetailsBody');
             const tfoot = document.getElementById('soldDetailsFoot');
             const repFilterVal = document.getElementById('soldDetailsRepFilter').value;
             let displayData = window.currentSoldData;
-            
+
             if (repFilterVal !== 'all') {
                 displayData = displayData.filter(r => getObjStr(r, 'Sale Rep', getObjStr(r, 'Rep', getObjStr(r, 'Agent', '---'))) === repFilterVal);
             }
 
-            currentSoldDataExport = displayData;
+            window.currentSoldDataExport = displayData;
             if (displayData.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="11" class="px-6 py-12 text-center text-slate-500 font-medium">No records found.</td></tr>`;
                 return;
@@ -1528,9 +1785,9 @@
             tbody.innerHTML = displayData.map((r, i) => {
                 const contactedDate = fmtDate(r['Contacted_Date'] || r['Contacted Date'] || r['Date']);
                 let customer = r['Customer Name'] || r['Customer_Name'] || r['Name'] || 'Unknown';
-                const tourFare = parseFloat(String(r['Tour Fare'] || r['Tour_Fare'] || '0').replace(/[^0-9.-]+/g,"")) || 0;
+                const tourFare = parseFloat(String(r['Tour Fare'] || r['Tour_Fare'] || '0').replace(/[^0-9.-]+/g, "")) || 0;
                 let pax = parseFloat(r['Pax']) || 1;
-                let total = parseFloat(String(r['Total'] || r['Amount'] || '0').replace(/[^0-9.-]+/g,"")) || (tourFare * pax);
+                let total = parseFloat(String(r['Total'] || r['Amount'] || '0').replace(/[^0-9.-]+/g, "")) || (tourFare * pax);
                 sumPax += pax; sumTotal += total;
 
                 return `<tr class="hover:bg-slate-50 dark:bg-slate-700/50 border-b border-slate-50 dark:border-slate-700/50">
@@ -1562,8 +1819,8 @@
         }
 
         function exportSoldDetailsExcel() {
-            if (!currentSoldDataExport.length) return;
-            const ws = XLSX.utils.json_to_sheet(currentSoldDataExport);
+            if (!window.currentSoldDataExport || !window.currentSoldDataExport.length) return;
+            const ws = XLSX.utils.json_to_sheet(window.currentSoldDataExport);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Sold_Details");
             XLSX.writeFile(wb, `Sold_Details.xlsx`);
@@ -1583,11 +1840,11 @@
             btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Processing...`;
             btn.disabled = true;
             htmlToImage.toPng(document.getElementById('listingSection'), { backgroundColor: '#ffffff', pixelRatio: 2 })
-            .then(dataUrl => {
-                const link = document.createElement('a'); link.download = 'Listing.png'; link.href = dataUrl; link.click();
-            }).finally(() => {
-                btn.innerHTML = originalHtml; btn.disabled = false; lucide.createIcons();
-            });
+                .then(dataUrl => {
+                    const link = document.createElement('a'); link.download = 'Listing.png'; link.href = dataUrl; link.click();
+                }).finally(() => {
+                    btn.innerHTML = originalHtml; btn.disabled = false; lucide.createIcons();
+                });
         }
 
         function submitUpload() {
@@ -1596,11 +1853,12 @@
                 document.getElementById('uploadForm').submit();
             }
         }
-        
+
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof TomSelect !== 'undefined') {
                 document.querySelectorAll('.ts-select').forEach(el => {
-                    new TomSelect(el, { plugins: ['remove_button'], create: false, maxItems: null,
+                    new TomSelect(el, {
+                        plugins: ['remove_button'], create: false, maxItems: null,
                         placeholder: el.getAttribute('placeholder') || 'Select options'
                     });
                 });
@@ -1613,9 +1871,9 @@
                     const now = new Date();
                     monthSelect.tomselect.setValue([monthNames[now.getMonth()], monthNames[(now.getMonth() + 1) % 12]]);
                 }
-                applyFilters(); 
+                applyFilters();
             }
-            
+
             document.getElementById('menuToggle').onclick = toggleMenu;
             const themeToggleBtn = document.getElementById('themeToggle');
             themeToggleBtn.onclick = () => {
@@ -1632,4 +1890,5 @@
         });
     </script>
 </body>
+
 </html>

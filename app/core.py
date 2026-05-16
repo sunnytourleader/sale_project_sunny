@@ -307,6 +307,10 @@ def sync_to_mysql(df, target_table=None):
         if not df_new.empty:
             df_new.to_sql(name=target_table, con=engine, if_exists='replace', index=False, chunksize=500, dtype=dtype_dict)
             
+            # Sync Tour Sold & Remain counts automatically whenever relevant tables are updated
+            if target_table in ['financial_sales_ledger', 'group_tours_report']:
+                sync_tour_sold_counts()
+                
         return True
     except Exception as e: 
         current_app.logger.error(f"MySQL Sync Error: {e}", exc_info=True)
@@ -339,3 +343,80 @@ def get_session_context(df):
         'departments': departments,
         'min_date': min_date, 'max_date': max_date
     }
+
+def sync_tour_sold_counts():
+    """
+    Automated Calculations: Syncs the Sold and Remain counts in group_tours_report 
+    based on the real-time aggregated pax from financial_sales_ledger.
+    """
+    try:
+        engine = get_db_connection()
+        if not inspect(engine).has_table('financial_sales_ledger') or not inspect(engine).has_table('group_tours_report'):
+            return False
+            
+        with engine.begin() as conn:
+            # 1. Get Columns
+            ledger_cols = [col[0] for col in conn.execute(text("SHOW COLUMNS FROM financial_sales_ledger")).fetchall()]
+            report_cols = [col[0] for col in conn.execute(text("SHOW COLUMNS FROM group_tours_report")).fetchall()]
+            
+            # 2. Find relevant columns
+            ledger_tc_col = next((c for c in ledger_cols if any(k in c.lower() for k in ['tour_code', 'tour code', 'destination', 'dest'])), None)
+            ledger_dep_col = next((c for c in ledger_cols if any(k in c.lower() for k in ['dep_date', 'departure'])), None)
+            ledger_qty_col = next((c for c in ledger_cols if any(k in c.lower() for k in ['qty', 'pax'])), None)
+            
+            report_tc_col = next((c for c in report_cols if any(k in c.lower() for k in ['tour_code', 'code', 'destination', 'dest'])), None)
+            report_dep_col = next((c for c in report_cols if any(k in c.lower() for k in ['dep_date', 'departure'])), None)
+            report_sold_col = next((c for c in report_cols if 'sold' in c.lower()), None)
+            report_remain_col = next((c for c in report_cols if 'remain' in c.lower()), None)
+            report_booked_col = next((c for c in report_cols if any(k in c.lower() for k in ['booked', 'capacity', 'total'])), None)
+            report_holding_col = next((c for c in report_cols if 'holding' in c.lower()), None)
+            
+            if not all([ledger_tc_col, ledger_qty_col, report_tc_col, report_sold_col]):
+                return False
+                
+            # 3. Aggregate Ledger
+            group_cols = f"`{ledger_tc_col}`"
+            select_cols = f"`{ledger_tc_col}`"
+            if ledger_dep_col and report_dep_col:
+                group_cols += f", `{ledger_dep_col}`"
+                select_cols += f", `{ledger_dep_col}`"
+            
+            query = text(f"""
+                SELECT {select_cols}, SUM(CAST(`{ledger_qty_col}` AS DECIMAL(10,2))) as total_sold
+                FROM financial_sales_ledger
+                WHERE `{ledger_tc_col}` IS NOT NULL AND `{ledger_tc_col}` != ''
+                GROUP BY {group_cols}
+            """)
+            sold_data = conn.execute(query).fetchall()
+            
+            # 4. Update Report
+            for row in sold_data:
+                tc = row[0]
+                dep = row[1] if ledger_dep_col and report_dep_col else None
+                total_sold = row[-1]
+                
+                if tc and tc.strip() and str(tc).strip().upper() != 'NAN':
+                    total_sold = float(total_sold or 0)
+                    
+                    update_q = f"UPDATE group_tours_report SET `{report_sold_col}` = :sold"
+                    
+                    if report_remain_col and report_booked_col:
+                        # Remain = Booked - Sold - Holding
+                        calc = f"CAST(NULLIF(`{report_booked_col}`, '') AS DECIMAL(10,2)) - :sold"
+                        if report_holding_col:
+                            calc += f" - COALESCE(CAST(NULLIF(`{report_holding_col}`, '') AS DECIMAL(10,2)), 0)"
+                        update_q += f", `{report_remain_col}` = {calc}"
+                        
+                    update_q += f" WHERE `{report_tc_col}` = :tc"
+                    params = {"sold": total_sold, "tc": tc}
+                    
+                    if dep:
+                        update_q += f" AND `{report_dep_col}` = :dep"
+                        params["dep"] = dep
+                        
+                    conn.execute(text(update_q), params)
+                    
+        return True
+    except Exception as e:
+        current_app.logger.error(f"Error syncing tour sold counts: {e}", exc_info=True)
+        return False

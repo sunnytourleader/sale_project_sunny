@@ -1,6 +1,7 @@
 import telebot
 import mysql.connector
 from datetime import datetime
+import time
 
 # ==========================================
 # 1. CONFIGURATION
@@ -32,6 +33,21 @@ def fetch_report_data(target_date):
         leads_data = cursor.fetchone()
         total_leads = leads_data['total_leads'] if leads_data['total_leads'] else 0
         
+        # 1b. NEW: Get Unified Leads Breakdown (Zone -> Source -> Destination)
+        cursor.execute("""
+            SELECT 
+                Zone,
+                Source,
+                Destination, 
+                COUNT(*) as total_leads,
+                SUM(CASE WHEN Status = '6-CONFIRMED / BOOKED' THEN 1 ELSE 0 END) as confirmed_leads
+            FROM client_contacts_leads 
+            WHERE Contacted_Date = %s 
+            GROUP BY Zone, Source, Destination 
+            ORDER BY Zone ASC, Source ASC, total_leads DESC
+        """, (target_date,))
+        leads_breakdown = cursor.fetchall()
+
         # 2. Get Overall Sales Totals (Counting Confirmed Booking_No as 1 booking)
         cursor.execute("""
             SELECT COUNT(DISTINCT SO_No) as confirmed_bookings,
@@ -51,44 +67,15 @@ def fetch_report_data(target_date):
         # Calculate Conversion
         conversion_rate = (confirmed_bookings / total_leads * 100) if total_leads > 0 else 0.0
         
-        # 3. Get Salesperson Performance
+        # 3. Get Unified Sales Hierarchy (Zone -> Destination -> Sales Rep)
         cursor.execute("""
-            SELECT Sale_Rep, SUM(Total) as rev, SUM(Pax) as pax, SUM(Deposit) as Dep
+            SELECT Zone, Destination, Sale_Rep, SUM(Deposit) as dep, SUM(Pax) as pax
             FROM financial_sales_ledger
             WHERE Contacted_Date = %s
-            GROUP BY Sale_Rep
-            ORDER BY rev DESC
+            GROUP BY Zone, Destination, Sale_Rep
+            ORDER BY Zone ASC, Destination ASC, dep DESC
         """, (target_date,))
-        sales_reps = cursor.fetchall()
-        
-        # 4. Get Zone Breakdown (Deposit and Pax only)
-        cursor.execute("""
-            SELECT Zone, SUM(Deposit) as dep, SUM(Pax) as pax
-            FROM financial_sales_ledger
-            WHERE Contacted_Date = %s
-            GROUP BY Zone
-            ORDER BY dep DESC
-        """, (target_date,))
-        zones = cursor.fetchall()
-
-        # 5. Get Destinations Breakdown Grouped by Zone
-        # We fetch raw Sale_Rep and pax pairs to format with numbers in Python
-        cursor.execute("""
-            SELECT 
-                Zone, 
-                Destination, 
-                SUM(sub_pax) as total_pax, 
-                GROUP_CONCAT(CONCAT(Sale_Rep, ':', CAST(sub_pax AS CHAR)) SEPARATOR '|') as sold_by_raw
-            FROM (
-                SELECT Zone, Destination, Sale_Rep, SUM(Pax) as sub_pax
-                FROM financial_sales_ledger
-                WHERE Contacted_Date = %s
-                GROUP BY Zone, Destination, Sale_Rep
-            ) as sub
-            GROUP BY Zone, Destination
-            ORDER BY Zone ASC, total_pax DESC
-        """, (target_date,))
-        destinations = cursor.fetchall()
+        sales_hierarchy = cursor.fetchall()
 
         # 6. Fetch Lead Analysis (Summarized Notes)
         cursor.execute("""
@@ -97,6 +84,28 @@ def fetch_report_data(target_date):
             WHERE Contacted_Date = %s AND Noted IS NOT NULL AND Noted != ''
         """, (target_date,))
         lead_notes = cursor.fetchall()
+        
+        # 7. NEW: Fetch upcoming group tours (Status "on sale", Sales deadline < 30 days)
+        # Sales deadline is Departure - 7 days (Visa process). Grouped by Zone
+        # Added subqueries for total leads and confirmed leads filtering only Source = 'Page'
+        cursor.execute("""
+            SELECT g.Zone, g.Destinations, g.Departure, g.Arrival, g.Booked, g.Sold, g.Remain,
+                   DATEDIFF(DATE_SUB(g.Departure, INTERVAL 7 DAY), %s) AS days_left,
+                   (SELECT COUNT(*) FROM client_contacts_leads c 
+                    WHERE c.Destination = g.Destinations 
+                      AND c.Contacted_Date = %s
+                      AND LOWER(c.Source) = 'page') AS lead_count,
+                   (SELECT COUNT(*) FROM client_contacts_leads c 
+                    WHERE c.Destination = g.Destinations 
+                      AND c.Contacted_Date = %s
+                      AND c.Status = '6-CONFIRMED / BOOKED'
+                      AND LOWER(c.Source) = 'page') AS lead_confirmed
+            FROM group_tours_report g
+            WHERE LOWER(g.Status) = 'on sale'
+              AND DATEDIFF(DATE_SUB(g.Departure, INTERVAL 7 DAY), %s) BETWEEN 0 AND 30
+            ORDER BY g.Zone ASC, g.Departure ASC
+        """, (target_date, target_date, target_date, target_date))
+        upcoming_groups = cursor.fetchall()
         
         conn.close()
         
@@ -107,10 +116,10 @@ def fetch_report_data(target_date):
             "confirmed_bookings": confirmed_bookings,
             "total_pax": int(total_pax),
             "conversion_rate": conversion_rate,
-            "sales_reps": sales_reps,
-            "zones": zones,
-            "destinations": destinations,
-            "lead_notes": lead_notes
+            "sales_hierarchy": sales_hierarchy,
+            "lead_notes": lead_notes,
+            "leads_breakdown": leads_breakdown,
+            "upcoming_groups": upcoming_groups
         }
         
     except Exception as e:
@@ -148,57 +157,141 @@ def handle_date_input(message):
     report += f"Please find today's sales report on <b>{formatted_date_str}</b>, detailing our lead generation, confirmed bookings, zone performance, and revenue summary.\n\n"
     
     # Section 1: Summary
-    report += "<b><u>Daily Executive Sales & Revenue Summary</u></b>\n"
-    report += f"Total Sale: <b>${data['total_rev']:,.2f}</b>\n"
-    report += f"Total Deposit: <b>${data['total_dep']:,.2f}</b>\n"
-    report += f"Total Leads: <b>{data['total_leads']} leads </b>\n"
-    report += f"Total Confirmed Bookings: <b>{data['confirmed_bookings']} (Confirmed Booking) </b>\n"
-    report += f"Lead Conversion: <b>{data['conversion_rate']:.1f}%</b>\n"
-    report += f"Total Volume: <b>{data['total_pax']} Passengers (Pax) </b>\n\n"
+    report += "<b><u>1. Daily Executive Sales &amp; Revenue Summary</u></b>\n"
+    report += f"✤ Total Sale: <b>${data['total_rev']:,.2f}</b>\n"
+    report += f"✤ Total Deposit: <b>${data['total_dep']:,.2f}</b>\n"
+    report += f"✤ Total Leads: <b>{data['total_leads']} leads</b>\n"
+    report += f"✤ Total Confirmed Bookings: <b>{data['confirmed_bookings']} Confirmed</b>\n"
+    report += f"✤ Lead Conversion: <b>{data['conversion_rate']:.1f}%</b>\n"
+    report += f"✤ Total Volume: <b>{data['total_pax']} Passengers (Pax)</b>\n\n"
     
-    # Section 2: Report by Zone (Deposit and Pax Only)
-    report += "<b><u>Performance by Zone</u></b>\n"
-    if data['zones']:
-        for idx, zone in enumerate(data['zones'], start=1):
-            z_dep = zone['dep'] or 0.0
-            z_pax = int(zone['pax']) if zone['pax'] else 0
-            z_name = zone['Zone'] if zone['Zone'] else "Unknown"
-            report += f"{idx}—{z_name}: <b>${z_dep:,.2f}</b> ({z_pax} Pax)\n"
+    # NEW Section: Unified Performance by Zone, Destination, and Sales Rep
+    report += f"<b><u>2. Sale Details <i>({data['confirmed_bookings']} Confirmed | {data['total_pax']} Pax)</i></u></b> \n"
+    
+    if data['sales_hierarchy']:
+        # Build hierarchy dictionary
+        hierarchy = {}
+        for row in data['sales_hierarchy']:
+            z = row['Zone'] or "Other Zones"
+            d = row['Destination'] or "Unknown"
+            r = row['Sale_Rep'] or "Unknown"
+            dep = float(row['dep'] or 0.0)
+            pax = int(row['pax'] or 0)
+            
+            if z not in hierarchy:
+                hierarchy[z] = {'dep': 0.0, 'pax': 0, 'dests': {}}
+            hierarchy[z]['dep'] += dep
+            hierarchy[z]['pax'] += pax
+            
+            if d not in hierarchy[z]['dests']:
+                hierarchy[z]['dests'][d] = {'dep': 0.0, 'pax': 0, 'reps': []}
+            hierarchy[z]['dests'][d]['dep'] += dep
+            hierarchy[z]['dests'][d]['pax'] += pax
+            
+            hierarchy[z]['dests'][d]['reps'].append({'rep': r, 'dep': dep, 'pax': pax})
+            
+        # Format hierarchy into report
+        for z, z_data in hierarchy.items():
+            report += f"📍 <b>{z}</b>: <b>${z_data['dep']:,.2f}</b> ({z_data['pax']} Pax)\n"
+            for d, d_data in z_data['dests'].items():
+                report += f"       ✈️ <b>{d}: ${d_data['dep']:,.2f} ({d_data['pax']} Pax)</b>\n"
+                for r_data in d_data['reps']:
+                    report += f"              ✤ <i>{r_data['rep']}: ${r_data['dep']:,.2f} ({r_data['pax']} Pax)</i>\n"
+            report += "\n" # Add a little breathing room between zones
     else:
-        report += "No zone data available.\n"
-    report += "\n"
+        report += "No sales data available.\n\n"
 
-    # Section 3: Salesperson Performance
-    report += "<b><u>Report by Salesperson</u></b>\n"
-    for idx, rep in enumerate(data['sales_reps'], start=1):
-        rep_dep = rep['Dep'] or 0.0
-        rep_pax = int(rep['pax']) if rep['pax'] else 0
-        report += f"{idx}—{rep['Sale_Rep']}: <b>${rep_dep:,.2f}</b> ({int(rep_pax)} Pax)\n"
-        
-    # Section 4: Destination Breakdown (Separated by Zone)
-    report += f"\n<b><u>Destinations ({data['confirmed_bookings']} Bookings | {data['total_pax']} Total Pax)</u></b>"
+    # Section 2 & 3 Combined: Leads Breakdown by Zone, Source and Destination
+    report += "<b><u>3. Leads Breakdown</u></b>\n"
+    if data['leads_breakdown']:
+        # Build hierarchy dictionary for leads
+        leads_dict = {}
+        for row in data['leads_breakdown']:
+            z = row['Zone'] or "Other Zones"
+            s = row['Source'] or "Unknown"
+            d = row['Destination'] or "Unknown"
+            tot = row['total_leads']
+            conf = int(row['confirmed_leads']) if row['confirmed_leads'] else 0
+            
+            if z not in leads_dict:
+                leads_dict[z] = {'tot': 0, 'conf': 0, 'sources': {}}
+            
+            leads_dict[z]['tot'] += tot
+            leads_dict[z]['conf'] += conf
+            
+            if s not in leads_dict[z]['sources']:
+                leads_dict[z]['sources'][s] = []
+            
+            leads_dict[z]['sources'][s].append({'dest': d, 'tot': tot, 'conf': conf})
+            
+        # Format leads hierarchy into report
+        for z, z_data in leads_dict.items():
+            report += f"🌍 <b>{z}</b>: <i><b>{z_data['tot']} leads (Confirmed: {z_data['conf']})</b></i>\n"
+            for s, dests in z_data['sources'].items():
+                report += f"       📍 <b>{s}</b>\n"
+                for d_info in dests:
+                    report += f"              ✤ <i>{d_info['dest']}: {d_info['tot']} leads (Confirmed: {d_info['conf']})</i>\n"
+        report += "\n"
+    else:
+        report += "No lead data available.\n\n"
     
-    current_zone = None
-    for dest in data['destinations']:
-        zone_name = dest['Zone'] if dest['Zone'] else "Other Zones"
-        if zone_name != current_zone:
-            current_zone = zone_name
-            report += f"\n📍<b>{current_zone}</b>\n"
-        
-        dest_pax = int(dest['total_pax']) if dest['total_pax'] else 0
-        report += f" • <u><i>{dest['Destination']}</i></u> : <b>{dest_pax} Pax</b>\n"
-        
-        # Split and number the sales reps
-        if dest['sold_by_raw']:
-            reps_list = dest['sold_by_raw'].split('|')
-            for i, rep_info in enumerate(reps_list, 1):
-                name, pax = rep_info.split(':')
-                report += f"      {i}. {name}: {int(float(pax))} Pax\n"
+    # NEW Section: Upcoming Group Tours Breakdown (Beautified)
+    total_upcoming_groups = len(data['upcoming_groups']) if data['upcoming_groups'] else 0
+    report += f"<b><u>4. Urgent Groups ({total_upcoming_groups} Groups &lt; 30 Days)</u></b>\n"
     
-    # Conclusion
-    report += f"\nBest regards,\n<b>STB Sales Team</b>"
+    if data['upcoming_groups']:
+        # Group by Zone first
+        grouped_tours = {}
+        for grp in data['upcoming_groups']:
+            z_name = grp['Zone'] if grp['Zone'] else "Other Zones"
+            if z_name not in grouped_tours:
+                grouped_tours[z_name] = []
+            grouped_tours[z_name].append(grp)
+            
+        # Display the groups organized by Zone
+        for z_name, groups_in_zone in grouped_tours.items():
+            report += f"📍<b>{z_name} ({len(groups_in_zone)} Groups)</b>\n"
+            
+            for grp in groups_in_zone:
+                g_dest = grp['Destinations'] or "Unknown"
+                g_dep = grp['Departure'] or "N/A"
+                g_arr = grp['Arrival'] or "N/A"
+                g_seat = int(grp['Booked']) if grp['Booked'] else 0
+                g_sold = int(grp['Sold']) if grp['Sold'] else 0
+                g_remain = int(grp['Remain']) if grp['Remain'] else 0
+                days_left = int(grp['days_left']) if grp['days_left'] is not None else 0
+                
+                # Add visual cues for availability
+                if days_left < 14:
+                    avail_emoji = "🔴" # Full
+                else:
+                    avail_emoji = "🟡" # Selling fast
+                
+                urgency_alert = ""
+                if days_left < 10:
+                    urgency_alert = " ➔ 🚨<b>VERY URGENT</b>"
+                
+                # Check for leads today and confirmed leads on this specific group
+                lead_count = int(grp['lead_count']) if grp['lead_count'] else 0
+                lead_confirmed = int(grp['lead_confirmed']) if grp['lead_confirmed'] else 0
+                if lead_count > 0:
+                    lead_status = f"       ✤ Lead Today: {lead_count} leads (Confirmed: {lead_confirmed})" 
+                    if lead_confirmed > 0 :
+                       lead_status +=f" ✅"
+                    else:
+                        lead_status +=f" ⭕️"
+                else:
+                    lead_status = f"       ✤ <i>No Lead from Digital. ❎</i>"
+                
+                report += f"       ✈️ <b>{g_dest}</b> 📅 <i>{g_dep} ➔ {g_arr}</i> (⏳ {days_left} Days Left)\n"
+                report += f"       {avail_emoji} Seat: {g_seat} | Sold: {g_sold} | Remain: {g_remain} {urgency_alert}\n"
+                report += f"{lead_status}\n\n"                
 
-    # Send the final report
+    else:
+        report += " • No lead from page today.\n\n"
+
+    report += f"Best regards,\n<b>STB Sales Team</b>"
+
     bot.send_message(message.chat.id, report, parse_mode="HTML")
 
 if __name__ == "__main__":

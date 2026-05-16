@@ -12,8 +12,9 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from sqlalchemy import inspect, Float, Text, text
 
-from app.core import get_db_connection, admin_required, permission_required, extract_data_from_image, format_phone_number, get_fun_quotes, excel_lock, sync_to_mysql, get_session_context
+from app.core import get_db_connection, admin_required, permission_required, extract_data_from_image, format_phone_number, get_fun_quotes, excel_lock, sync_to_mysql, get_session_context, get_machine_info
 from app.services import DataService
+import logging
 
 # Ensure this blueprint name matches what you register in your __init__.py (tools_bp or ui_bp)
 tools_bp = Blueprint('tools', __name__)
@@ -337,6 +338,71 @@ def save_tour():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": f"Database Update Error: {str(e)}"}), 500
+
+
+@tools_bp.route('/api/tour_manifest/<path:tour_code>', methods=['GET'])
+@login_required
+def get_tour_manifest(tour_code):
+    logging.getLogger('activity_tracker').info(f"IP: {request.remote_addr:<15} | Machine: {get_machine_info(request.remote_addr):<30} | Action: API_CALL | Details: Fetched P&L manifest for tour_code: {tour_code}")
+    engine = get_db_connection()
+    try:
+        if not inspect(engine).has_table('financial_sales_ledger'):
+            return jsonify({"status": "error", "message": "Sales ledger not found. Please upload sales data first."}), 404
+
+        with engine.connect() as conn:
+            # Get columns dynamically
+            columns = [col[0] for col in conn.execute(text("SHOW COLUMNS FROM financial_sales_ledger")).fetchall()]
+            
+            # Find the best column for tour_code / destination
+            tc_col = next((c for c in columns if any(k in c.lower() for k in ['tour_code', 'tour code', 'destination', 'dest'])), None)
+            
+            if not tc_col:
+                return jsonify({"status": "error", "message": "Could not identify Tour Code column in sales ledger."}), 400
+                
+            # Query passengers matching the tour code
+            query = f"SELECT * FROM financial_sales_ledger WHERE `{tc_col}` = :tc"
+            results = conn.execute(text(query), {"tc": tour_code}).fetchall()
+            
+            passengers = []
+            total_revenue = 0.0
+            
+            for row in results:
+                row_dict = dict(zip(columns, row))
+                
+                # Try to find standard fields
+                name_col = next((c for c in columns if 'name' in c.lower()), None)
+                pax_col = next((c for c in columns if 'qty' in c.lower() or 'pax' in c.lower()), None)
+                so_col = next((c for c in columns if 'so_no' in c.lower() or 's_o' in c.lower() or 'invoice' in c.lower()), None)
+                amount_col = next((c for c in columns if 'total' in c.lower() or 'amount' in c.lower() or 'revenue' in c.lower()), None)
+                
+                name = row_dict.get(name_col, 'Unknown') if name_col else 'Unknown'
+                pax = row_dict.get(pax_col, 1) if pax_col else 1
+                so_no = row_dict.get(so_col, 'N/A') if so_col else 'N/A'
+                amount = float(row_dict.get(amount_col, 0) or 0) if amount_col else 0.0
+                
+                try: pax = int(float(pax))
+                except: pax = 1
+                
+                total_revenue += amount
+                
+                passengers.append({
+                    "name": name,
+                    "pax": pax,
+                    "so_no": so_no,
+                    "amount": amount,
+                    "raw_data": {k: str(v) for k, v in row_dict.items() if pd.notna(v) and v is not None}
+                })
+                
+        return jsonify({
+            "status": "success", 
+            "tour_code": tour_code, 
+            "total_passengers": sum(p['pax'] for p in passengers),
+            "total_revenue": total_revenue,
+            "passengers": passengers
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 @tools_bp.route('/compare-tools', methods=['GET', 'POST'])

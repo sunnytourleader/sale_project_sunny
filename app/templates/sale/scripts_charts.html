@@ -3,35 +3,35 @@
     // CHART RENDERING FUNCTIONS
     // ==========================================
     function renderAnalyticCharts() {
-        const isDark = isDarkTheme(); 
-        const gridColor = isDark ? '#334155' : '#f1f5f9'; 
+        const isDark = isDarkTheme();
+        const gridColor = isDark ? '#334155' : '#f1f5f9';
         const labelColor = isDark ? '#94a3b8' : '#64748b';
-        
+
         // 1. Lead Sources
         if (sourceChart) sourceChart.destroy();
-        const srcData = (serverData.sources || []).filter(s => s.Source && String(s.Source) !== '0' && String(s.Source).toLowerCase() !== 'nan').sort((a,b) => b.Leads - a.Leads).slice(0, 5);
+        const srcData = (serverData.sources || []).filter(s => s.Source && String(s.Source) !== '0' && String(s.Source).toLowerCase() !== 'nan').sort((a, b) => b.Leads - a.Leads).slice(0, 5);
         if (srcData.length > 0) {
             const el = document.getElementById('chartSources');
             if (el) {
                 sourceChart = new Chart(el, {
-                    type: 'doughnut', 
-                    data: { 
-                        labels: srcData.map(d => d.Source), 
-                        datasets: [{ 
-                            data: srcData.map(d => d.Leads), 
-                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'], 
-                            borderWidth: 0, 
-                            hoverOffset: 4 
-                        }] 
+                    type: 'doughnut',
+                    data: {
+                        labels: srcData.map(d => d.Source),
+                        datasets: [{
+                            data: srcData.map(d => d.Leads),
+                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
                     },
-                    options: { 
-                        responsive: true, 
-                        maintainAspectRatio: false, 
-                        plugins: { 
-                            legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11 }, color: labelColor } }, 
-                            datalabels: { color: '#fff', font: { weight: 'bold', size: 11 }, formatter: (v, ctx) => { let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0); let p = Math.round((v * 100) / sum); return p > 5 ? p + "%" : ""; } } 
-                        }, 
-                        cutout: '65%' 
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11 }, color: labelColor } },
+                            datalabels: { color: '#fff', font: { weight: 'bold', size: 11 }, formatter: (v, ctx) => { let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0); let p = Math.round((v * 100) / sum); return p > 5 ? p + "%" : ""; } }
+                        },
+                        cutout: '65%'
                     }
                 });
             }
@@ -41,26 +41,26 @@
         if (unconfirmedStatusChart) unconfirmedStatusChart.destroy();
         const statusMap = {};
         (serverData.raw_data || []).forEach(r => {
-            const stUpper = String(r.Status || '').toUpperCase(); 
+            const stUpper = String(r.Status || '').toUpperCase();
             const isConf = stUpper.includes('6-CONFIRMED') || stUpper.includes('BOOKED') || stUpper.includes('CLOSED') || stUpper.includes('PAID') || stUpper.includes('SUCCESS');
-            if (!isConf && !stUpper.includes('CANCEL')) { 
-                let st = getObjStr(r, 'Status', 'Not Specified'); 
-                if (!st || st === '0' || String(st).toLowerCase() === 'nan' || String(st).trim() === '') st = 'Not Specified'; 
-                statusMap[st] = (statusMap[st] || 0) + 1; 
+            if (!isConf && !stUpper.includes('CANCEL')) {
+                let st = getObjStr(r, 'Status', 'Not Specified');
+                if (!st || st === '0' || String(st).toLowerCase() === 'nan' || String(st).trim() === '') st = 'Not Specified';
+                statusMap[st] = (statusMap[st] || 0) + 1;
             }
         });
-        const unconfData = Object.keys(statusMap).map(s => ({ status: s, count: statusMap[s] })).sort((a,b) => b.count - a.count).slice(0, 10);
+        const unconfData = Object.keys(statusMap).map(s => ({ status: s, count: statusMap[s] })).sort((a, b) => b.count - a.count).slice(0, 10);
         if (unconfData.length > 0) {
             const el = document.getElementById('chartUnconfirmedStatus');
             if (el) {
                 unconfirmedStatusChart = new Chart(el, {
-                    type: 'bar', 
+                    type: 'bar',
                     data: { labels: unconfData.map(d => d.status.substring(0, 15)), datasets: [{ data: unconfData.map(d => d.count), backgroundColor: '#ef4444', borderRadius: 4 }] },
-                    options: { 
-                        indexAxis: 'y', responsive: true, maintainAspectRatio: false, 
-                        plugins: { legend: { display: false }, datalabels: { align: 'right', anchor: 'end', color: '#ef4444', font: { weight: 'bold', size: 10 }, formatter: v => v + ' Leads' } }, 
-                        scales: { x: { display: false, suggestedMax: Math.max(...unconfData.map(d => d.count)) * 1.2 }, y: { grid: { display: false }, border: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: labelColor } } }, 
-                        layout: { padding: { right: 35 } } 
+                    options: {
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, datalabels: { align: 'right', anchor: 'end', color: '#ef4444', font: { weight: 'bold', size: 10 }, formatter: v => v + ' Leads' } },
+                        scales: { x: { display: false, suggestedMax: Math.max(...unconfData.map(d => d.count)) * 1.2 }, y: { grid: { display: false }, border: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: labelColor } } },
+                        layout: { padding: { right: 35 } }
                     }
                 });
             }
@@ -68,28 +68,28 @@
 
         // 3. Destination Workload
         if (destWorkloadChart) destWorkloadChart.destroy();
-        const activeDestMap = {}; 
-        (serverData.active_pipeline || []).forEach(r => { 
-            const dest = (r.Destination && String(r.Destination).toLowerCase() !== 'not specified' && String(r.Destination) !== '0') ? String(r.Destination) : 'Unknown'; 
-            if(dest !== 'Unknown') activeDestMap[dest] = (activeDestMap[dest] || 0) + 1; 
+        const activeDestMap = {};
+        (serverData.active_pipeline || []).forEach(r => {
+            const dest = (r.Destination && String(r.Destination).toLowerCase() !== 'not specified' && String(r.Destination) !== '0') ? String(r.Destination) : 'Unknown';
+            if (dest !== 'Unknown') activeDestMap[dest] = (activeDestMap[dest] || 0) + 1;
         });
-        const dwData = Object.keys(activeDestMap).map(d => ({ dest: d, count: activeDestMap[d] })).sort((a,b) => b.count - a.count).slice(0, 5);
+        const dwData = Object.keys(activeDestMap).map(d => ({ dest: d, count: activeDestMap[d] })).sort((a, b) => b.count - a.count).slice(0, 5);
         if (dwData.length > 0) {
             const el = document.getElementById('chartDestWorkload');
             if (el) {
                 destWorkloadChart = new Chart(el, {
-                    type: 'bar', 
+                    type: 'bar',
                     data: { labels: dwData.map(d => d.dest), datasets: [{ data: dwData.map(d => d.count), backgroundColor: '#8b5cf6', borderRadius: 4 }] },
-                    options: { 
-                        responsive: true, maintainAspectRatio: false, 
-                        onClick: (e, active) => { if (active.length > 0 && typeof window.openDrilldownModal === 'function') window.openDrilldownModal('dest', destWorkloadChart.data.labels[active[0].index]); }, 
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        onClick: (e, active) => { if (active.length > 0 && typeof window.openDrilldownModal === 'function') window.openDrilldownModal('dest', destWorkloadChart.data.labels[active[0].index]); },
                         onHover: (e, el) => { e.native.target.style.cursor = el[0] ? 'pointer' : 'default'; },
-                        plugins: { legend: { display: false }, datalabels: { align: 'top', anchor: 'end', color: labelColor, font: { weight: 'bold' } } }, 
-                        scales: { 
-                            x: { grid: { display: false }, border: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: labelColor, callback: function(val) { const label = this.getLabelForValue(val); return label.length > 12 ? label.substring(0, 12) + '...' : label; } } }, 
-                            y: { display: false, suggestedMax: Math.max(...dwData.map(d => d.count)) * 1.2 } 
-                        }, 
-                        layout: { padding: { top: 20 } } 
+                        plugins: { legend: { display: false }, datalabels: { align: 'top', anchor: 'end', color: labelColor, font: { weight: 'bold' } } },
+                        scales: {
+                            x: { grid: { display: false }, border: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: labelColor, callback: function (val) { const label = this.getLabelForValue(val); return label.length > 12 ? label.substring(0, 12) + '...' : label; } } },
+                            y: { display: false, suggestedMax: Math.max(...dwData.map(d => d.count)) * 1.2 }
+                        },
+                        layout: { padding: { top: 20 } }
                     }
                 });
             }
@@ -97,23 +97,23 @@
 
         // 4. Agent Workload
         if (workloadChart) workloadChart.destroy();
-        const wlData = (serverData.workload || []).sort((a,b) => b.Pending_Leads - a.Pending_Leads).slice(0, 5);
+        const wlData = (serverData.workload || []).sort((a, b) => b.Pending_Leads - a.Pending_Leads).slice(0, 5);
         if (wlData.length > 0) {
             const el = document.getElementById('chartWorkload');
             if (el) {
                 workloadChart = new Chart(el, {
-                    type: 'bar', 
+                    type: 'bar',
                     data: { labels: wlData.map(d => d['Sale Rep']), datasets: [{ data: wlData.map(d => d.Pending_Leads), backgroundColor: '#f59e0b', borderRadius: 4 }] },
-                    options: { 
-                        responsive: true, maintainAspectRatio: false, 
-                        onClick: (e, active) => { if (active.length > 0 && typeof window.openDrilldownModal === 'function') window.openDrilldownModal('rep', workloadChart.data.labels[active[0].index]); }, 
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        onClick: (e, active) => { if (active.length > 0 && typeof window.openDrilldownModal === 'function') window.openDrilldownModal('rep', workloadChart.data.labels[active[0].index]); },
                         onHover: (e, el) => { e.native.target.style.cursor = el[0] ? 'pointer' : 'default'; },
-                        plugins: { legend: { display: false }, datalabels: { align: 'top', anchor: 'end', color: labelColor, font: { weight: 'bold' } } }, 
-                        scales: { 
-                            x: { grid: { display: false }, border: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: labelColor, callback: function(val) { const label = this.getLabelForValue(val); return label.length > 10 ? label.substring(0, 10) + '...' : label; } } }, 
-                            y: { display: false, suggestedMax: Math.max(...wlData.map(d => d.Pending_Leads)) * 1.2 } 
-                        }, 
-                        layout: { padding: { top: 20 } } 
+                        plugins: { legend: { display: false }, datalabels: { align: 'top', anchor: 'end', color: labelColor, font: { weight: 'bold' } } },
+                        scales: {
+                            x: { grid: { display: false }, border: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: labelColor, callback: function (val) { const label = this.getLabelForValue(val); return label.length > 10 ? label.substring(0, 10) + '...' : label; } } },
+                            y: { display: false, suggestedMax: Math.max(...wlData.map(d => d.Pending_Leads)) * 1.2 }
+                        },
+                        layout: { padding: { top: 20 } }
                     }
                 });
             }
@@ -126,24 +126,24 @@
             const pkg = getObjStr(r, 'Tour Package', getObjStr(r, 'Package', getObjStr(r, 'Tour Code', getObjStr(r, 'Tour Name', 'Unknown')))).trim();
             const revStr = getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0')));
             const rev = parseFloat(String(revStr).replace(/[^\d.-]/g, '')) || 0;
-            if (pkg !== 'Unknown' && pkg !== '---' && pkg !== '') { 
-                tourStats[pkg] = (tourStats[pkg] || 0) + rev; 
+            if (pkg !== 'Unknown' && pkg !== '---' && pkg !== '') {
+                tourStats[pkg] = (tourStats[pkg] || 0) + rev;
             }
         });
-        
-        let topTours = Object.keys(tourStats).map(k => ({ name: k, rev: tourStats[k] })).sort((a,b) => b.rev - a.rev).slice(0, 10);
-        
+
+        let topTours = Object.keys(tourStats).map(k => ({ name: k, rev: tourStats[k] })).sort((a, b) => b.rev - a.rev).slice(0, 10);
+
         // Fallback: If no explicit 'Tour Package' columns exist, group by Destination so the chart isn't empty
         if (topTours.length === 0) {
             window.financialData.forEach(r => {
                 const pkg = getObjStr(r, 'Destination', 'Unknown').trim();
                 const revStr = getObjStr(r, 'Revenue', getObjStr(r, 'Total', getObjStr(r, 'Amount', '0')));
                 const rev = parseFloat(String(revStr).replace(/[^\d.-]/g, '')) || 0;
-                if (pkg !== 'Unknown' && pkg !== '---' && pkg !== '') { 
-                    tourStats[pkg] = (tourStats[pkg] || 0) + rev; 
+                if (pkg !== 'Unknown' && pkg !== '---' && pkg !== '') {
+                    tourStats[pkg] = (tourStats[pkg] || 0) + rev;
                 }
             });
-            topTours = Object.keys(tourStats).map(k => ({ name: k, rev: tourStats[k] })).sort((a,b) => b.rev - a.rev).slice(0, 10);
+            topTours = Object.keys(tourStats).map(k => ({ name: k, rev: tourStats[k] })).sort((a, b) => b.rev - a.rev).slice(0, 10);
         }
 
         if (topTours.length > 0) {
@@ -151,51 +151,252 @@
             if (el) {
                 topToursChart = new Chart(el, {
                     type: 'bar',
-                    data: { 
-                        labels: topTours.map(d => d.name.length > 20 ? d.name.substring(0, 20) + '...' : d.name), 
-                        datasets: [{ 
-                            data: topTours.map(d => Math.round(d.rev)), 
-                            backgroundColor: '#10b981', 
+                    data: {
+                        labels: topTours.map(d => d.name.length > 20 ? d.name.substring(0, 20) + '...' : d.name),
+                        datasets: [{
+                            data: topTours.map(d => Math.round(d.rev)),
+                            backgroundColor: '#10b981',
                             borderRadius: 4,
-                            barPercentage: 0.5 
-                        }] 
+                            barPercentage: 0.5
+                        }]
                     },
                     options: {
                         indexAxis: 'x', // EXPLICITLY SET AS VERTICAL COLUMN CHART
-                        responsive: true, 
+                        responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { 
-                            legend: { display: false }, 
-                            datalabels: { 
-                                align: 'top', 
-                                anchor: 'end', 
-                                color: '#10b981', 
-                                font: { weight: 'bold', size: 11 }, 
-                                formatter: v => '$' + v.toLocaleString() 
-                            } 
+                        plugins: {
+                            legend: { display: false },
+                            datalabels: {
+                                align: 'top',
+                                anchor: 'end',
+                                color: '#10b981',
+                                font: { weight: 'bold', size: 11 },
+                                formatter: v => '$' + v.toLocaleString()
+                            }
                         },
-                        scales: { 
-                            x: { 
-                                grid: { display: false }, 
-                                border: { display: false }, 
-                                ticks: { font: { family: 'Inter', size: 11 }, color: labelColor } 
-                            }, 
-                            y: { 
-                                display: false, 
-                                suggestedMax: Math.max(...topTours.map(d => d.rev)) * 1.2 
-                            } 
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                border: { display: false },
+                                ticks: { font: { family: 'Inter', size: 11 }, color: labelColor }
+                            },
+                            y: {
+                                display: false,
+                                suggestedMax: Math.max(...topTours.map(d => d.rev)) * 1.2
+                            }
                         },
                         layout: { padding: { top: 25 } }
                     }
                 });
             }
         }
+
+        renderZoneSourceDestTable();
+    }
+
+    function renderZoneSourceDestTable() {
+        let zonesMap = {};
+        
+        // 1. Gather Leads from CRM Pipeline
+        (serverData.raw_data || []).forEach(r => {
+            let zone = getObjStr(r, 'Zone', 'Unknown').trim();
+            let source = getObjStr(r, 'Source', 'Unknown').trim();
+            let dest = getObjStr(r, 'Destination', 'Unknown').trim();
+            
+            if (zone === '' || zone === '0') zone = 'Unknown';
+            if (source === '' || source === '0') source = 'Unknown';
+            if (dest === '' || dest === '0') dest = 'Unknown';
+            if (zone === 'Unknown' && source === 'Unknown' && dest === 'Unknown') return;
+
+            if (!zonesMap[zone]) zonesMap[zone] = { leads: 0, won: 0, sources: {} };
+            zonesMap[zone].leads++;
+
+            if (!zonesMap[zone].sources[source]) zonesMap[zone].sources[source] = { leads: 0, won: 0, dests: {} };
+            zonesMap[zone].sources[source].leads++;
+
+            if (!zonesMap[zone].sources[source].dests[dest]) zonesMap[zone].sources[source].dests[dest] = { leads: 0, won: 0, confDetails: [] };
+            zonesMap[zone].sources[source].dests[dest].leads++;
+        });
+
+        // 2. Gather Confirmed Bookings and Financial Details from Financial Ledger
+        (window.financialData || []).forEach(r => {
+            let zone = getObjStr(r, 'Zone', 'Unknown').trim();
+            let source = getObjStr(r, 'Source', getObjStr(r, 'Channel', 'Unknown')).trim();
+            let dest = getObjStr(r, 'Destination', 'Unknown').trim();
+
+            if (zone === '' || zone === '0') zone = 'Unknown';
+            if (source === '' || source === '0') source = 'Unknown';
+            if (dest === '' || dest === '0') dest = 'Unknown';
+            if (zone === 'Unknown' && source === 'Unknown' && dest === 'Unknown') return;
+
+            if (!zonesMap[zone]) zonesMap[zone] = { leads: 0, won: 0, sources: {} };
+            if (!zonesMap[zone].sources[source]) zonesMap[zone].sources[source] = { leads: 0, won: 0, dests: {} };
+            if (!zonesMap[zone].sources[source].dests[dest]) zonesMap[zone].sources[source].dests[dest] = { leads: 0, won: 0, confDetails: [] };
+
+            zonesMap[zone].won++;
+            zonesMap[zone].sources[source].won++;
+            zonesMap[zone].sources[source].dests[dest].won++;
+
+            let soNo = getObjStr(r, 'S.O No', getObjStr(r, 'SO No', getObjStr(r, 'Order No', 'N/A'))).trim();
+            if (!soNo) soNo = 'N/A';
+            let rep = getObjStr(r, 'Sale Rep', getObjStr(r, 'Agent', 'Unknown')).trim();
+            if (!rep) rep = 'Unknown';
+            let price = getObjStr(r, 'Tour Fare', getObjStr(r, 'Price', '0')).trim() || '0';
+            let pax = getObjStr(r, 'Pax', getObjStr(r, 'QTY', '0')).trim() || '0';
+            let deposit = getObjStr(r, 'Deposit', '0').trim() || '0';
+            let amount = getObjStr(r, 'Amount', getObjStr(r, 'Revenue', '0')).trim() || '0';
+            let balance = getObjStr(r, 'Balance', '0').trim() || '0';
+
+            zonesMap[zone].sources[source].dests[dest].confDetails.push({ soNo, rep, price, pax, deposit, amount, balance });
+        });
+
+        let sortedZones = Object.keys(zonesMap).map(z => ({ name: z, ...zonesMap[z] })).sort((a, b) => b.leads - a.leads);
+
+        const tabsList = document.getElementById('zoneTabsList');
+        if (!tabsList) return;
+
+        if (sortedZones.length === 0) {
+            tabsList.innerHTML = `<div class="text-center py-8 text-slate-500 text-sm">No data available</div>`;
+            document.getElementById('zoneEmptyState')?.classList.remove('hidden');
+            document.getElementById('zoneContentArea')?.classList.add('hidden');
+            return;
+        }
+
+        // Keep the map available for clicking
+        window.currentZoneInsightsData = sortedZones;
+        
+        // Render Tabs
+        tabsList.innerHTML = sortedZones.map((z, idx) => {
+            const zRate = z.leads > 0 ? Math.round((z.won / z.leads) * 100) : 0;
+            return `
+            <button onclick="selectZoneInsight('${z.name.replace(/'/g, "\\'")}')" id="zone-tab-${z.name.replace(/\W/g, '')}" class="zone-insight-tab text-left w-full p-4 rounded-xl border border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-all flex flex-col gap-2 group">
+                <div class="flex justify-between items-center w-full">
+                    <span class="font-bold text-slate-700 dark:text-slate-200 truncate pr-2 group-[.active]:text-indigo-600 dark:group-[.active]:text-indigo-400">${z.name}</span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 group-[.active]:bg-indigo-100 dark:group-[.active]:bg-indigo-900/30 group-[.active]:text-indigo-600 dark:group-[.active]:text-indigo-400 shrink-0">${zRate}% Won</span>
+                </div>
+                <div class="flex justify-between items-center w-full text-xs text-slate-500 dark:text-slate-400">
+                    <span>${z.leads.toLocaleString()} Leads</span>
+                    <span><span class="text-emerald-500 font-medium">${z.won.toLocaleString()}</span> Conf</span>
+                </div>
+            </button>
+            `;
+        }).join('');
+
+        // If a zone is already selected, try to keep it, otherwise select the first one
+        if (sortedZones.length > 0) {
+            selectZoneInsight(sortedZones[0].name);
+        }
+        
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    window.selectZoneInsight = function(zoneName) {
+        const emptyState = document.getElementById('zoneEmptyState');
+        const contentArea = document.getElementById('zoneContentArea');
+        if (!emptyState || !contentArea || !window.currentZoneInsightsData) return;
+
+        const zone = window.currentZoneInsightsData.find(z => z.name === zoneName);
+        if (!zone) return;
+
+        // Update tabs styling
+        document.querySelectorAll('.zone-insight-tab').forEach(el => {
+            el.classList.remove('active', 'bg-white', 'dark:bg-slate-800', 'border-slate-200', 'dark:border-slate-700', 'shadow-sm');
+            el.classList.add('border-transparent');
+        });
+        const activeTab = document.getElementById(`zone-tab-${zoneName.replace(/\W/g, '')}`);
+        if (activeTab) {
+            activeTab.classList.remove('border-transparent');
+            activeTab.classList.add('active', 'bg-white', 'dark:bg-slate-800', 'border-slate-200', 'dark:border-slate-700', 'shadow-sm');
+        }
+
+        emptyState.classList.add('hidden');
+        contentArea.classList.remove('hidden');
+
+        const zRate = zone.leads > 0 ? Math.round((zone.won / zone.leads) * 100) : 0;
+        let sortedSources = Object.keys(zone.sources).map(s => ({ name: s, ...zone.sources[s] })).sort((a, b) => b.leads - a.leads);
+
+        contentArea.innerHTML = `
+            <div class="flex justify-between items-end pb-6 border-b border-slate-100 dark:border-slate-700/50">
+                <div>
+                    <h2 class="text-2xl font-extrabold text-slate-800 dark:text-white flex items-center gap-3">
+                        ${zone.name}
+                    </h2>
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">${zone.leads.toLocaleString()} Total Leads processing</p>
+                </div>
+                <div class="text-right bg-emerald-50 dark:bg-emerald-500/10 px-4 py-2 rounded-xl border border-emerald-100 dark:border-emerald-500/20">
+                    <p class="text-[11px] text-emerald-600 dark:text-emerald-400 uppercase tracking-widest font-bold mb-0.5">Win Rate</p>
+                    <p class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 leading-none">${zRate}%</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-8">
+                ` + sortedSources.map(s => {
+                    let sortedDests = Object.keys(s.dests).map(d => ({ name: d, ...s.dests[d] })).sort((a, b) => b.leads - a.leads);
+                    return `
+                    <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-5 border border-slate-100 dark:border-slate-700/50">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="text-base font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-blue-500"></div> ${s.name}
+                            </h4>
+                            <span class="text-xs font-bold text-slate-500 bg-white dark:bg-slate-700 px-3 py-1 rounded-full shadow-sm border border-slate-200 dark:border-slate-600">${s.leads.toLocaleString()} Leads</span>
+                        </div>
+                        
+                        <div class="flex flex-col gap-3">
+                            ` + sortedDests.map(d => {
+                                const pct = d.leads > 0 ? (d.won / d.leads) * 100 : 0;
+                                
+                                let detailsHtml = '';
+                                if (d.confDetails && d.confDetails.length > 0) {
+                                    detailsHtml = '<div class="mt-3 pl-4 border-l-2 border-emerald-400/50 flex flex-col gap-2">' + 
+                                        '<div class="text-[10px] font-bold uppercase tracking-widest text-emerald-600/80 dark:text-emerald-400/80">Confirmed Details</div>' +
+                                        d.confDetails.map(cd => {
+                                            const fmt = (v) => {
+                                                const n = parseFloat(String(v).replace(/[^\d.-]/g, ''));
+                                                return isNaN(n) ? v : n.toLocaleString();
+                                            };
+                                            return '<div class="flex flex-wrap items-center justify-between text-xs bg-white dark:bg-slate-800 p-2.5 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700/50 text-slate-600 dark:text-slate-400 hover:border-indigo-300 transition-colors">' +
+                                                '<div class="flex items-center gap-4 w-full xl:w-auto mb-2 xl:mb-0">' +
+                                                    '<span title="S.O No" class="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5"><i data-lucide="file-text" class="w-3.5 h-3.5 text-slate-400"></i> ' + cd.soNo + '</span>' +
+                                                    '<span title="Sale Rep" class="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5"><i data-lucide="user" class="w-3.5 h-3.5"></i> ' + cd.rep + '</span>' +
+                                                '</div>' +
+                                                '<div class="flex gap-4 w-full xl:w-auto justify-between xl:justify-end">' +
+                                                    '<span title="Pax" class="flex items-center gap-1.5"><i data-lucide="users" class="w-3.5 h-3.5 text-slate-400"></i> ' + fmt(cd.pax) + '</span>' +
+                                                    '<span title="Sale Price" class="flex items-center gap-1.5"><i data-lucide="tag" class="w-3.5 h-3.5 text-slate-400"></i> $' + fmt(cd.price) + '</span>' +
+                                                    '<span title="Amount" class="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5"><i data-lucide="circle-dollar-sign" class="w-3.5 h-3.5 text-emerald-500"></i> $' + fmt(cd.amount) + '</span>' +
+                                                    '<span title="Deposit" class="flex items-center gap-1.5"><i data-lucide="piggy-bank" class="w-3.5 h-3.5 text-slate-400"></i> $' + fmt(cd.deposit) + '</span>' +
+                                                    '<span title="Balance" class="flex items-center gap-1.5"><i data-lucide="credit-card" class="w-3.5 h-3.5 text-slate-400"></i> $' + fmt(cd.balance) + '</span>' +
+                                                '</div>' +
+                                            '</div>';
+                                        }).join('') + '</div>';
+                                }
+
+                                return `
+                                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between text-sm gap-4 mb-2">
+                                        <span class="font-semibold text-slate-700 dark:text-slate-200 truncate text-base" title="${d.name}">${d.name}</span>
+                                        <span class="text-slate-500 font-semibold tabular-nums shrink-0"><span class="text-emerald-500">${d.won}</span> / ${d.leads} Won</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden flex shrink-0 mb-1">
+                                        <div class="bg-blue-500 h-2 rounded-full transition-all duration-1000" style="width: ${pct}%"></div>
+                                    </div>
+                                    ${detailsHtml}
+                                </div>
+                                `;
+                            }).join('') + `
+                        </div>
+                    </div>
+                    `;
+                }).join('') + `
+            </div>
+        `;
+        
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     function renderTopDestChart() {
         const isDark = isDarkTheme(); const labelColor = isDark ? '#94a3b8' : '#64748b'; const gridColor = isDark ? '#334155' : '#f1f5f9';
         if (topDestNewChart) topDestNewChart.destroy();
-        
+
         let finDestMap = {};
         window.financialData.forEach(r => {
             let dest = getObjStr(r, 'Destination', 'Unknown');
@@ -205,7 +406,7 @@
 
         // FIX: Only show destinations with Confirmed Bookings > 0
         let allDestData = (serverData.destinations || []).filter(d => d.Destination && String(d.Destination).toLowerCase() !== 'not specified' && String(d.Destination) !== '0' && (d.Confirmed > 0));
-        allDestData.sort((a,b) => {
+        allDestData.sort((a, b) => {
             const confA = a.Confirmed || 0; const confB = b.Confirmed || 0;
             return confB - confA;
         });
@@ -218,7 +419,7 @@
                 data: {
                     labels: destData.map(d => String(d.Destination).substring(0, 15)),
                     datasets: [
-                        { type: 'line', label: 'Conversion %', data: destData.map(d => d.Leads > 0 ? Math.round((d.Confirmed/d.Leads)*100) : 0), borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', borderWidth: 2, tension: 0.4, yAxisID: 'y1', datalabels: { align: 'bottom', backgroundColor: '#8b5cf6', color: '#fff', borderRadius: 4, font: { weight: 'bold', size: 9 }, padding: 4, formatter: v => v + '%' } },
+                        { type: 'line', label: 'Conversion %', data: destData.map(d => d.Leads > 0 ? Math.round((d.Confirmed / d.Leads) * 100) : 0), borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', borderWidth: 2, tension: 0.4, yAxisID: 'y1', datalabels: { align: 'bottom', backgroundColor: '#8b5cf6', color: '#fff', borderRadius: 4, font: { weight: 'bold', size: 9 }, padding: 4, formatter: v => v + '%' } },
                         { type: 'bar', label: 'Leads', data: destData.map(d => d.Leads), backgroundColor: '#0ea5e9', borderRadius: 4, barPercentage: 0.6, yAxisID: 'y', datalabels: { align: 'top', anchor: 'end', color: labelColor, font: { size: 10 }, formatter: v => v > 0 ? v : '' } },
                         { type: 'bar', label: 'Won', data: destData.map(d => d.Confirmed), backgroundColor: '#10b981', borderRadius: 4, barPercentage: 0.6, yAxisID: 'y', datalabels: { align: 'top', anchor: 'end', color: labelColor, font: { size: 10 }, formatter: v => v > 0 ? v : '' } }
                     ]
@@ -248,7 +449,7 @@
 
     function updateTrend() {
         const isDark = isDarkTheme(); const gridColor = isDark ? '#334155' : '#f1f5f9'; const labelColor = isDark ? '#94a3b8' : '#64748b';
-        
+
         // --- 1. CRM Lead Trend Chart ---
         const rawData = serverData[lastScale] || [];
         const sortKey = lastScale === 'weekly' ? 'Week' : (lastScale === 'monthly' ? 'Month' : (lastScale === 'yearly' ? 'Year' : 'DateStr'));
@@ -269,15 +470,15 @@
             d.FinRevenue = finAgg[k] ? finAgg[k].Revenue : 0;
             d.FinPax = finAgg[k] ? finAgg[k].Pax : 0;
         });
-        
+
         const labels = data.map(d => {
             if (lastScale === 'yearly') return d.Year || '';
             if (lastScale === 'weekly') { let w = d.Week || ''; return String(w).includes('W') ? w : 'W' + w; }
             if (lastScale === 'monthly') {
                 let m = String(d.Month || ''); if (!m.includes('-')) return m;
-                let p = m.split('-'); const mm = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${mm[parseInt(p[1])-1]} ${p[0]}`;
+                let p = m.split('-'); const mm = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; return `${mm[parseInt(p[1]) - 1]} ${p[0]}`;
             }
-            return fmtDate(d.DateStr || ''); 
+            return fmtDate(d.DateStr || '');
         });
 
         if (trendChart) trendChart.destroy();
@@ -285,78 +486,78 @@
         if (trendEl) {
             trendChart = new Chart(trendEl, {
                 type: 'bar',
-                data: { 
-                    labels: labels, 
+                data: {
+                    labels: labels,
                     datasets: [
-                        { 
-                            type: 'line', 
-                            label: 'Conversion %', 
-                            data: data.map(d => d.Leads > 0 ? Math.round((d.Confirmed/d.Leads)*100) : 0), 
-                            borderColor: '#8b5cf6', 
-                            backgroundColor: '#8b5cf6', 
-                            borderWidth: 2, 
-                            borderDash: [5, 5], 
-                            tension: 0.4, 
-                            yAxisID: 'y1', 
-                            order: 1, 
-                            datalabels: { 
-                                display: function(context) { return (lastScale !== 'monthly' && lastScale !== 'yearly'); },
-                                align: 'bottom', backgroundColor: '#8b5cf6', color: '#fff', borderRadius: 4, font: { weight: 'bold', size: 9 }, padding: 4, 
-                                formatter: v => v > 0 ? v + '%' : '' 
-                            } 
+                        {
+                            type: 'line',
+                            label: 'Conversion %',
+                            data: data.map(d => d.Leads > 0 ? Math.round((d.Confirmed / d.Leads) * 100) : 0),
+                            borderColor: '#8b5cf6',
+                            backgroundColor: '#8b5cf6',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            yAxisID: 'y1',
+                            order: 1,
+                            datalabels: {
+                                display: function (context) { return (lastScale !== 'monthly' && lastScale !== 'yearly'); },
+                                align: 'bottom', backgroundColor: '#8b5cf6', color: '#fff', borderRadius: 4, font: { weight: 'bold', size: 9 }, padding: 4,
+                                formatter: v => v > 0 ? v + '%' : ''
+                            }
                         },
-                        { 
-                            type: 'bar', 
-                            label: 'Leads', 
-                            data: data.map(d => d.Leads), 
-                            backgroundColor: '#3b82f6', 
-                            borderRadius: 4, 
-                            barPercentage: 0.6, 
-                            yAxisID: 'y', 
-                            order: 2, 
-                            datalabels: { 
-                                display: function(context) {
+                        {
+                            type: 'bar',
+                            label: 'Leads',
+                            data: data.map(d => d.Leads),
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 4,
+                            barPercentage: 0.6,
+                            yAxisID: 'y',
+                            order: 2,
+                            datalabels: {
+                                display: function (context) {
                                     if (lastScale !== 'monthly' && lastScale !== 'yearly') return true;
                                     const meta = context.chart.getDatasetMeta(context.datasetIndex);
                                     const bar = meta.data[context.dataIndex];
-                                    return bar && typeof bar.height === 'number' ? bar.height > 75 : true; 
+                                    return bar && typeof bar.height === 'number' ? bar.height > 75 : true;
                                 },
-                                align: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 'center' : 'top', 
-                                anchor: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 'center' : 'end', 
-                                font: { family: 'Inter', weight: '600', size: 10, lineHeight: 1.4 }, 
+                                align: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 'center' : 'top',
+                                anchor: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 'center' : 'end',
+                                font: { family: 'Inter', weight: '600', size: 10, lineHeight: 1.4 },
                                 textAlign: 'center',
-                                color: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? '#ffffff' : '#3b82f6', 
+                                color: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? '#ffffff' : '#3b82f6',
                                 textShadowBlur: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 4 : 0,
                                 textShadowColor: 'rgba(0,0,0,0.4)',
-                                formatter: (v, context) => { 
-                                    if (lastScale === 'monthly' || lastScale === 'yearly') { 
-                                        if (v === 0) return ''; 
-                                        const raw = data[context.dataIndex]; 
-                                        const conv = raw.Leads > 0 ? Math.round((raw.Confirmed/raw.Leads)*100) : 0; 
-                                        return [`Conv: ${conv}%`, `Lds: ${raw.Leads}`, `Won: ${raw.Confirmed}`, `Pax: ${raw.FinPax.toLocaleString()}`, `Rev: $${Math.round(raw.FinRevenue).toLocaleString()}`]; 
-                                    } 
-                                    return v > 0 ? v : ''; 
-                                } 
-                            } 
-                        }, 
-                        { 
-                            type: 'bar', 
-                            label: 'Won', 
-                            data: data.map(d => d.Confirmed), 
-                            backgroundColor: '#10b981', 
-                            borderRadius: 4, 
-                            barPercentage: 0.6, 
-                            yAxisID: 'y', 
-                            order: 3, 
-                            datalabels: { 
-                                display: function(context) { return (lastScale !== 'monthly' && lastScale !== 'yearly'); },
-                                align: 'top', anchor: 'end', font: { weight: 'bold', size: 10 }, color: '#10b981', 
+                                formatter: (v, context) => {
+                                    if (lastScale === 'monthly' || lastScale === 'yearly') {
+                                        if (v === 0) return '';
+                                        const raw = data[context.dataIndex];
+                                        const conv = raw.Leads > 0 ? Math.round((raw.Confirmed / raw.Leads) * 100) : 0;
+                                        return [`Conv: ${conv}%`, `Leads: ${raw.Leads}`, `Won: ${raw.Confirmed}`, `Pax: ${raw.FinPax.toLocaleString()}`, `Rev: $${Math.round(raw.FinRevenue).toLocaleString()}`];
+                                    }
+                                    return v > 0 ? v : '';
+                                }
+                            }
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Won',
+                            data: data.map(d => d.Confirmed),
+                            backgroundColor: '#10b981',
+                            borderRadius: 4,
+                            barPercentage: 0.6,
+                            yAxisID: 'y',
+                            order: 3,
+                            datalabels: {
+                                display: function (context) { return (lastScale !== 'monthly' && lastScale !== 'yearly'); },
+                                align: 'top', anchor: 'end', font: { weight: 'bold', size: 10 }, color: '#10b981',
                                 formatter: v => v > 0 ? v : ''
-                            } 
+                            }
                         }
                     ]
                 },
-                options: { 
+                options: {
                     responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, layout: { padding: { top: 20 } },
                     onClick: (event, activeElements) => {
                         if (activeElements.length > 0 && typeof window.openDrilldownModal === 'function') {
@@ -369,12 +570,12 @@
                     onHover: (event, chartElement) => {
                         event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
                     },
-                    plugins: { 
+                    plugins: {
                         legend: { position: 'top', labels: { font: { family: 'Inter', color: labelColor }, usePointStyle: true } },
                         tooltip: {
                             position: 'average', yAlign: 'center',
                             callbacks: {
-                                title: function(context) {
+                                title: function (context) {
                                     let title = context[0].label;
                                     if (lastScale === 'weekly' && title.includes('W')) {
                                         let parts = title.split('W');
@@ -384,7 +585,7 @@
                                     }
                                     return title;
                                 },
-                                afterBody: function(context) {
+                                afterBody: function (context) {
                                     const idx = context[0].dataIndex;
                                     const raw = data[idx];
                                     return `\nTotal Pax: ${raw.FinPax.toLocaleString()}\nRevenue: $${Math.round(raw.FinRevenue).toLocaleString()}`;
@@ -392,10 +593,10 @@
                             }
                         }
                     },
-                    scales: { 
-                        y: { type: 'linear', position: 'left', beginAtZero: true, grid: { color: gridColor }, border: { dash: [4, 4] }, ticks: { color: labelColor }, suggestedMax: Math.max(...data.map(d => Math.max(d.Leads || 0, d.Confirmed || 0))) * 1.15 }, 
-                        y1: { type: 'linear', position: 'right', beginAtZero: true, max: 100, grid: { display: false }, ticks: { callback: v => v + '%', color: labelColor } }, 
-                        x: { grid: { display: false }, ticks: { color: labelColor } } 
+                    scales: {
+                        y: { type: 'linear', position: 'left', beginAtZero: true, grid: { color: gridColor }, border: { dash: [4, 4] }, ticks: { color: labelColor }, suggestedMax: Math.max(...data.map(d => Math.max(d.Leads || 0, d.Confirmed || 0))) * 1.15 },
+                        y1: { type: 'linear', position: 'right', beginAtZero: true, max: 100, grid: { display: false }, ticks: { callback: v => v + '%', color: labelColor } },
+                        x: { grid: { display: false }, ticks: { color: labelColor } }
                     }
                 }
             });
@@ -404,7 +605,7 @@
         // --- 2. Financial Revenue Trend Chart ---
         let revAgg = {};
         const revSortKey = lastScale === 'weekly' ? 'Week' : (lastScale === 'monthly' ? 'Month' : (lastScale === 'yearly' ? 'Year' : 'DateStr'));
-        
+
         window.financialData.forEach(r => {
             let k = r[revSortKey];
             if (!k) return;
@@ -422,9 +623,9 @@
             if (lastScale === 'weekly') { let w = d[revSortKey] || ''; return String(w).includes('W') ? w : 'W' + w; }
             if (lastScale === 'monthly') {
                 let m = String(d[revSortKey] || ''); if (!m.includes('-')) return m;
-                let p = m.split('-'); const mm = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${mm[parseInt(p[1])-1]} ${p[0]}`;
+                let p = m.split('-'); const mm = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; return `${mm[parseInt(p[1]) - 1]} ${p[0]}`;
             }
-            return fmtDate(d[revSortKey] || ''); 
+            return fmtDate(d[revSortKey] || '');
         });
 
         if (revenueTrendChart) revenueTrendChart.destroy();
@@ -432,42 +633,42 @@
         if (revTrendEl) {
             revenueTrendChart = new Chart(revTrendEl, {
                 type: 'bar',
-                data: { 
-                    labels: revLabels, 
+                data: {
+                    labels: revLabels,
                     datasets: [
-                        { 
-                            type: 'line', label: 'Total Pax', data: revData.map(d => d.Pax), borderColor: '#f59e0b', backgroundColor: '#f59e0b', borderWidth: 2, tension: 0.4, yAxisID: 'y1', order: 1, 
-                            datalabels: { display: false } 
+                        {
+                            type: 'line', label: 'Total Pax', data: revData.map(d => d.Pax), borderColor: '#f59e0b', backgroundColor: '#f59e0b', borderWidth: 2, tension: 0.4, yAxisID: 'y1', order: 1,
+                            datalabels: { display: false }
                         },
-                        { 
-                            type: 'bar', label: 'Revenue ($)', data: revData.map(d => Math.round(d.Revenue)), backgroundColor: '#10b981', borderRadius: 4, barPercentage: 0.6, yAxisID: 'y', order: 2, 
-                            datalabels: { 
-                                display: function(context) {
+                        {
+                            type: 'bar', label: 'Revenue ($)', data: revData.map(d => Math.round(d.Revenue)), backgroundColor: '#10b981', borderRadius: 4, barPercentage: 0.6, yAxisID: 'y', order: 2,
+                            datalabels: {
+                                display: function (context) {
                                     if (lastScale !== 'monthly' && lastScale !== 'yearly') return true;
                                     const meta = context.chart.getDatasetMeta(context.datasetIndex);
                                     const bar = meta.data[context.dataIndex];
-                                    return bar && typeof bar.height === 'number' ? bar.height > 40 : true; 
+                                    return bar && typeof bar.height === 'number' ? bar.height > 40 : true;
                                 },
-                                align: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 'center' : 'top', 
-                                anchor: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 'center' : 'end', 
-                                font: { family: 'Inter', weight: '600', size: 10, lineHeight: 1.4 }, 
+                                align: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 'center' : 'top',
+                                anchor: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 'center' : 'end',
+                                font: { family: 'Inter', weight: '600', size: 10, lineHeight: 1.4 },
                                 textAlign: 'center',
-                                color: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? '#ffffff' : '#10b981', 
+                                color: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? '#ffffff' : '#10b981',
                                 textShadowBlur: (context) => (lastScale === 'monthly' || lastScale === 'yearly') ? 4 : 0,
                                 textShadowColor: 'rgba(0,0,0,0.4)',
-                                formatter: (v, context) => { 
-                                    if (lastScale === 'monthly' || lastScale === 'yearly') { 
-                                        if (v === 0) return ''; 
-                                        const raw = revData[context.dataIndex]; 
-                                        return [`Pax: ${raw.Pax.toLocaleString()}`, `Rev: $${Math.round(raw.Revenue).toLocaleString()}`]; 
-                                    } 
-                                    return v > 0 ? '$' + (v/1000).toFixed(1) + 'k' : ''; 
-                                } 
-                            } 
+                                formatter: (v, context) => {
+                                    if (lastScale === 'monthly' || lastScale === 'yearly') {
+                                        if (v === 0) return '';
+                                        const raw = revData[context.dataIndex];
+                                        return [`Pax: ${raw.Pax.toLocaleString()}`, `Rev: $${Math.round(raw.Revenue).toLocaleString()}`];
+                                    }
+                                    return v > 0 ? '$' + (v / 1000).toFixed(1) + 'k' : '';
+                                }
+                            }
                         }
                     ]
                 },
-                options: { 
+                options: {
                     responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, layout: { padding: { top: 20 } },
                     onClick: (event, activeElements) => {
                         if (activeElements.length > 0 && typeof window.openFinancialModal === 'function') {
@@ -480,12 +681,12 @@
                     onHover: (event, chartElement) => {
                         event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
                     },
-                    plugins: { 
+                    plugins: {
                         legend: { position: 'top', labels: { font: { family: 'Inter', color: labelColor }, usePointStyle: true } },
                         tooltip: {
                             position: 'average', yAlign: 'center',
                             callbacks: {
-                                title: function(context) {
+                                title: function (context) {
                                     let title = context[0].label;
                                     if (lastScale === 'weekly' && title.includes('W')) {
                                         let parts = title.split('W');
@@ -495,7 +696,7 @@
                                     }
                                     return title;
                                 },
-                                label: function(context) {
+                                label: function (context) {
                                     let label = context.dataset.label || '';
                                     if (label) label += ': ';
                                     if (context.dataset.label === 'Revenue ($)') label += '$' + context.raw.toLocaleString();
@@ -505,10 +706,10 @@
                             }
                         }
                     },
-                    scales: { 
-                        y: { type: 'linear', position: 'left', beginAtZero: true, grid: { color: gridColor }, border: { dash: [4, 4] }, suggestedMax: Math.max(...revData.map(d => d.Revenue || 0)) * 1.15, ticks: { callback: v => '$' + (v/1000) + 'k', color: labelColor } }, 
-                        y1: { type: 'linear', position: 'right', beginAtZero: true, grid: { display: false }, ticks: { color: labelColor } }, 
-                        x: { grid: { display: false }, ticks: { color: labelColor } } 
+                    scales: {
+                        y: { type: 'linear', position: 'left', beginAtZero: true, grid: { color: gridColor }, border: { dash: [4, 4] }, suggestedMax: Math.max(...revData.map(d => d.Revenue || 0)) * 1.15, ticks: { callback: v => '$' + (v / 1000) + 'k', color: labelColor } },
+                        y1: { type: 'linear', position: 'right', beginAtZero: true, grid: { display: false }, ticks: { color: labelColor } },
+                        x: { grid: { display: false }, ticks: { color: labelColor } }
                     }
                 }
             });

@@ -320,6 +320,48 @@ def save_tour():
         traceback.print_exc()
         return jsonify({"error": f"Database Update Error: {str(e)}"}), 500
 
+@tools_bp.route('/api/delete_tour', methods=['POST'])
+@login_required
+@admin_required
+def delete_tour():
+    """Securely deletes a tour record from the Group Tours Report."""
+    data = request.json
+    tour_code = str(data.get('tour_code', '')).strip()
+    departure = str(data.get('departure', '')).strip()
+    
+    if not tour_code:
+        return jsonify({"error": "Tour code is missing."}), 400
+        
+    engine = get_db_connection()
+    table_name = 'group_tours_report'
+    
+    try:
+        with engine.begin() as conn:
+            # Find the identifier column (Tour_Code or Destinations)
+            cols = [row[0] for row in conn.execute(text(f"SHOW COLUMNS FROM {table_name}")).fetchall()]
+            id_col = next((c for c in cols if any(k in c.lower() for k in ['tour_code', 'destinations', 'destination', 'tour code'])), None)
+            
+            if not id_col:
+                return jsonify({"error": "Could not identify primary key column."}), 500
+                
+            query = f"DELETE FROM {table_name} WHERE `{id_col}` = :tc"
+            params = {"tc": tour_code}
+            
+            # Use departure for precision if available
+            if departure and departure not in ['None', '', 'nan', '---']:
+                query += " AND (`Departure` = :dep OR `Departure` LIKE :dep_like)"
+                params["dep"] = departure
+                params["dep_like"] = f"{departure}%"
+                
+            result = conn.execute(text(query), params)
+            if result.rowcount == 0:
+                return jsonify({"error": "No record found to delete."}), 404
+                
+        return jsonify({"status": "success", "message": "Record deleted successfully."})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 
 @tools_bp.route('/compare-tools', methods=['GET', 'POST'])
 @login_required
@@ -404,8 +446,6 @@ def ocr_tool_page():
         try: extracted_items = json.loads(request.form.get('batch_results'))
         except: return render_template('ocr_tool.html', error="Failed to parse batch results.", quotes=quotes)
 
-        # Standardize the output dictionaries for the front-end JS.
-        # Fallback safely if front-end passed Depature Date or Departure Date
         results = [{
             "No": "", 
             "Customer Name": i.get("Customer Name", ""), 
@@ -435,7 +475,6 @@ def ocr_tool_page():
                 except: df_new.to_excel(excel_path, index=False)
             else: df_new.to_excel(excel_path, index=False)
 
-        # Base64 export logic removed to save processing power since Javascript handles downloads now
         return render_template('ocr_tool.html', results=results, quotes=quotes)
 
     return render_template('ocr_tool.html', quotes=quotes)
@@ -458,8 +497,6 @@ def api_extract_chat():
 @admin_required
 def role_matrix_api():
     engine = get_db_connection()
-    
-    # Application Modules matching your system
     modules = [
         {"key": "sales_dashboard", "label": "Sales Dashboard", "icon": "layout-dashboard"},
         {"key": "revenue_dashboard", "label": "Revenue Dashboard", "icon": "dollar-sign"},
@@ -473,79 +510,32 @@ def role_matrix_api():
         data = request.json
         try:
             with engine.begin() as conn:
-                # Ensure the exact table structure exists
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS `role_permissions` (
-                      `id` int NOT NULL AUTO_INCREMENT,
-                      `role_name` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-                      `menu_key` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-                      `can_access` tinyint(1) DEFAULT '0',
-                      PRIMARY KEY (`id`),
-                      UNIQUE KEY `unique_role_menu` (`role_name`,`menu_key`)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-                """))
-                
-                # Insert or Update permissions for each role
                 for role_data in data:
                     role_name = role_data.get('role')
                     permissions = role_data.get('permissions', {}) 
-                    
                     for menu_key, can_access in permissions.items():
                         val = 1 if can_access else 0
-                        conn.execute(
-                            text("""
-                                INSERT INTO role_permissions (role_name, menu_key, can_access) 
-                                VALUES (:r, :m, :c) 
-                                ON DUPLICATE KEY UPDATE can_access = :c
-                            """), 
-                            {'r': role_name, 'm': menu_key, 'c': val}
-                        )
+                        conn.execute(text("INSERT INTO role_permissions (role_name, menu_key, can_access) VALUES (:r, :m, :c) ON DUPLICATE KEY UPDATE can_access = :c"), {'r': role_name, 'm': menu_key, 'c': val})
             return jsonify({"status": "success", "message": "Role matrix updated."})
         except Exception as e:
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
 
-    # GET Request: Fetch Data for UI
     try:
         with engine.connect() as conn:
-            # Check table existence safely
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS `role_permissions` (
-                  `id` int NOT NULL AUTO_INCREMENT,
-                  `role_name` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-                  `menu_key` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-                  `can_access` tinyint(1) DEFAULT '0',
-                  PRIMARY KEY (`id`),
-                  UNIQUE KEY `unique_role_menu` (`role_name`,`menu_key`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-            """))
-            
-            # Fetch dynamic roles from users table (fallback to admin/viewer if empty)
             try:
                 roles_query = conn.execute(text("SELECT DISTINCT role FROM users WHERE role IS NOT NULL AND role != ''")).fetchall()
                 roles = [row[0] for row in roles_query]
-            except:
-                roles = ['admin', 'viewer']
-                
+            except: roles = ['admin', 'viewer']
             if 'admin' not in roles: roles.insert(0, 'admin')
             if len(roles) == 1 and roles[0] == 'admin': roles.append('viewer')
 
-            # Build matrix map
             perms_query = conn.execute(text("SELECT role_name, menu_key, can_access FROM role_permissions")).fetchall()
             matrix = {}
             for r in roles:
                 matrix[r] = {m['key']: False for m in modules}
-                if r == 'admin':
-                    matrix[r]['user_management'] = True # Admin permanently has user access
-            
+                if r == 'admin': matrix[r]['user_management'] = True
             for r_name, m_key, c_access in perms_query:
-                if r_name in matrix and m_key in matrix[r_name]:
-                    matrix[r_name][m_key] = bool(c_access)
-
-        return jsonify({
-            "roles": sorted(roles),
-            "modules": modules,
-            "matrix": matrix
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+                if r_name in matrix and m_key in matrix[r_name]: matrix[r_name][m_key] = bool(c_access)
+        return jsonify({"roles": sorted(roles), "modules": modules, "matrix": matrix})
+    except Exception as e: return jsonify({"error": str(e)}), 500
