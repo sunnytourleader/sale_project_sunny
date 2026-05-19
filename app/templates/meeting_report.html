@@ -780,10 +780,10 @@
 
     <!-- Sold Details Modal -->
     <div id="soldDetailsModal"
-        class="fixed inset-0 z-[110] hidden items-center justify-center p-4 transition-all duration-300">
+        class="fixed inset-0 z-[110] hidden items-center justify-center p-0 transition-all duration-300">
         <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeSoldDetailsModal()"></div>
         <div
-            class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-6xl z-10 flex flex-col max-h-[90vh] transform transition-all border border-slate-200 dark:border-slate-700 overflow-hidden">
+            class="bg-white dark:bg-slate-800 shadow-xl w-full h-full max-w-full max-h-screen z-10 flex flex-col transform transition-all overflow-hidden rounded-none border-0">
 
             <div
                 class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-800 relative z-20">
@@ -795,7 +795,14 @@
                     </h3>
                 </div>
 
-                <div class="flex items-center gap-3 shrink-0">
+                <div class="flex flex-wrap items-center gap-3 shrink-0">
+                    <div class="relative">
+                        <i data-lucide="search"
+                            class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2"></i>
+                        <input type="text" id="soldDetailsSearch" placeholder="Search Customer, S.O No, Rep..."
+                            class="pl-9 pr-3 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900 dark:text-white outline-none focus:border-indigo-500 transition-colors shadow-sm min-w-[200px]"
+                            oninput="renderSoldDetailsTable()">
+                    </div>
                     <select id="soldDetailsRepFilter"
                         class="text-xs font-medium border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-900 dark:text-white outline-none focus:border-emerald-500 transition-colors shadow-sm"
                         onchange="renderSoldDetailsTable()">
@@ -841,7 +848,13 @@
                                 Pax</th>
                             <th
                                 class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-right">
-                                Total</th>
+                                Total Sale</th>
+                            <th
+                                class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-right">
+                                Deposit</th>
+                            <th
+                                class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-right">
+                                Balance</th>
                             <th
                                 class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center">
                                 Source</th>
@@ -851,6 +864,9 @@
                             <th
                                 class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                                 Sale Rep</th>
+                            <th
+                                class="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                Noted</th>
                         </tr>
                     </thead>
                     <tbody id="soldDetailsBody"
@@ -1514,24 +1530,22 @@
                     const finCard = document.getElementById('financialOverviewCard');
                     if (data.status === 'success') {
                         const rev = data.total_revenue || 0;
+                        const dep = data.total_deposit || 0;
+                        const bal = data.total_balance || 0;
 
-                        // Rough cost estimate based on pax and apx price (if available)
-                        const estCostPerPax = parseFloat(String(safeData.price10).replace(/[^0-9.-]+/g, "")) || 0;
-                        const estTotalCost = estCostPerPax * safeData.sold;
-                        const profit = rev - estTotalCost;
-
-                        let profitColor = profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
-                        let profitIcon = profit >= 0 ? '<i data-lucide="trending-up" class="w-4 h-4"></i>' : '<i data-lucide="trending-down" class="w-4 h-4"></i>';
-
-                        finCard.className = 'bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-3';
+                        finCard.className = 'bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 flex flex-col gap-2';
                         finCard.innerHTML = `
-                            <div>
-                                <p class="text-[10px] text-slate-500 uppercase font-semibold mb-1">Total Revenue</p>
-                                <p class="text-lg font-bold text-blue-600 dark:text-blue-400 leading-none">$${rev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[10px] text-slate-500 uppercase font-semibold">Total Sale</span>
+                                <span class="text-sm font-bold text-blue-600 dark:text-blue-400">$${rev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
-                            <div>
-                                <p class="text-[10px] text-slate-500 uppercase font-semibold mb-1">Estimated Profit</p>
-                                <p class="text-lg font-bold ${profitColor} leading-none flex items-center gap-1">${profitIcon} $${profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[10px] text-slate-500 uppercase font-semibold">Total Deposit</span>
+                                <span class="text-sm font-bold text-emerald-600 dark:text-emerald-400">$${dep.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                            <div class="flex justify-between items-center pt-1 border-t border-slate-100 dark:border-slate-700">
+                                <span class="text-[10px] text-slate-500 uppercase font-semibold">Total Balance</span>
+                                <span class="text-sm font-bold text-amber-600 dark:text-amber-400">$${bal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         `;
                         lucide.createIcons();
@@ -1736,19 +1750,15 @@
                 let rawFin = dataFin.raw_data || [];
 
                 let filtered = rawFin.filter(r => {
-                    const dest = String(r['Destination'] || r['Tour Code'] || r['Tour_Code'] || '').toLowerCase().trim();
+                    const ledgerTourCode = String(r['Tour_Code'] || r['Tour Code'] || r['Destination'] || '').toLowerCase().trim();
                     const tcLower = String(tourCode).toLowerCase().trim();
-                    const rDep = fmtDate(r['Dep_Date'] || r['Dep. Date'] || r['Departure Date'] || r['Departure']);
-                    const rArr = fmtDate(r['Arr_Date'] || r['Arr. Date'] || r['Arrival Date'] || r['Arrival']);
 
-                    const matchDest = dest === tcLower || dest.includes(tcLower) || tcLower.includes(dest);
-                    const matchDep = (rDep === depDate) || (depDate === '---');
-                    const matchArr = (rArr === arrDate) || (arrDate === '---');
+                    const matchTourCode = (ledgerTourCode === tcLower);
 
                     let status = getObjStr(r, 'Status', '').toUpperCase();
                     let statusMatch = status === '' || status.includes('6-CONFIRMED') || status.includes('BOOKED') || status.includes('CLOSED') || status.includes('PAID') || status.includes('FINISHED');
 
-                    return matchDest && matchDep && matchArr && statusMatch;
+                    return matchTourCode && statusMatch;
                 });
 
                 if (filtered.length === 0) {
@@ -1769,10 +1779,20 @@
             const tbody = document.getElementById('soldDetailsBody');
             const tfoot = document.getElementById('soldDetailsFoot');
             const repFilterVal = document.getElementById('soldDetailsRepFilter').value;
+            const searchEl = document.getElementById('soldDetailsSearch');
+            const searchVal = searchEl ? searchEl.value.toLowerCase() : '';
             let displayData = window.currentSoldData;
 
             if (repFilterVal !== 'all') {
                 displayData = displayData.filter(r => getObjStr(r, 'Sale Rep', getObjStr(r, 'Rep', getObjStr(r, 'Agent', '---'))) === repFilterVal);
+            }
+            if (searchVal) {
+                displayData = displayData.filter(r => {
+                    const customer = (r['Customer Name'] || r['Customer_Name'] || r['Name'] || '').toLowerCase();
+                    const soNo = getObjStr(r, 'SO_No', getObjStr(r, 'S.O No', getObjStr(r, 'Invoice', ''))).toLowerCase();
+                    const rep = getObjStr(r, 'Sale Rep', getObjStr(r, 'Rep', getObjStr(r, 'Agent', ''))).toLowerCase();
+                    return customer.includes(searchVal) || soNo.includes(searchVal) || rep.includes(searchVal);
+                });
             }
 
             window.currentSoldDataExport = displayData;
@@ -1781,27 +1801,35 @@
                 return;
             }
 
-            let sumPax = 0; let sumTotal = 0;
+            let sumPax = 0; let sumTotal = 0; let sumDeposit = 0; let sumBalance = 0;
             tbody.innerHTML = displayData.map((r, i) => {
                 const contactedDate = fmtDate(r['Contacted_Date'] || r['Contacted Date'] || r['Date']);
                 let customer = r['Customer Name'] || r['Customer_Name'] || r['Name'] || 'Unknown';
+                let soNo = getObjStr(r, 'SO_No', getObjStr(r, 'S.O No', getObjStr(r, 'Invoice', '---')));
                 const tourFare = parseFloat(String(r['Tour Fare'] || r['Tour_Fare'] || '0').replace(/[^0-9.-]+/g, "")) || 0;
                 let pax = parseFloat(r['Pax']) || 1;
-                let total = parseFloat(String(r['Total'] || r['Amount'] || '0').replace(/[^0-9.-]+/g, "")) || (tourFare * pax);
-                sumPax += pax; sumTotal += total;
+                let total = parseFloat(String(r['Total'] || r['Amount'] || r['Sale'] || '0').replace(/[^0-9.-]+/g, "")) || (tourFare * pax);
+                let deposit = parseFloat(String(r['Deposit'] || '0').replace(/[^0-9.-]+/g, "")) || 0;
+                let balance = parseFloat(String(r['Balance'] || '0').replace(/[^0-9.-]+/g, "")) || 0;
+                let noted = r['Noted'] || r['Remark'] || r['Note'] || '---';
+
+                sumPax += pax; sumTotal += total; sumDeposit += deposit; sumBalance += balance;
 
                 return `<tr class="hover:bg-slate-50 dark:bg-slate-700/50 border-b border-slate-50 dark:border-slate-700/50">
                     <td class="px-5 py-3 text-xs text-slate-500">${i + 1}</td>
                     <td class="px-5 py-3 text-xs font-medium text-slate-700 dark:text-slate-300">${contactedDate}</td>
                     <td class="px-5 py-3 text-xs font-medium text-slate-800 dark:text-white truncate max-w-[150px]">${customer}</td>
                     <td class="px-5 py-3 text-xs font-bold text-slate-800 dark:text-white uppercase truncate max-w-[120px]">${r['Destination'] || '---'}</td>
-                    <td class="px-5 py-3 text-xs font-semibold text-slate-700 dark:text-slate-300">${r['SO_No'] || '---'}</td>
+                    <td class="px-5 py-3 text-xs font-semibold text-slate-700 dark:text-slate-300">${soNo}</td>
                     <td class="px-5 py-3 text-xs font-semibold text-slate-600 text-right">$${tourFare.toLocaleString()}</td>
                     <td class="px-5 py-3 text-sm font-bold text-emerald-600 text-center">${pax}</td>
                     <td class="px-5 py-3 text-sm font-bold text-blue-600 text-right">$${total.toLocaleString()}</td>
+                    <td class="px-5 py-3 text-sm font-bold text-emerald-600 text-right">$${deposit.toLocaleString()}</td>
+                    <td class="px-5 py-3 text-sm font-bold text-amber-600 text-right">$${balance.toLocaleString()}</td>
                     <td class="px-5 py-3 text-center"><span class="px-2 py-0.5 bg-slate-100 text-[9px] font-bold rounded">${r['Source'] || '---'}</span></td>
                     <td class="px-5 py-3 text-center"><span class="px-2 py-0.5 bg-slate-100 text-[9px] font-bold rounded">${r['Type'] || '---'}</span></td>
                     <td class="px-5 py-3 text-xs font-medium text-slate-600">${r['Sale Rep'] || '---'}</td>
+                    <td class="px-5 py-3 text-xs font-medium text-slate-600">${noted}</td>
                 </tr>`;
             }).join('');
 
@@ -1809,7 +1837,9 @@
                 <td colspan="6" class="px-5 py-4 text-right text-xs font-bold text-slate-800 dark:text-white uppercase">Total:</td>
                 <td class="px-5 py-4 text-center text-sm font-bold text-emerald-600">${sumPax}</td>
                 <td class="px-5 py-4 text-right text-sm font-bold text-blue-600">$${sumTotal.toLocaleString()}</td>
-                <td colspan="3"></td>
+                <td class="px-5 py-4 text-right text-sm font-bold text-emerald-600">$${sumDeposit.toLocaleString()}</td>
+                <td class="px-5 py-4 text-right text-sm font-bold text-amber-600">$${sumBalance.toLocaleString()}</td>
+                <td colspan="4"></td>
             </tr>`;
         }
 

@@ -353,43 +353,71 @@ def get_tour_manifest(tour_code):
             # Get columns dynamically
             columns = [col[0] for col in conn.execute(text("SHOW COLUMNS FROM financial_sales_ledger")).fetchall()]
             
-            # Find the best column for tour_code / destination
-            tc_col = next((c for c in columns if any(k in c.lower() for k in ['tour_code', 'tour code', 'destination', 'dest'])), None)
+            # Find the best column for tour_code
+            tc_col = next((c for c in columns if 'tour' in c.lower() and 'code' in c.lower()), None)
+            if not tc_col:
+                tc_col = next((c for c in columns if 'destination' in c.lower() or 'dest' in c.lower()), None)
             
             if not tc_col:
                 return jsonify({"status": "error", "message": "Could not identify Tour Code column in sales ledger."}), 400
                 
             # Query passengers matching the tour code
-            query = f"SELECT * FROM financial_sales_ledger WHERE `{tc_col}` = :tc"
+            query = f"SELECT * FROM financial_sales_ledger WHERE LOWER(TRIM(`{tc_col}`)) = LOWER(TRIM(:tc))"
             results = conn.execute(text(query), {"tc": tour_code}).fetchall()
             
             passengers = []
             total_revenue = 0.0
+            total_deposit = 0.0
+            total_balance = 0.0
+            
+            status_col = next((c for c in columns if 'status' in c.lower()), None)
             
             for row in results:
                 row_dict = dict(zip(columns, row))
+                
+                # Filter by status
+                if status_col:
+                    status_val = str(row_dict.get(status_col, '')).upper().strip()
+                    if status_val and status_val not in ['NAN', 'NONE', 'NULL'] and not any(x in status_val for x in ['6-CONFIRMED', 'BOOKED', 'CLOSED', 'PAID', 'FINISHED']):
+                        continue
                 
                 # Try to find standard fields
                 name_col = next((c for c in columns if 'name' in c.lower()), None)
                 pax_col = next((c for c in columns if 'qty' in c.lower() or 'pax' in c.lower()), None)
                 so_col = next((c for c in columns if 'so_no' in c.lower() or 's_o' in c.lower() or 'invoice' in c.lower()), None)
-                amount_col = next((c for c in columns if 'total' in c.lower() or 'amount' in c.lower() or 'revenue' in c.lower()), None)
+                amount_col = next((c for c in columns if 'total' in c.lower() or 'amount' in c.lower() or 'revenue' in c.lower() or 'sale' == c.lower().strip() or 'sale price' in c.lower()), None)
+                deposit_col = next((c for c in columns if 'deposit' in c.lower()), None)
+                balance_col = next((c for c in columns if 'balance' in c.lower()), None)
+                noted_col = next((c for c in columns if 'noted' in c.lower() or 'remark' in c.lower() or 'note' == c.lower().strip()), None)
                 
                 name = row_dict.get(name_col, 'Unknown') if name_col else 'Unknown'
                 pax = row_dict.get(pax_col, 1) if pax_col else 1
                 so_no = row_dict.get(so_col, 'N/A') if so_col else 'N/A'
-                amount = float(row_dict.get(amount_col, 0) or 0) if amount_col else 0.0
+                
+                try: amount = float(str(row_dict.get(amount_col, 0) or 0).replace(',', '').replace('$', ''))
+                except: amount = 0.0
+                
+                try: deposit = float(str(row_dict.get(deposit_col, 0) or 0).replace(',', '').replace('$', ''))
+                except: deposit = 0.0
+                
+                try: balance = float(str(row_dict.get(balance_col, 0) or 0).replace(',', '').replace('$', ''))
+                except: balance = 0.0
                 
                 try: pax = int(float(pax))
                 except: pax = 1
                 
                 total_revenue += amount
+                total_deposit += deposit
+                total_balance += balance
                 
                 passengers.append({
                     "name": name,
                     "pax": pax,
                     "so_no": so_no,
                     "amount": amount,
+                    "deposit": deposit,
+                    "balance": balance,
+                    "noted": str(row_dict.get(noted_col, '')) if noted_col else '',
                     "raw_data": {k: str(v) for k, v in row_dict.items() if pd.notna(v) and v is not None}
                 })
                 
@@ -398,6 +426,8 @@ def get_tour_manifest(tour_code):
             "tour_code": tour_code, 
             "total_passengers": sum(p['pax'] for p in passengers),
             "total_revenue": total_revenue,
+            "total_deposit": total_deposit,
+            "total_balance": total_balance,
             "passengers": passengers
         })
     except Exception as e:

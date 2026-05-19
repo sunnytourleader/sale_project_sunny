@@ -1,20 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Executive Analytics Dashboard</title>
     <!-- Tailwind CSS for styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="../static/css/tailwindcss.js"></script>
     <!-- Chart.js for beautiful graphs -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="../static/js/chart.js"></script>
 </head>
+
 <body class="bg-gray-100 p-8">
 
     <div class="max-w-7xl mx-auto">
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold text-gray-800">Top Management Analytics</h1>
-            <a href="/" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Back to Main System</a>
+            <a href="/" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Back to Main
+                System</a>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -65,7 +68,7 @@
         };
 
         function renderCharts(data) {
-            if(data.status !== 'success') {
+            if (data.status !== 'success') {
                 console.error("Failed to load data", data.message);
                 return;
             }
@@ -75,7 +78,7 @@
             const closedDeals = data.conversion.closed_deals || 0;
             const totalLeads = data.conversion.total_leads || 1; // Prevent div by 0
             const lostDeals = totalLeads - closedDeals;
-            
+
             new Chart(convCtx, {
                 type: 'doughnut',
                 data: {
@@ -92,7 +95,7 @@
             const tourCtx = document.getElementById('tourChart').getContext('2d');
             const tourLabels = data.tour_performance.map(t => t.package_name || 'Unknown');
             const tourRevs = data.tour_performance.map(t => t.total_revenue);
-            
+
             new Chart(tourCtx, {
                 type: 'bar',
                 data: {
@@ -141,8 +144,8 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: { type: 'linear', display: true, position: 'left', title: {display: true, text: 'Meetings'} },
-                        y1: { type: 'linear', display: true, position: 'right', grid: {drawOnChartArea: false}, title: {display: true, text: 'Revenue ($)'} }
+                        y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Meetings' } },
+                        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Revenue ($)' } }
                     }
                 }
             });
@@ -169,4 +172,5 @@
         }
     </script>
 </body>
+
 </html>
